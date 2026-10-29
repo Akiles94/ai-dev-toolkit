@@ -12,10 +12,11 @@ export type DiffSource =
 /**
  * - `code`: production lines, the ones that count toward section limits.
  * - `test`: test files, reported apart.
+ * - `config`: tooling configuration (package.json, tsconfig, CI…), reported apart.
  * - `noise`: lockfiles, generated, snapshots, build output (config `limits.exclude`).
  * - `formatting`: only whitespace changed.
  */
-export type FileCategory = "code" | "test" | "noise" | "formatting";
+export type FileCategory = "code" | "test" | "config" | "noise" | "formatting";
 
 export interface RawChange {
   path: string;
@@ -92,6 +93,7 @@ export function classify(
     let category: FileCategory;
     if (matchesAny(change.path, config.limits.exclude)) category = "noise";
     else if (matchesAny(change.path, config.tests.patterns)) category = "test";
+    else if (matchesAny(change.path, config.configFiles.patterns)) category = "config";
     else if (
       !change.binary &&
       change.added + change.deleted > 0 &&
@@ -105,7 +107,13 @@ export function classify(
 
 export function summarize(source: string, files: FileChange[]): DiffSummary {
   const empty = (): CategoryTotals => ({ files: 0, added: 0, deleted: 0 });
-  const totals = { code: empty(), test: empty(), noise: empty(), formatting: empty() };
+  const totals = {
+    code: empty(),
+    test: empty(),
+    config: empty(),
+    noise: empty(),
+    formatting: empty(),
+  };
   for (const file of files) {
     const bucket = totals[file.category];
     bucket.files += 1;

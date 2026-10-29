@@ -8,10 +8,11 @@ export interface CleanResult {
   total: number;
 }
 
-/** Files worth scanning: changed code and tests that still exist and are text. */
+/** Files worth scanning: changed code, tests and config that are text. */
 export function cleanTargets(summary: DiffSummary): string[] {
+  const scanned = new Set(["code", "test", "config"]);
   return summary.files
-    .filter((f) => !f.binary && (f.category === "code" || f.category === "test"))
+    .filter((f) => !f.binary && scanned.has(f.category))
     .map((f) => f.path);
 }
 

@@ -13,6 +13,10 @@ export interface AidtConfig {
     /** Globs that identify test files. Counted apart from production code. */
     patterns: string[];
   };
+  configFiles: {
+    /** Globs for tooling configuration (package.json, tsconfig, CI…). Counted apart. */
+    patterns: string[];
+  };
   guide: {
     /** Marker that identifies removable guide comments, e.g. `// @guide: …`. */
     marker: string;
@@ -55,6 +59,27 @@ export const DEFAULT_CONFIG: AidtConfig = {
       "**/test_*.py",
     ],
   },
+  configFiles: {
+    patterns: [
+      "**/package.json",
+      "**/tsconfig*.json",
+      "**/jsconfig*.json",
+      "**/*.config.{js,cjs,mjs,ts,cts,mts,json}",
+      "**/biome.json",
+      "**/biome.jsonc",
+      "**/.eslintrc*",
+      "**/.prettierrc*",
+      "**/.editorconfig",
+      "**/.gitignore",
+      "**/.gitattributes",
+      "**/.nvmrc",
+      "**/.node-version",
+      "**/.npmrc",
+      ".github/**",
+      ".vscode/**",
+      ".aidt/config.json",
+    ],
+  },
   guide: { marker: "@guide" },
 };
 
@@ -75,6 +100,7 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
   return {
     limits: { ...DEFAULT_CONFIG.limits, ...parsed.limits },
     tests: { ...DEFAULT_CONFIG.tests, ...parsed.tests },
+    configFiles: { ...DEFAULT_CONFIG.configFiles, ...parsed.configFiles },
     guide: { ...DEFAULT_CONFIG.guide, ...parsed.guide },
   };
 }

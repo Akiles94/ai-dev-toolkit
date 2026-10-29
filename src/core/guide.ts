@@ -17,10 +17,10 @@ export interface StripResult {
   removed: number;
 }
 
-const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 function patterns(marker: string) {
-  const m = escape(marker);
+  const m = escapeRegExp(marker);
   return {
     /** The whole line is a guide comment. */
     fullLine: new RegExp(String.raw`^\s*(?://|#|--|;|/\*+|\*|<!--)\s*${m}\b`),

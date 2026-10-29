@@ -11,9 +11,7 @@ export interface CleanResult {
 /** Files worth scanning: changed code, tests and config that are text. */
 export function cleanTargets(summary: DiffSummary): string[] {
   const scanned = new Set(["code", "test", "config"]);
-  return summary.files
-    .filter((f) => !f.binary && scanned.has(f.category))
-    .map((f) => f.path);
+  return summary.files.filter((f) => !f.binary && scanned.has(f.category)).map((f) => f.path);
 }
 
 /**

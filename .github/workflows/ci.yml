@@ -15,7 +15,12 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-      - run: node dist/cli.js --help
+      # GitHub reporter: errors show up as annotations on the PR.
+      - run: npx biome ci --reporter=github .
+      # Run every check even if one fails, so a single run reports everything.
+      - if: ${{ !cancelled() }}
+        run: npm test
+      - if: ${{ !cancelled() }}
+        run: npm run build
+      - if: ${{ !cancelled() }}
+        run: node dist/cli.js --help

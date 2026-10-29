@@ -30,13 +30,28 @@ describe("classify", () => {
     const changes = [
       change("src/rate-limiter.ts"),
       change("src/rate-limiter.test.ts"),
+      change("package.json", 2, 1),
+      change(".github/workflows/ci.yml"),
       change("package-lock.json", 900, 40),
       change("src/__snapshots__/a.snap"),
       change("src/reformatted.ts", 7, 7),
     ];
-    const withoutWhitespace = real(["src/rate-limiter.ts", "src/rate-limiter.test.ts"]);
+    const withoutWhitespace = real([
+      "src/rate-limiter.ts",
+      "src/rate-limiter.test.ts",
+      "package.json",
+      ".github/workflows/ci.yml",
+    ]);
     const categories = classify(changes, withoutWhitespace, DEFAULT_CONFIG).map((c) => c.category);
-    expect(categories).toEqual(["code", "test", "noise", "noise", "formatting"]);
+    expect(categories).toEqual([
+      "code",
+      "test",
+      "config",
+      "config",
+      "noise",
+      "noise",
+      "formatting",
+    ]);
   });
 
   it("does not call a pure rename a formatting change", () => {

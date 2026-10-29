@@ -3,11 +3,12 @@ import type { DiffSummary, FileCategory } from "../core/diff.ts";
 const LABELS: Record<FileCategory, string> = {
   code: "Code",
   test: "Tests",
+  config: "Config",
   noise: "Noise",
   formatting: "Formatting",
 };
 
-const ORDER: FileCategory[] = ["code", "test", "noise", "formatting"];
+const ORDER: FileCategory[] = ["code", "test", "config", "noise", "formatting"];
 
 /** Human-readable report for `aidt diff`. */
 export function formatDiff(summary: DiffSummary, sectionLines: number, listFiles: boolean): string {

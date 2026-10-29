@@ -9,7 +9,16 @@
     "url": "git+https://github.com/Akiles94/ai-dev-toolkit.git"
   },
   "homepage": "https://github.com/Akiles94/ai-dev-toolkit#readme",
-  "keywords": ["ai", "agents", "agents-md", "code-review", "spec-driven", "stacked-prs", "copilot", "claude-code"],
+  "keywords": [
+    "ai",
+    "agents",
+    "agents-md",
+    "code-review",
+    "spec-driven",
+    "stacked-prs",
+    "copilot",
+    "claude-code"
+  ],
   "type": "module",
   "engines": {
     "node": ">=24"

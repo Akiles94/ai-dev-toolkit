@@ -81,7 +81,7 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 ### 5.2 Planner (how)
 - **Input:** `spec.md` + repo + rule layers. Does not read the refining conversation.
 - **Asks:** only what is not already defined. Typical: approach and trade-offs, placement and structure, naming, reuse of existing code ("there's already `searchUsers()`: reuse or new?").
-- **Splits the work into sections** by intent (e.g. data → domain → presentation → wiring), each targeting ≤ `limits.sectionLines` (default 300, tests and generated files excluded).
+- **Splits the work into sections** by intent (e.g. data → domain → presentation → wiring), each targeting ≤ `limits.sectionLines` (default 300; tests, tooling config and generated files excluded).
 - **Output:** `plan.md`. Gate: user approves.
 
 ### 5.3 Builder (code)
@@ -215,6 +215,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
   "harnesses": ["copilot", "claude-code"],
   "limits": { "sectionLines": 300, "exclude": ["**/*.lock", "**/*.snap", "**/generated/**"] },
   "tests": { "coverage": 80, "requireRequirementTests": true },
+  "configFiles": { "patterns": ["**/package.json", "**/tsconfig*.json", ".github/**"] },
   "guide": { "marker": "@guide" },
   "delivery": { "mode": "stack", "draft": true },
   "models": {

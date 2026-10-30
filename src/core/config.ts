@@ -46,6 +46,7 @@ export const DEFAULT_CONFIG: AidtConfig = {
       "**/build/**",
       "**/*.min.*",
       "**/*.map",
+      ".aidt/tasks/**",
     ],
   },
   tests: {

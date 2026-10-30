@@ -50,9 +50,15 @@ const agents = readdirSync(DIR)
   .map((file) => ({ file, ...frontmatter(readFileSync(join(DIR, file), "utf8")) }));
 
 describe("canonical agents", () => {
-  it("has at least the agents of the first half of the workflow", () => {
-    const names = agents.map((a) => a.data.name);
-    expect(["refiner", "planner"].every((n) => names.includes(n))).toBe(true);
+  it("has the four workflow agents", () => {
+    expect(agents.map((a) => a.data.name).sort()).toEqual([...WORKFLOW].sort());
+  });
+
+  it("chains them in order: refiner → planner → builder → reviewer", () => {
+    expect(agent("refiner").data.handoff).toBe("planner");
+    expect(agent("planner").data.handoff).toBe("builder");
+    expect(agent("builder").data.handoff).toBe("reviewer");
+    expect(agent("reviewer").data.handoff).toBe(undefined);
   });
 
   for (const { file, data, body } of agents) {
@@ -102,5 +108,37 @@ describe("planner", () => {
 
   it("cannot edit source code or run commands", () => {
     expect(planner.data.capabilities).toEqual(["read", "ask", "write"]);
+  });
+});
+
+describe("builder", () => {
+  const builder = agent("builder");
+
+  it("removes guide comments before committing", () => {
+    expect(builder.body.includes("`aidt clean --worktree`")).toBe(true);
+    expect(
+      builder.body.indexOf("aidt clean --worktree") < builder.body.indexOf("Commit only"),
+    ).toBe(true);
+  });
+
+  it("never starts the next section on its own", () => {
+    expect(builder.body.includes("Never start it on your own")).toBe(true);
+  });
+});
+
+describe("reviewer", () => {
+  const reviewer = agent("reviewer");
+
+  it("cannot edit code and only writes review files and state", () => {
+    expect((reviewer.data.capabilities as string[]).includes("edit")).toBe(false);
+    expect(reviewer.data.writes).toEqual([".aidt/tasks/*/review/*.md", ".aidt/tasks/*/state.json"]);
+  });
+
+  it("checks that no guide comments remain", () => {
+    expect((reviewer.data.commands as string[]).includes("aidt clean --check")).toBe(true);
+  });
+
+  it("binds each verdict to a commit", () => {
+    expect(reviewer.body.includes("A verdict is only valid for that commit")).toBe(true);
   });
 });

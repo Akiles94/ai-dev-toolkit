@@ -86,14 +86,14 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 
 ### 5.3 Builder (code)
 - Implements **one section at a time**, strictly from `plan.md`.
-- Adds **guide comments** (see §6) explaining intent and flow.
+- Adds **guide comments** (see §6) explaining intent and flow, left uncommitted while the user reviews.
 - Writes tests linked to spec requirements (`R1`, `R2`…).
 - **Stops after each section.** Loop: user asks, requests changes or approves. Next section only after explicit approval.
-- After approval: commits the section on its own branch (see §7).
+- After approval: removes the guide comments (`aidt clean`) and commits the clean section. One commit per section on the task branch; delivery turns them into the stack (see §7).
 
-### 5.4 Reviewer (clean + explain)
+### 5.4 Reviewer (verify + explain)
 - Fresh context: reads only spec, plan and diff. Cannot edit source (enforced by hooks where the harness supports them).
-- **Cleanup** (script): removes guide comments.
+- **Cleanup check** (script): `aidt clean --check` must find no guide comments left.
 - **Checks** (scripts first): section line count, coverage threshold, every requirement has a test.
 - **Explains:** one review guide per section (§8) + `index.md`.
 - **Verdict** per section: `PASS` / `FAIL`, bound to the reviewed commit SHA (a stale PASS is invalid).
@@ -131,12 +131,13 @@ if (limiter.isBlocked(ip)) return tooManyRequests(retryAfter);
 ```
 
 - Prefix configurable (`guide.marker`, default `@guide`), adapted to each language's comment syntax.
-- Removed by `aidt clean` (script). Normal comments are untouched.
+- Never committed: the builder removes them with `aidt clean` when the user approves the section, so history never needs rewriting. The reviewer checks none are left.
+- Removed by script. Normal comments are untouched.
 - Not counted in section line limits.
 
 ## 7. Delivery: stacked PRs by default
 
-One section = one branch = one PR, each based on the previous one.
+One section = one commit while building → one branch = one PR at delivery, each based on the previous one.
 
 | Situation | Behavior |
 |---|---|

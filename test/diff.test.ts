@@ -54,6 +54,15 @@ describe("classify", () => {
     ]);
   });
 
+  it("does not count task artifacts (spec, plan, reviews) as code", () => {
+    const [result] = classify(
+      [change(".aidt/tasks/feat-x/spec.md")],
+      real([".aidt/tasks/feat-x/spec.md"]),
+      DEFAULT_CONFIG,
+    );
+    expect(result?.category).toBe("noise");
+  });
+
   it("does not call a pure rename a formatting change", () => {
     const [result] = classify([change("src/moved.ts", 0, 0)], new Map(), DEFAULT_CONFIG);
     expect(result?.category).toBe("code");

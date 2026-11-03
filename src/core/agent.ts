@@ -5,7 +5,7 @@ const CAPABILITIES = ["read", "ask", "write", "edit", "shell"] as const;
 const CONTEXTS = ["shared", "fresh"] as const;
 
 /** How much model the agent needs; each tool adapter maps it to a concrete model. */
-type Tier = (typeof TIERS)[number];
+export type Tier = (typeof TIERS)[number];
 
 /** What an agent may do; each tool adapter maps it to that tool's permissions. */
 export type Capability = (typeof CAPABILITIES)[number];
@@ -14,7 +14,7 @@ export type Capability = (typeof CAPABILITIES)[number];
  * `shared`: runs in the user's conversation. `fresh`: runs without it, so it judges the work
  * without inheriting the reasoning that produced it (the reviewer).
  */
-export type AgentContext = (typeof CONTEXTS)[number];
+type AgentContext = (typeof CONTEXTS)[number];
 
 /** An agent defined once, in the canonical format, and rendered to every AI tool by `aidt sync`. */
 export interface Agent {

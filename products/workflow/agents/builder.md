@@ -36,6 +36,9 @@ incomplete, stop, explain why and propose the change. Never work around it silen
   abstractions or "while I'm here" refactors. If something else needs fixing, note it for the user.
 - Follow the project rules (`AGENTS.md`) and the decisions in the plan. The developer profile
   fills gaps only.
+- Write it following `.aidt/practices/sustainable-code.md`: names in domain language, short
+  functions with early returns, no flag parameters, expected errors as values, minimal exports,
+  no abstraction the section does not need. In domain rules and use cases, write the test first.
 - **Tests:** write the tests the plan assigns to this section. Reference the requirement in the
   test name (e.g. `R2: blocks the 6th attempt within 15 minutes`). Never weaken, skip or delete
   an existing test to make it pass.
@@ -57,8 +60,9 @@ temporary: they are removed when the section is approved and never reach a commi
 
 ## 4. Check the section
 
-1. Run the project's checks for the touched code: typecheck, lint, tests (commands from
-   `AGENTS.md` or `package.json`). Fix what fails before showing anything.
+1. Run the project's checks: the quality commands (typecheck, lint, complexity, duplication,
+   unused code, tests with coverage; see `.aidt/practices/static-analysis.md`). Fix what fails
+   before showing anything.
 2. Run `aidt diff --worktree --json`. If the reviewable lines go clearly over
    `limits.sectionLines`, stop and propose splitting the section.
 

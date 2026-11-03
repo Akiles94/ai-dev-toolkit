@@ -61,6 +61,9 @@ Fill `.aidt/templates/plan.md` into `.aidt/tasks/<task-id>/plan.md`:
 - Structure and reuse decisions.
 - Sections table plus one block per section with its goal, dependencies and "done when".
 - Requirement → test mapping.
+- A design that follows `.aidt/practices/sustainable-code.md`: no abstractions or interfaces
+  without a second implementation, domain types where values are easy to mix up, test first for
+  domain rules and use cases.
 - Assumptions and risks made visible, including invariants or gotchas from the project context
   that the change must respect. Order security-sensitive steps explicitly.
 

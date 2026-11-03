@@ -36,6 +36,10 @@ a limit, the instructions still state it and the reviewer checks it afterwards.
 - **Task folder:** `.aidt/tasks/<task-id>/`, where `<task-id>` is the branch name with `/` replaced
   by `-` (`feat/AUTH-87-rate-limit` → `feat-AUTH-87-rate-limit`).
 - **Templates:** `.aidt/templates/`. Agents fill them; they never invent their own format.
+- **Practices:** `.aidt/practices/` (by default, sustainable code and static analysis). The planner
+  designs with them, the builder writes with them, the reviewer checks them. Project rules win.
+- **Quality commands:** `quality.commands` in `.aidt/config.json`, or the project's single check
+  script (e.g. `npm run verify`). Builder and reviewer run them; any failure blocks the section.
 - **State:** `.aidt/tasks/<task-id>/state.json`, following `state.schema.json`. Every agent reads
   it first and updates it last.
 - **Rule layers:** task decisions > project rules (`AGENTS.md`) > developer profile

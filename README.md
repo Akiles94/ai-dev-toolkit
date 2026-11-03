@@ -3,7 +3,7 @@
 **Use AI to write code without losing control of it.**
 A spec-driven workflow where AI does the typing and you keep the decisions, the understanding and the review.
 
-> ⚠️ Status: design stage. Nothing to install yet. See [docs/design.md](docs/design.md).
+> ⚠️ Status: early v0. The `workflow` product works with GitHub Copilot and Claude Code; not on npm yet. Design: [docs/design.md](docs/design.md).
 
 ## The problem
 
@@ -44,6 +44,25 @@ The same flow scales to the size of the task. You pick the mode, or the refiner 
 | `rework` | Feedback on an open PR | Only the builder and reviewer, on the affected section |
 
 Small tasks get the same control with a fraction of the questions and tokens.
+
+## Get started
+
+Requires Node 24 and git.
+
+```bash
+git clone https://github.com/Akiles94/ai-dev-toolkit.git
+cd ai-dev-toolkit && npm ci && npm run build && npm link   # makes `aidt` available
+
+cd your-project
+aidt add workflow    # copies agents, templates and practices into .aidt/ and renders them
+```
+
+Then start a task:
+
+- **GitHub Copilot (VS Code):** pick the `refiner` agent in the chat and paste the ticket. Each agent offers a button to hand off to the next one.
+- **Claude Code:** `/refiner <ticket or description>`, then `/planner`, `/builder`, `/reviewer`.
+
+Everything in `.aidt/` is yours to edit. After changing an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
 
 ## Install only what you need
 

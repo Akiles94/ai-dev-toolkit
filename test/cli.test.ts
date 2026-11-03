@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { commitAll, featureRepo, write } from "./helpers/repo.ts";
@@ -63,5 +63,41 @@ describe("errors", () => {
     const { code, err } = run(repo, "nope");
     expect(code).toBe(2);
     expect(err).toContain("Unknown command");
+  });
+});
+
+describe("aidt add", () => {
+  it("copies the workflow into .aidt/ and renders its agents for every AI tool", () => {
+    const { code, out } = run(repo, "add", "workflow");
+    expect(code).toBe(0);
+    expect(out).toContain("Created .aidt/config.json");
+    for (const path of [
+      ".aidt/agents/refiner.md",
+      ".aidt/templates/spec.md",
+      ".aidt/practices/sustainable-code.md",
+      ".github/agents/reviewer.agent.md",
+      ".claude/skills/reviewer/SKILL.md",
+    ]) {
+      expect(existsSync(join(repo, path))).toBe(true);
+    }
+    expect(run(repo, "sync", "--check").code).toBe(0);
+  });
+
+  it("never overwrites files the project already customized", () => {
+    run(repo, "add", "workflow");
+    const practices = join(repo, ".aidt", "practices", "sustainable-code.md");
+    writeFileSync(practices, "# Our own rules\n");
+
+    const { code, out } = run(repo, "add", "workflow");
+    expect(code).toBe(0);
+    expect(out).toContain("Added 0 file(s)");
+    expect(out).toContain(".aidt/practices/sustainable-code.md");
+    expect(readFileSync(practices, "utf8")).toBe("# Our own rules\n");
+  });
+
+  it("explains which products exist when the name is wrong", () => {
+    const { code, err } = run(repo, "add", "nope");
+    expect(code).toBe(2);
+    expect(err).toContain('Unknown product "nope". Available: workflow.');
   });
 });

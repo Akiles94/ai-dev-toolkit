@@ -28,6 +28,7 @@
   },
   "files": [
     "dist",
+    "products",
     "README.md",
     "LICENSE"
   ],

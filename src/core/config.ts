@@ -21,6 +21,12 @@ export interface AidtConfig {
     /** Marker that identifies removable guide comments, e.g. `// @guide: …`. */
     marker: string;
   };
+  sync: {
+    /** Folder with the canonical agents, relative to the repository root. */
+    agents: string;
+    /** AI tools to render the agents for. */
+    harnesses: string[];
+  };
 }
 
 export const DEFAULT_CONFIG: AidtConfig = {
@@ -82,6 +88,7 @@ export const DEFAULT_CONFIG: AidtConfig = {
     ],
   },
   guide: { marker: "@guide" },
+  sync: { agents: ".aidt/agents", harnesses: ["copilot"] },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");
@@ -103,5 +110,6 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
     tests: { ...DEFAULT_CONFIG.tests, ...parsed.tests },
     configFiles: { ...DEFAULT_CONFIG.configFiles, ...parsed.configFiles },
     guide: { ...DEFAULT_CONFIG.guide, ...parsed.guide },
+    sync: { ...DEFAULT_CONFIG.sync, ...parsed.sync },
   };
 }

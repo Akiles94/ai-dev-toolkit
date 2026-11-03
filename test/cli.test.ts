@@ -1,8 +1,8 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { commitAll, featureRepo, write } from "./helpers/repo.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const M = "@guide";
@@ -12,26 +12,16 @@ function run(cwd: string, ...args: string[]) {
   return { code: result.status, out: result.stdout, err: result.stderr };
 }
 
-function sh(cwd: string, ...args: string[]) {
-  execFileSync("git", args, { cwd, stdio: "ignore" });
-}
-
 let repo: string;
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), "aidt-"));
-  sh(repo, "init", "-q", "-b", "main");
-  sh(repo, "config", "user.email", "test@example.com");
-  sh(repo, "config", "user.name", "Test");
-  writeFileSync(join(repo, "app.ts"), "export const a = 1;\n");
-  sh(repo, "add", ".");
-  sh(repo, "commit", "-q", "-m", "init");
-  sh(repo, "checkout", "-q", "-b", "feature");
-  writeFileSync(join(repo, "app.ts"), `export const a = 2; // ${M}: bumped\nexport const b = 3;\n`);
-  writeFileSync(join(repo, "app.test.ts"), "test();\n");
-  writeFileSync(join(repo, "package-lock.json"), `${"{}\n".repeat(50)}`);
-  sh(repo, "add", ".");
-  sh(repo, "commit", "-q", "-m", "feature");
+  repo = featureRepo();
+  write(repo, {
+    "app.ts": `export const a = 2; // ${M}: bumped\nexport const b = 3;\n`,
+    "app.test.ts": "test();\n",
+    "package-lock.json": "{}\n".repeat(50),
+  });
+  commitAll(repo, "feature");
 });
 
 describe("aidt diff", () => {

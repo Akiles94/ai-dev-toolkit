@@ -18,7 +18,7 @@ export type DiffSource =
  */
 export type FileCategory = "code" | "test" | "config" | "noise" | "formatting";
 
-export interface RawChange {
+interface RawChange {
   path: string;
   oldPath?: string;
   added: number;
@@ -30,7 +30,7 @@ export interface FileChange extends RawChange {
   category: FileCategory;
 }
 
-export interface CategoryTotals {
+interface CategoryTotals {
   files: number;
   added: number;
   deleted: number;
@@ -42,7 +42,7 @@ export interface DiffSummary {
   totals: Record<FileCategory, CategoryTotals>;
 }
 
-export function describeSource(source: DiffSource): string {
+function describeSource(source: DiffSource): string {
   if (source.kind === "range") return `${source.base}...${source.head}`;
   return source.kind === "staged" ? "staged changes" : "working tree (vs HEAD)";
 }

@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  check:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -15,12 +15,48 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
-      # GitHub reporter: errors show up as annotations on the PR.
-      - run: npx biome ci --reporter=github .
-      # Run every check even if one fails, so a single run reports everything.
-      - if: ${{ !cancelled() }}
-        run: npm test
+      # Every check runs even if a previous one fails, and reports its findings as PR annotations.
+      - name: Lint and cognitive complexity (Biome)
+        if: ${{ !cancelled() }}
+        run: npx biome ci --reporter=github .
+      - name: Unused files, exports and dependencies (knip)
+        if: ${{ !cancelled() }}
+        run: npx knip --reporter github-actions
+      - name: Duplication (jscpd)
+        id: dup
+        if: ${{ !cancelled() }}
+        run: npm run dup
+      - name: Report duplication
+        if: ${{ failure() && steps.dup.outcome == 'failure' }}
+        run: >
+          jq -r '.duplicates[] | "::error file=\(.firstFile.name),line=\(.firstFile.start)::Duplicated
+          with \(.secondFile.name):\(.secondFile.start) (\(.lines) lines)"'
+          reports/jscpd/jscpd-report.json
+      - name: Tests with coverage (Vitest)
+        id: coverage
+        if: ${{ !cancelled() }}
+        run: npm run test:coverage
+      - name: Report coverage
+        if: ${{ failure() && steps.coverage.outcome == 'failure' }}
+        run: >
+          jq -r '.total | to_entries[] | "::error title=Coverage::\(.key) \(.value.pct)%"'
+          reports/coverage/coverage-summary.json || true
+      - name: Vulnerable dependencies (npm audit)
+        if: ${{ !cancelled() }}
+        run: npm audit --audit-level=high
       - if: ${{ !cancelled() }}
         run: npm run build
       - if: ${{ !cancelled() }}
         run: node dist/cli.js --help
+
+  security:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v5
+      - name: Security scan (Semgrep Community Edition)
+        run: >
+          semgrep scan --config p/typescript --config p/nodejs --config p/secrets
+          --error --metrics off --json --output semgrep.json || status=$?;
+          python3 -c "import json;[print(f'::error file={r[\"path\"]},line={r[\"start\"][\"line\"]}::{r[\"check_id\"]}: {r[\"extra\"][\"message\"]}') for r in json.load(open('semgrep.json'))['results']]";
+          exit ${status:-0}

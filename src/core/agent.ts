@@ -4,7 +4,7 @@ const TIERS = ["efficient", "balanced", "max"] as const;
 const CAPABILITIES = ["read", "ask", "write", "edit", "shell"] as const;
 
 /** How much model the agent needs; each tool adapter maps it to a concrete model. */
-export type Tier = (typeof TIERS)[number];
+type Tier = (typeof TIERS)[number];
 
 /** What an agent may do; each tool adapter maps it to that tool's permissions. */
 export type Capability = (typeof CAPABILITIES)[number];

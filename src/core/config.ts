@@ -88,7 +88,7 @@ export const DEFAULT_CONFIG: AidtConfig = {
     ],
   },
   guide: { marker: "@guide" },
-  sync: { agents: ".aidt/agents", harnesses: ["copilot"] },
+  sync: { agents: ".aidt/agents", harnesses: ["copilot", "claude-code"] },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");

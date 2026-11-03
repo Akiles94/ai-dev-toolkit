@@ -1,8 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { allowedTools, claudeCode } from "../src/adapters/claude-code.ts";
 import { copilot } from "../src/adapters/copilot.ts";
-import { planSync, writeSync } from "../src/commands/sync.ts";
+import { planSync, staleFiles, writeSync } from "../src/commands/sync.ts";
 import { type Agent, parseAgent } from "../src/core/agent.ts";
 import { featureRepo } from "./helpers/repo.ts";
 
@@ -113,5 +114,65 @@ describe("sync", () => {
     const repo = repoWithAgents({ "refiner.md": REFINER, "broken.md": "no frontmatter" });
     const plan = await planSync(repo, ".aidt/agents", ["copilot", "notepad"]);
     expect(plan.problems.map((p) => p.file)).toEqual(["sync.harnesses", ".aidt/agents/broken.md"]);
+  });
+});
+
+describe("claude code adapter", () => {
+  const skill = (markdown: string, file = "refiner.md") =>
+    claudeCode(parsed(file, markdown), `.aidt/agents/${file}`)[0];
+
+  it("writes a skill the user invokes as a slash command", () => {
+    const file = skill(REFINER);
+    expect(file?.path).toBe(".claude/skills/refiner/SKILL.md");
+    expect(file?.content).toContain("disable-model-invocation: true");
+    expect(file?.content).toContain("model: sonnet");
+  });
+
+  it("pre-approves only the scoped writes and commands", () => {
+    expect(allowedTools(parsed("refiner.md", REFINER))).toEqual([
+      "Read",
+      "Grep",
+      "Glob",
+      "AskUserQuestion",
+      "Edit(.aidt/tasks/*/spec.md)",
+      "Bash(git branch *)",
+    ]);
+  });
+
+  it("suggests the next step instead of starting it", () => {
+    expect(skill(REFINER)?.content.trimEnd().endsWith("Never start it yourself.")).toBe(true);
+  });
+
+  it("runs a fresh-context agent in a forked subagent that waits for the result", () => {
+    const content = skill(
+      REFINER.replace("tier: balanced", "tier: efficient\ncontext: fresh"),
+    )?.content;
+    expect(content).toContain("model: haiku");
+    expect(content).toContain("context: fork\nagent: general-purpose\nbackground: false");
+    expect(content).toContain("## Running in a fresh context");
+  });
+
+  it("rejects an unknown context", () => {
+    const result = parseAgent("refiner.md", REFINER.replace("tier:", "context: shy\ntier:"));
+    expect(result.ok ? [] : result.error).toEqual(["context must be one of shared, fresh"]);
+  });
+});
+
+describe("sync --check", () => {
+  it("lists generated files that are missing or edited by hand", async () => {
+    const repo = featureRepo();
+    mkdirSync(join(repo, ".aidt", "agents"), { recursive: true });
+    writeFileSync(join(repo, ".aidt", "agents", "refiner.md"), REFINER);
+    const plan = await planSync(repo, ".aidt/agents", ["copilot", "claude-code"]);
+    expect(await staleFiles(repo, plan.files)).toEqual([
+      ".github/agents/refiner.agent.md",
+      ".claude/skills/refiner/SKILL.md",
+    ]);
+
+    await writeSync(repo, plan.files);
+    expect(await staleFiles(repo, plan.files)).toEqual([]);
+
+    writeFileSync(join(repo, ".claude", "skills", "refiner", "SKILL.md"), "edited by hand");
+    expect(await staleFiles(repo, plan.files)).toEqual([".claude/skills/refiner/SKILL.md"]);
   });
 });

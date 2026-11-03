@@ -2,6 +2,7 @@
 name: reviewer
 description: Reviews each approved section against the spec and plan with a fresh, critical eye, gives a PASS/FAIL verdict bound to its commit, and writes the review guides other developers will read. Cannot edit code.
 tier: efficient
+context: fresh
 capabilities: [read, write, shell]
 writes:
   - .aidt/tasks/*/review/*.md

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { cleanTargets, findGuides, formatClean, removeGuides } from "./commands/clean.ts";
 import { formatDiff } from "./commands/diff.ts";
-import { formatSync, planSync, writeSync } from "./commands/sync.ts";
+import { formatStale, formatSync, planSync, staleFiles, writeSync } from "./commands/sync.ts";
 import { type AidtConfig, loadConfig } from "./core/config.ts";
 import { collectDiff, type DiffSource } from "./core/diff.ts";
 import { defaultBranch, GitError, repoRoot } from "./core/git.ts";
@@ -12,7 +12,8 @@ const HELP = `aidt: AI Dev Toolkit
 
 Usage
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
-  aidt sync  [--from <dir>]                Render the canonical agents for each AI tool
+  aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
+                                           (--check: exit 1 if generated files are out of date)
   aidt clean [paths…] [source] [--check]   Remove guide comments (--check: report, exit 1 if any)
 
 Source (default: <default branch>...HEAD)
@@ -25,7 +26,7 @@ Other
   -h, --help      Show this help
   -v, --version   Show the version
 
-Exit codes: 0 ok · 1 findings (clean --check, invalid agents) · 2 usage or git error`;
+Exit codes: 0 ok · 1 findings (--check, invalid agents) · 2 usage or git error`;
 
 class UsageError extends Error {}
 
@@ -113,10 +114,17 @@ async function runClean(context: Context, givenPaths: string[]): Promise<number>
 
 async function runSync({ root, config, flags }: Context): Promise<number> {
   const plan = await planSync(root, flags.from ?? config.sync.agents, config.sync.harnesses);
-  print(formatSync(plan));
-  if (plan.problems.length > 0) return 1;
+  if (plan.problems.length > 0) {
+    print(formatSync(plan));
+    return 1;
+  }
+  if (flags.check) {
+    const stale = await staleFiles(root, plan.files);
+    print(formatStale(stale));
+    return stale.length > 0 ? 1 : 0;
+  }
   await writeSync(root, plan.files);
-  return 0;
+  return print(formatSync(plan));
 }
 
 async function main(argv: string[]): Promise<number> {

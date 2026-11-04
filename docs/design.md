@@ -102,6 +102,7 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 - **Explains:** one review guide per section (§8) + `index.md`.
 - **Verdict** per section: `PASS` / `FAIL`, bound to the reviewed commit SHA (a stale PASS is invalid).
 - **Delivery:** prepares the stack. Publishing requires user confirmation.
+- **Without a spec** (installed alone, or a change that skipped the workflow): reviews the branch against its ticket. It always asks for the ticket and anything else to consider before reviewing, since a ticket often exists even when the branch and commits do not reference it. The ticket becomes derived requirements; without one, it judges everything but coverage. No `aidt check`, no stack, no `state.json`.
 
 ### 5.5 Integrations with `docs` and `context`
 

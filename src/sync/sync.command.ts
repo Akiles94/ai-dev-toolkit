@@ -23,9 +23,8 @@ interface Plan {
 }
 
 async function loadAgents(root: string, dir: string) {
-  const names = (await readdir(join(root, dir))).filter(
-    (f) => f.endsWith(".md") && f !== "README.md",
-  );
+  const all = await readdir(join(root, dir)).catch(() => [] as string[]);
+  const names = all.filter((f) => f.endsWith(".md") && f !== "README.md");
   const parsed = await Promise.all(
     names.map(async (file) => ({
       file,

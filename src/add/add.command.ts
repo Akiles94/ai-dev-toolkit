@@ -10,6 +10,7 @@ const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));
 /** What each product copies into the project, as folders under `.aidt/`. */
 const PRODUCTS: Record<string, readonly string[]> = {
   workflow: ["agents", "templates", "practices"],
+  structure: ["structure", "templates"],
 };
 
 const CONFIG_FILE = ".aidt/config.json";

@@ -72,7 +72,7 @@ Then start a task:
 - **GitHub Copilot (VS Code):** pick the `refiner` agent in the chat and paste the ticket. Each agent offers a button to hand off to the next one.
 - **Claude Code:** `/refiner <ticket or description>`, then `/planner`, `/builder`, `/reviewer`.
 
-Everything in `.aidt/` is yours to edit. After changing an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
+Everything in `.aidt/` is yours to edit. After changing or deleting an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
 
 ## A real run
 

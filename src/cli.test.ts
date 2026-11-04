@@ -98,7 +98,8 @@ describe("aidt add", () => {
   it("copies a product's nested folders, alone or next to the workflow", () => {
     const { code, out } = run(repo, "add", "structure");
     expect(code).toBe(0);
-    expect(out).toContain("Added 5 file(s)");
+    expect(out).toContain("Added 6 file(s)");
+    expect(existsSync(join(repo, ".github/agents/architect.agent.md"))).toBe(true);
     expect(existsSync(join(repo, ".aidt/structure/levels/modular.md"))).toBe(true);
     expect(existsSync(join(repo, ".aidt/templates/structure.md"))).toBe(true);
   });

@@ -16,6 +16,7 @@ commands:
   - aidt diff
   - aidt clean --check
   - aidt stack
+  - aidt structure audit
   - erctx check
   - erctx context
   - living-docs check
@@ -61,7 +62,9 @@ Give `FAIL` when any of these holds, and say exactly what would turn it into `PA
 - A quality command fails (complexity, duplication, unused code, security, coverage minimum).
 - It clearly breaks the checklist of `.aidt/practices/sustainable-code.md` or the structure in
   `.aidt/structure.md` and its rules (a junk-drawer file, a feature importing another's internals,
-  a file whose name hides its role). Minor deviations are suggestions, not a FAIL.
+  a file whose name hides its role). Minor deviations are suggestions, not a FAIL. When
+  `.aidt/structure.md` exists, run `aidt structure audit`: a finding in a file this section added or
+  grew is a FAIL; findings in untouched files are not.
 - Reviewable lines go clearly over `limits.sectionLines` without a reason in the plan.
 
 Separate real defects from suggestions. Do not invent problems to look thorough, and do not let

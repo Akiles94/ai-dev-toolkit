@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parseAgent } from "../../src/sync/agent.ts";
 
 const DIR = join(import.meta.dirname, "structure");
 const read = (path: string) => readFileSync(join(DIR, path), "utf8");
@@ -23,5 +24,18 @@ describe("structure product", () => {
     ]) {
       expect(read(file)).toContain("## Review checklist");
     }
+  });
+});
+
+describe("architect agent", () => {
+  const file = join(import.meta.dirname, "agents", "architect.md");
+  const parsed = parseAgent("architect.md", readFileSync(file, "utf8"));
+
+  it("is a valid agent that can only write the structure decision", () => {
+    expect(parsed.ok && parsed.value.writes).toEqual([".aidt/structure.md"]);
+  });
+
+  it("never moves on without the user's approval", () => {
+    expect(parsed.ok && /## \d+\. Approval/.test(parsed.value.instructions)).toBe(true);
   });
 });

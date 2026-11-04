@@ -1,4 +1,4 @@
-import type { AidtConfig } from "../shared/config.ts";
+import type { AidtConfig } from "../shared/config/config.ts";
 
 /** A source file the audit looks at: its repository path (`/`-separated) and line count. */
 export interface SourceFile {

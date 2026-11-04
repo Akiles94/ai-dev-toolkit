@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TaskState } from "../shared/task-state.ts";
+import type { TaskState } from "../shared/task/task-state.ts";
 import { buildStackPlan, type SectionMaterial, sectionSlug } from "./stack-plan.ts";
 
 const state = (sections: TaskState["sections"]): TaskState => ({

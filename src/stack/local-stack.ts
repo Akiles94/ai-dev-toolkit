@@ -1,9 +1,9 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { UsageError } from "../shared/cli-context.ts";
-import { defaultBranch, git } from "../shared/git.ts";
-import { fail, ok, type Result } from "../shared/result.ts";
-import { readTaskState, type TaskState, taskDir } from "../shared/task-state.ts";
+import { UsageError } from "../shared/cli/cli-context.ts";
+import { defaultBranch, git } from "../shared/git/git.ts";
+import { fail, ok, type Result } from "../shared/result/result.ts";
+import { readTaskState, type TaskState, taskDir } from "../shared/task/task-state.ts";
 import { buildStackPlan, type SectionMaterial, type StackEntry } from "./stack-plan.ts";
 
 const isAncestor = (root: string, older: string, newer: string): Promise<boolean> =>

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join, matchesGlob } from "node:path";
-import { type CliContext, print, UsageError } from "../shared/cli-context.ts";
-import type { AidtConfig } from "../shared/config.ts";
-import { git } from "../shared/git.ts";
+import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
+import type { AidtConfig } from "../shared/config/config.ts";
+import { git } from "../shared/git/git.ts";
 import {
   auditStructure,
   exceptionGlobs,

@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "../shared/config.ts";
+import { loadConfig } from "../shared/config/config.ts";
 import { commitAll, featureRepo, git, write } from "../shared/testing/temp-repo.ts";
 import type { CommandRunner } from "./command-runner.port.ts";
 import { stackCommand } from "./stack.command.ts";

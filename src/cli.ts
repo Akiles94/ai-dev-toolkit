@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { applyAdd, formatAdd, planAdd } from "./add/add.command.ts";
-import { cleanTargets, findGuides, formatClean, removeGuides } from "./clean/clean.command.ts";
-import { formatDiff } from "./diff/diff.command.ts";
-import { collectDiff, type DiffSource } from "./shared/changes.ts";
-import { type AidtConfig, loadConfig } from "./shared/config.ts";
-import { defaultBranch, GitError, repoRoot } from "./shared/git.ts";
-import { formatStale, formatSync, planSync, staleFiles, writeSync } from "./sync/sync.command.ts";
+import { addCommand } from "./add/add.command.ts";
+import { cleanCommand } from "./clean/clean.command.ts";
+import { diffCommand } from "./diff/diff.command.ts";
+import { type CliContext, print, UsageError } from "./shared/cli-context.ts";
+import { loadConfig } from "./shared/config.ts";
+import { GitError, repoRoot } from "./shared/git.ts";
+import { syncCommand } from "./sync/sync.command.ts";
+
+// Delivery: parses the command line, builds the context and runs one command. Flows never call
+// each other; when a command needs another (add → sync), it is chained here.
 
 const HELP = `aidt: AI Dev Toolkit
 
@@ -30,27 +33,9 @@ Other
 
 Exit codes: 0 ok · 1 findings (--check, invalid agents) · 2 usage or git error`;
 
-class UsageError extends Error {}
-
 function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   return String(pkg.version);
-}
-
-async function resolveSource(
-  cwd: string,
-  flags: {
-    base?: string | undefined;
-    head?: string | undefined;
-    staged?: boolean | undefined;
-    worktree?: boolean | undefined;
-  },
-): Promise<DiffSource> {
-  if (flags.staged && flags.worktree) throw new UsageError("Use either --staged or --worktree.");
-  if (flags.staged) return { kind: "staged" };
-  if (flags.worktree) return { kind: "worktree" };
-  const base = flags.base ?? (await defaultBranch(cwd));
-  return { kind: "range", base, head: flags.head ?? "HEAD" };
 }
 
 function parseCli(argv: string[]) {
@@ -72,71 +57,11 @@ function parseCli(argv: string[]) {
   });
 }
 
-type Flags = ReturnType<typeof parseCli>["values"];
-
-interface Context {
-  root: string;
-  config: AidtConfig;
-  flags: Flags;
-}
-
-async function runDiff({ root, config, flags }: Context): Promise<number> {
-  const summary = await collectDiff(root, await resolveSource(root, flags), config);
-  if (flags.json) return print(JSON.stringify(summary, null, 2));
-  return print(
-    formatDiff(summary, {
-      sectionLines: config.limits.sectionLines,
-      listCodeFiles: flags.files ?? false,
-    }),
-  );
-}
-
-/**
- * Paths to clean when none are given: the changed files of the chosen source. Without an explicit
- * source, the branch diff plus the uncommitted changes, where guide comments usually live.
- */
-async function changedPaths({ root, config, flags }: Context): Promise<string[]> {
-  const explicit = flags.base || flags.staged || flags.worktree;
-  const sources: DiffSource[] = [await resolveSource(root, flags)];
-  if (!explicit) sources.push({ kind: "worktree" });
-  const summaries = await Promise.all(sources.map((s) => collectDiff(root, s, config)));
-  return [...new Set(summaries.flatMap(cleanTargets))];
-}
-
-async function runClean(context: Context, givenPaths: string[]): Promise<number> {
-  const paths = givenPaths.length > 0 ? givenPaths : await changedPaths(context);
-  const { root, config, flags } = context;
-  if (!flags.check) {
-    return print(formatClean(await removeGuides(root, paths, config.guide.marker), "Removed"));
-  }
-  const found = await findGuides(root, paths, config.guide.marker);
-  print(formatClean(found, "Found"));
-  return found.total > 0 ? 1 : 0;
-}
-
-async function runSync({ root, config, flags }: Context): Promise<number> {
-  const plan = await planSync(root, flags.from ?? config.sync.agents, config.sync.harnesses);
-  if (plan.problems.length > 0) {
-    print(formatSync(plan));
-    return 1;
-  }
-  if (flags.check) {
-    const stale = await staleFiles(root, plan.files);
-    print(formatStale(stale));
-    return stale.length > 0 ? 1 : 0;
-  }
-  await writeSync(root, plan.files);
-  return print(formatSync(plan));
-}
-
-/** Copies the product, then renders its agents with the config it may have just created. */
-async function runAdd(context: Context, product: string | undefined): Promise<number> {
-  if (!product) throw new UsageError("Name the product to add, e.g. aidt add workflow.");
-  const plan = await planAdd(context.root, product);
-  if (!plan.ok) throw new UsageError(plan.error);
-  await applyAdd(context.root, plan.value);
-  print(formatAdd(plan.value));
-  return runSync({ ...context, config: await loadConfig(context.root) });
+/** `add` copies the product, then the agents are rendered with the config it may have created. */
+async function addThenSync(context: CliContext, product: string | undefined): Promise<number> {
+  const added = await addCommand(context, product);
+  if (added !== 0) return added;
+  return syncCommand({ ...context, config: await loadConfig(context.root) });
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -146,17 +71,12 @@ async function main(argv: string[]): Promise<number> {
   if (flags.help || !command) return print(HELP);
 
   const root = await repoRoot(process.cwd());
-  const context = { root, config: await loadConfig(root), flags };
-  if (command === "diff") return runDiff(context);
-  if (command === "clean") return runClean(context, rest);
-  if (command === "sync") return runSync(context);
-  if (command === "add") return runAdd(context, rest[0]);
+  const context: CliContext = { root, config: await loadConfig(root), flags };
+  if (command === "diff") return diffCommand(context);
+  if (command === "clean") return cleanCommand(context, rest);
+  if (command === "sync") return syncCommand(context);
+  if (command === "add") return addThenSync(context, rest[0]);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
-}
-
-function print(text: string): number {
-  process.stdout.write(`${text}\n`);
-  return 0;
 }
 
 main(process.argv.slice(2)).then(

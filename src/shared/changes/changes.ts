@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join, matchesGlob } from "node:path";
-import type { AidtConfig } from "./config.ts";
-import { git } from "./git.ts";
+import type { AidtConfig } from "../config/config.ts";
+import { git } from "../git/git.ts";
 
 /** What to compare. `range` uses merge-base semantics (`base...head`), like a PR. */
 export type DiffSource =

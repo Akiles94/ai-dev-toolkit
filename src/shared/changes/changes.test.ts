@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_CONFIG } from "../config/config.ts";
 import { classify, parseNumstat, summarize } from "./changes.ts";
-import { DEFAULT_CONFIG } from "./config.ts";
 
 describe("parseNumstat", () => {
   it("parses plain, binary and renamed entries from -z output", () => {

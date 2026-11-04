@@ -1,6 +1,6 @@
-import type { DiffSource } from "./changes.ts";
-import type { AidtConfig } from "./config.ts";
-import { defaultBranch } from "./git.ts";
+import type { DiffSource } from "../changes/changes.ts";
+import type { AidtConfig } from "../config/config.ts";
+import { defaultBranch } from "../git/git.ts";
 
 /** Every command-line option, already parsed. Each command reads only the ones it uses. */
 export interface Flags {

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { collectDiff, type DiffSource, type DiffSummary } from "../shared/changes.ts";
-import { type CliContext, print, resolveSource } from "../shared/cli-context.ts";
+import { collectDiff, type DiffSource, type DiffSummary } from "../shared/changes/changes.ts";
+import { type CliContext, print, resolveSource } from "../shared/cli/cli-context.ts";
 import { isMarkdown, stripGuides } from "./guide-comments.ts";
 
 interface CleanResult {

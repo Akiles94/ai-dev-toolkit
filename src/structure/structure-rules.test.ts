@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CONFIG } from "../shared/config.ts";
+import { DEFAULT_CONFIG } from "../shared/config/config.ts";
 import { auditStructure, exceptionGlobs, type SourceFile } from "./structure-rules.ts";
 
 const RULES = { ...DEFAULT_CONFIG.structure, maxFileLines: 100, maxFolderFiles: 3 };

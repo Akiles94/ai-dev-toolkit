@@ -14,7 +14,7 @@ Status: draft v0.1 · 2026-10-29
 
 ## 2. Products
 
-Each product is independent and installable alone.
+Each product is independent and installable alone. The `refiner` and the `reviewer` are also installable alone (`aidt add refiner`, `aidt add reviewer`): the refiner then ends at the approved spec, and the reviewer reviews a branch against its ticket when there is no spec (§5.4).
 
 | Product | Contents | Depends on |
 |---|---|---|
@@ -331,7 +331,7 @@ TypeScript, Node 24, minimal dependencies.
 
 | Command | What |
 |---|---|
-| `aidt add <product>` | Copy a product's files into the repo |
+| `aidt add <product\|agent>` | Copy a product's files into the repo, or one standalone agent (`refiner`, `reviewer`) with only the templates and practices it reads |
 | `aidt sync` | Render canonical agents to each configured harness |
 | `aidt diff [--section S1]` | Diff stats with noise filtered |
 | `aidt clean` | Remove guide comments |

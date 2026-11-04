@@ -16,7 +16,8 @@ First public release.
   architecture), nine stack presets (React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin
   Android, Swift iOS) built on their official guides, and the `architect` agent.
 - **CLI `aidt`:**
-  - `add <product>`: copies a product into `.aidt/` without overwriting your files, then syncs.
+  - `add <product|agent>`: copies a product, or the `refiner` or `reviewer` alone, into `.aidt/`
+    without overwriting your files, then syncs.
   - `sync [--check]`: renders the canonical agents for GitHub Copilot and Claude Code. Removes the
     generated files of deleted agents and drops handoffs to agents that are not installed.
   - `diff`: diff stats with tests, config, noise and formatting counted apart.

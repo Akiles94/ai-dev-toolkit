@@ -96,7 +96,12 @@ approvals were simulated to test the flow end to end):
 
 ## Install only what you need
 
-Every product works on its own. Use one, some or all.
+Every product works on its own. Use one, some or all. Two workflow agents also work alone:
+
+```bash
+npx @akiles94/ai-dev-toolkit add refiner    # only turn tickets into specs
+npx @akiles94/ai-dev-toolkit add reviewer   # only review a branch or PR, with or without a spec
+```
 
 | Product | What it does | |
 |---|---|---|

@@ -1,0 +1,26 @@
+name: Release
+
+# Publishes to npm when a GitHub release is published. Uses npm trusted publishing (OIDC): no token
+# is stored in the repository, and every version carries provenance pointing to this workflow run.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --no-audit --no-fund
+      - name: Release tag matches package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      # prepublishOnly runs `verify` and `build` first.
+      - run: npm publish --provenance --access public

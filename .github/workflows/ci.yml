@@ -49,6 +49,23 @@ jobs:
       - if: ${{ !cancelled() }}
         run: node dist/cli.js --help
 
+  # Tests and the built CLI on every OS developers use; the full gate above runs once, on Linux.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - run: node dist/cli.js --help
+
   security:
     runs-on: ubuntu-latest
     container: semgrep/semgrep

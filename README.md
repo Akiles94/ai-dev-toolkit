@@ -71,6 +71,7 @@ Every product works on its own. Use one, some or all.
 | Product | What it does |
 |---|---|
 | `workflow` | The four agents above |
+| `structure` | Code organisation that scales, with or without an architecture: minimal conventional layout, feature modules or DDD/hexagonal, per stack. Audits existing projects and proposes a refactor, never forces one |
 | `review` | Review anyone's PR: splits it into sections with a reading order, checks it against the ticket |
 | `init` | Guided setup of your project's AI files (`AGENTS.md`, rules, structure) |
 | `profile` | Your personal coding preferences, applied on every project |

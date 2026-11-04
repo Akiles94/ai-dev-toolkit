@@ -19,6 +19,7 @@ Each product is independent and installable alone.
 | Product | Contents | Depends on |
 |---|---|---|
 | `workflow` | `refiner`, `planner`, `builder`, `reviewer` agents + scripts | — |
+| `structure` | Code organisation: common rules, 3 levels, stack presets, `aidt structure audit`, `architect` agent (§6c) | — (the workflow reads it if present) |
 | `review` | Review of external PRs/diffs (no spec or plan required) | — (shares scripts with `workflow`) |
 | `init` | Guided creation of project AI files | — |
 | `profile` | Guided creation of the developer profile | — |
@@ -27,7 +28,7 @@ Each product is independent and installable alone.
 
 `docs` and `context` remain independent packages. The toolkit installs/configures them and plugs them into the workflow (§5.5). They do not replace each other: `docs` is for people, `context` is for agents.
 
-v0 scope: **`workflow`**. `review`, `init` and `profile` follow.
+v0 scope: **`workflow`** and **`structure`**. `review`, `init` and `profile` follow.
 
 ## 3. Layout
 
@@ -38,6 +39,9 @@ AGENTS.md                      ← project rules (source of truth, open standard
 ├── config.json                ← toolkit config for this project (committed)
 ├── agents/                    ← canonical agent definitions (editable)
 ├── templates/                 ← spec, plan, review templates (editable)
+├── practices/                 ← sustainable code, static analysis
+├── structure.md               ← this project's structure (`structure` product)
+├── structure/                 ← common rules, levels, stack presets
 └── tasks/
     └── <branch-name>/
         ├── spec.md            ← refiner output
@@ -143,9 +147,8 @@ The code the workflow produces follows written practices, checked by tools where
   - `sustainable-code.md`: the ideas of *Código sostenible* (Carlos Blé) that pay off, split into
     always / when it pays off / not applied, plus a review checklist. The planner designs with
     it, the builder writes with it, the reviewer checks it.
-  - `architecture-and-naming.md`: one bounded context per user flow, one writer per piece of
-    data, boundaries checked by a tool, and file names that say their role (`<what>.<role>.ts`),
-    with a full naming table. The planner uses it to place and name code.
+  - Where code goes and how it is named comes from the `structure` product (§6c), not from a
+    practice: `.aidt/structure.md` when present, otherwise the project's existing structure.
   - `static-analysis.md`: free tools that cover what SonarQube checks, per stack (cognitive
     complexity, smells, duplication, unused code, SAST, coverage, vulnerable dependencies, secrets).
 - **Quality commands:** `quality.commands` in `.aidt/config.json`, or the project's single check
@@ -155,6 +158,37 @@ The code the workflow produces follows written practices, checked by tools where
 - This repository follows its own practices: `npm run verify` runs typecheck, Biome (with cognitive
   complexity ≤ 15), knip, jscpd and tests with a coverage minimum on `src/core`; CI adds Semgrep and
   `npm audit`, and reports findings as PR annotations.
+
+## 6c. Structure
+
+Many projects fail not for lack of an architecture but for lack of any organisation: junk-drawer
+`utils/`, one 1,000-line `api.ts`, loose files everywhere. `structure` gives every project a
+written, checked organisation, sized to what the team wants.
+
+- **Common rules** (`structure/rules.md`, S1–S7), at every level and in every stack: no junk drawers,
+  one module per resource, small files and folders, no loose files, one naming convention per kind of
+  file, features that do not reach into each other, tests where the stack expects them.
+- **Three levels**, chosen per project:
+  1. **Conventional:** the stack's own layout and names from its official guide, nothing more.
+  2. **Modular:** top level by feature, one public entry per feature, `shared` by subject.
+  3. **Architecture:** bounded contexts per user flow, `domain / application / infra`, ports and
+     adapters, `<what>.<role>` names, boundaries checked by a tool.
+- **Presets** (`structure/presets/<stack>.md`), one per stack, each with its official sources: the
+  layout and names of each level in that stack, and the tool that checks its boundaries. v0.1:
+  React, Next.js, React Native, Node.js, Go, C#/.NET, Java, Kotlin (Android), Swift (iOS).
+- **The decision** lives in `.aidt/structure.md` (template `templates/structure.md`): level, preset,
+  layout, naming, boundaries, deliberate exceptions, migration status. It is a project rule.
+- **`aidt structure audit`**: deterministic check of the rules marked (audit), thresholds in
+  `structure` config (`maxFileLines` 300, `maxFolderFiles` 15, junk-drawer names), exceptions read
+  from `.aidt/structure.md`. Text or `--json`; exit 1 with findings. No model involved.
+- **`architect` agent:**
+  - New project: asks level and preset (recommends one from the stack and the team's answers) and
+    writes `.aidt/structure.md`.
+  - Existing project: runs the audit, detects the structure the code is trying to follow, and proposes
+    three paths: **keep it, improved** (default), the stack's **conventional** layout, or an
+    **architecture**. Writes the decision, then hands the migration to the `refiner` as a normal task.
+- **Migration rules:** never automatic; new code follows the target from day one; old code moves in
+  reviewed sections; pure moves and renames are separate commits from logic changes.
 
 ## 7. Delivery: stacked PRs by default
 
@@ -287,6 +321,7 @@ TypeScript, Node 24, minimal dependencies.
 | `aidt clean` | Remove guide comments |
 | `aidt check` | Section size, coverage, requirement→test mapping |
 | `aidt stack <prepare\|submit>` | Build / publish the stack via the detected delivery adapter |
+| `aidt structure audit` | Check the common structure rules; exceptions from `.aidt/structure.md` |
 | `aidt customize <agent>` | Optional guided customization |
 
 Agents call these scripts instead of doing mechanical work with tokens.
@@ -300,7 +335,7 @@ Agents call these scripts instead of doing mechanical work with tokens.
 
 ## 13. Roadmap
 
-- **v0:** `workflow` (four agents, templates, `clean`, `check`, `diff`, `stack`), adapters for Copilot and Claude Code.
+- **v0:** `workflow` (four agents, templates, `clean`, `check`, `diff`, `stack`), `structure` (rules, levels, nine presets, `audit`, `architect`), adapters for Copilot and Claude Code.
 - **v1:** `review` (external PRs), `init`, `profile`, `docs` and `context` integrations, more adapters, measured token benchmarks.
 - **v2:** VS Code extension (panel, per-section diff, progress) on the same core.
 

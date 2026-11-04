@@ -34,7 +34,7 @@ Typical decisions, asked only when the rules, the profile or the code do not set
 - **Approach:** when there are real alternatives, present 2–3 with their trade-offs and recommend one.
 - **Placement and structure:** where new code lives, new modules and their responsibility.
 - **Naming:** names from the domain language of the spec and the project; file and type names
-  by role (`.aidt/practices/architecture-and-naming.md`) unless the project defines its own.
+  by role, as `.aidt/structure.md` says, or as the project already does.
 - **Reuse:** "there is already `searchUsers()`: reuse it, extend it, or write a new one?"
 - **Tests:** level and tools, if the project does not define them.
 
@@ -60,7 +60,7 @@ Fill `.aidt/templates/plan.md` into `.aidt/tasks/<task-id>/plan.md`:
 
 - Approach and discarded alternatives, one line each.
 - Structure and reuse decisions: which flow owns the change, the files it adds with their
-  names, following `.aidt/practices/architecture-and-naming.md` or the project's own structure.
+  names, following `.aidt/structure.md` or the project's own structure.
 - Sections table plus one block per section with its goal, dependencies and "done when".
 - Requirement → test mapping.
 - A design that follows `.aidt/practices/sustainable-code.md`: no abstractions or interfaces

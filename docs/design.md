@@ -162,8 +162,8 @@ One section = one commit while building → one branch = one PR at delivery, eac
 
 | Situation | Behavior |
 |---|---|
-| GitHub + `gh stack` | Native stacked PRs |
-| GitLab + `glab` | `glab stack` |
+| GitHub + `gh` | Chained draft PRs; linked as a native stack when `gh stack` is installed |
+| GitLab + `glab` | Chained draft MRs, each targeting the previous branch |
 | Other host / no CLI | Chained branches + PRs targeting the previous branch; if no API access, print the links to open them |
 | `delivery.mode: single` | One PR, one commit per section, full guide in the description |
 
@@ -179,7 +179,10 @@ Two steps, so nothing leaves the machine without a yes:
    section at its commit (`<task-branch>-s01-<name>`, each based on the previous one), records them
    in `state.json` (`phase: deliver`) and prints the plan. Never moves a branch that already exists
    at another commit. Pushes nothing.
-2. `aidt stack submit`: pushes the branches and opens the draft PRs with the adapter above.
+2. `aidt stack submit [--dry-run]`: re-runs the same checks, requires the prepared branches,
+   pushes them (`--force-with-lease`) and opens one draft PR per section with the adapter above,
+   reusing PRs already open. Records each PR, `delivery.tool` and `phase: done` in `state.json`.
+   `--dry-run` prints the commands and changes nothing.
 
 ## 8. Artifacts
 

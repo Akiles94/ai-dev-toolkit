@@ -24,7 +24,7 @@ export interface TaskState {
 }
 
 /** The task folder name for a branch: `/` becomes `-` (`feat/x-y` → `feat-x-y`). */
-export const taskId = (branch: string): string => branch.replaceAll("/", "-");
+const taskId = (branch: string): string => branch.replaceAll("/", "-");
 
 /** `.aidt/tasks/<task-id>/`, relative to the repository root. */
 export const taskDir = (branch: string): string => `.aidt/tasks/${taskId(branch)}`;

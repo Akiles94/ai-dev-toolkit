@@ -29,6 +29,7 @@
   "files": [
     "dist",
     "products",
+    "!products/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],

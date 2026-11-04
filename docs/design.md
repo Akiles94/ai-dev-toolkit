@@ -124,6 +124,21 @@ Doc updates do not count toward section line limits. When both are present, the 
 | `light` | Small fixes | Short spec + short plan + builder + reviewer |
 | `rework` | Address PR feedback | Builder + reviewer on the affected section |
 
+**Control** is independent of the mode: the mode is the size of the task, the control is how much
+the developer reviews along the way. Chosen with the refiner, stored in `state.json`, default
+`workflow.control` in the config.
+
+| Control | Developer approves | Agents do on their own |
+|---|---|---|
+| `strict` | spec, plan, each section (with guide comments) | nothing |
+| `standard` | spec, plan | build all sections in a row, review them |
+| `fast` | spec | plan, build and review; the developer reviews the finished stack |
+
+Never skipped: section size limit, quality commands and tests, the reviewer's verdict (a FAIL is
+never delivered), and an explicit yes to publish or merge. Under `standard`/`fast` agents still stop
+on an ambiguous spec, a check failing twice, or anything hard to undo. Moving between agents stays
+one explicit handoff per phase (a click or `/<agent>`), since both harnesses make handoffs explicit.
+
 ## 6. Guide comments
 
 Verbose, tutorial-style comments the builder writes so the developer can follow the code while reviewing each section. Always marked so removal is deterministic:
@@ -286,6 +301,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
   "configFiles": { "patterns": ["**/package.json", "**/tsconfig*.json", ".github/**"] },
   "guide": { "marker": "@guide" },
   "delivery": { "mode": "stack", "draft": true },
+  "workflow": { "control": "strict" },
   "models": {
     "refiner": "balanced",
     "planner": "balanced",

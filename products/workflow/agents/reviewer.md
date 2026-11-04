@@ -88,6 +88,8 @@ Update `state.json`: per section `status: reviewed`, `verdict`, `lines`.
 ## 4. Approval
 
 Show the user the index: verdict per section, requirement coverage and the warnings that matter.
+Under `standard` and `fast` control the user saw none of the sections: put the builder's decisions
+not in the plan first, so they read what the AI decided on its own before anything else.
 
 - **Any FAIL:** list what must change per section and hand back to the builder in `rework` mode
   for those sections. Review them again afterwards.

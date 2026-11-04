@@ -51,7 +51,7 @@ AGENTS.md                      ← project rules (source of truth, open standard
         │   └── s01-<slug>.md  ← one guide per section / PR
         └── state.json         ← progress (resumable)
 ```
-Harness-specific files (`.github/agents/…`, `.claude/agents/…`, `CLAUDE.md` importing `AGENTS.md`) are **generated** from `.aidt/agents/` by `aidt sync`. They are outputs, never edited by hand.
+Harness-specific files (`.github/agents/…`, `.claude/agents/…`, `CLAUDE.md` importing `AGENTS.md`) are **generated** from `.aidt/agents/` by `aidt sync`. They are outputs, never edited by hand. `sync` removes the generated files of agents that no longer exist (recognised by their banner) and drops a `handoff` whose target agent is not installed.
 
 ### For the developer
 ```

@@ -11,6 +11,7 @@ commands:
   - git rev-parse
   - aidt diff
   - aidt clean
+  - aidt check
   - erctx context
 handoff: reviewer
 ---
@@ -66,6 +67,7 @@ temporary: they are removed when the section is approved and never reach a commi
    before showing anything.
 2. Run `aidt diff --worktree --json`. If the reviewable lines go clearly over
    `limits.sectionLines`, stop and propose splitting the section.
+3. Run `aidt check`: every requirement this section covers must be referenced by one of its tests.
 
 ## 5. Approval
 

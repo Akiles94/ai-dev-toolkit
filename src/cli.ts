@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { addCommand } from "./add/add.command.ts";
+import { checkCommand } from "./check/check.command.ts";
 import { cleanCommand } from "./clean/clean.command.ts";
 import { diffCommand } from "./diff/diff.command.ts";
 import { type CliContext, print, UsageError } from "./shared/cli/cli-context.ts";
@@ -22,6 +23,7 @@ Usage
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
   aidt clean [paths…] [source] [--check]   Remove guide comments (--check: report, exit 1 if any)
+  aidt check [--base <ref>] [--json]       Task gates: section sizes, every requirement has a test
   aidt stack prepare [--base <trunk>]      One local branch per reviewed section (pushes nothing)
   aidt stack submit  [--dry-run]           Push them and open one draft PR per section (gh, glab)
   aidt structure audit [--json]            Check the common structure rules (exit 1 if broken)
@@ -80,6 +82,7 @@ async function main(argv: string[]): Promise<number> {
   const context: CliContext = { root, config: await loadConfig(root), flags };
   if (command === "diff") return diffCommand(context);
   if (command === "clean") return cleanCommand(context, rest);
+  if (command === "check") return checkCommand(context);
   if (command === "sync") return syncCommand(context);
   if (command === "add") return addThenSync(context, rest[0]);
   if (command === "stack") return stackCommand(context, rest[0]);

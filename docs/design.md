@@ -335,7 +335,7 @@ TypeScript, Node 24, minimal dependencies.
 | `aidt sync` | Render canonical agents to each configured harness |
 | `aidt diff [--section S1]` | Diff stats with noise filtered |
 | `aidt clean` | Remove guide comments |
-| `aidt check` | Section size, coverage, requirement→test mapping |
+| `aidt check` | Task gates: every section within the line limit, every spec requirement referenced by a test of the task. Coverage stays in the quality commands |
 | `aidt stack <prepare\|submit>` | Build / publish the stack via the detected delivery adapter |
 | `aidt structure audit` | Check the common structure rules; exceptions from `.aidt/structure.md` |
 | `aidt customize <agent>` | Optional guided customization |
@@ -358,5 +358,4 @@ Agents call these scripts instead of doing mechanical work with tokens.
 ## 14. Open questions
 
 1. Canonical agent format: custom frontmatter, or reuse an existing one (e.g. Claude subagent format) as the base?
-2. `aidt check` coverage: read standard reports (lcov, cobertura) only, or run the test command?
-3. Monorepo layout for the CLI: single package for v0, split later?
+2. Monorepo layout for the CLI: single package for v0, split later?

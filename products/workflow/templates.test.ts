@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const DIR = join(import.meta.dirname, "..", "products", "workflow", "templates");
+const DIR = join(import.meta.dirname, "templates");
 const read = (name: string) => readFileSync(join(DIR, name), "utf8");
 
 /** `## Heading` lines of a Markdown template, ignoring those inside comments. */

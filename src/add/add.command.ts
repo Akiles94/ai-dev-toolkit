@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fail, ok, type Result } from "../core/result.ts";
+import { fail, ok, type Result } from "../shared/result.ts";
 
 /** Shipped next to the CLI, both from `src/` and from the built `dist/`. */
 const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));

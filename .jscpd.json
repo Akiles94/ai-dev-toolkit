@@ -1,6 +1,6 @@
 {
   "path": ["src"],
-  "ignore": ["**/*.test.ts"],
+  "ignore": ["**/*.test.ts", "**/testing/**"],
   "threshold": 3,
   "minLines": 6,
   "minTokens": 50,

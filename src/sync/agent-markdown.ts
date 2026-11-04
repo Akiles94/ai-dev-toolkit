@@ -1,13 +1,4 @@
-import type { Agent } from "../core/agent.ts";
-
-/** A file an adapter produces, relative to the repository root. */
-export interface GeneratedFile {
-  readonly path: string;
-  readonly content: string;
-}
-
-/** Renders a canonical agent into the files one AI tool understands. */
-export type Adapter = (agent: Agent, source: string) => GeneratedFile[];
+import type { Agent } from "./agent.ts";
 
 /** YAML scalar that survives any character: a JSON string is a valid YAML double-quoted string. */
 export const yamlString = (value: string): string => JSON.stringify(value);

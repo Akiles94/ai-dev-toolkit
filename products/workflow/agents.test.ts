@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type Agent, parseAgent } from "../src/core/agent.ts";
+import { type Agent, parseAgent } from "../../src/sync/agent.ts";
 
-const DIR = join(import.meta.dirname, "..", "products", "workflow", "agents");
+const DIR = join(import.meta.dirname, "agents");
 const WORKFLOW = ["refiner", "planner", "builder", "reviewer"];
 
 function load(file: string) {

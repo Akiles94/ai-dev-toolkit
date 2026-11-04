@@ -1,4 +1,4 @@
-import { fail, ok, type Result } from "./result.ts";
+import { fail, ok, type Result } from "../shared/result.ts";
 
 const TIERS = ["efficient", "balanced", "max"] as const;
 const CAPABILITIES = ["read", "ask", "write", "edit", "shell"] as const;

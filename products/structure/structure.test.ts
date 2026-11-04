@@ -39,3 +39,22 @@ describe("architect agent", () => {
     expect(parsed.ok && /## \d+\. Approval/.test(parsed.value.instructions)).toBe(true);
   });
 });
+
+describe("stack presets", () => {
+  const presets = readdirSync(join(DIR, "presets"));
+
+  for (const file of presets) {
+    it(`${file} covers every level, naming and boundaries, with official sources`, () => {
+      const preset = read(`presets/${file}`);
+      const sections = [...preset.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+      expect(sections).toEqual([
+        "Level 1 · Conventional",
+        "Level 2 · Modular",
+        "Level 3 · Architecture",
+        "Naming",
+        "Boundaries",
+      ]);
+      expect(/^Sources:\n- .+https:\/\//m.test(preset)).toBe(true);
+    });
+  }
+});

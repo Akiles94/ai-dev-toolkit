@@ -15,6 +15,10 @@
     },
     "ticket": { "type": "string", "description": "Ticket id or URL, if any." },
     "mode": { "enum": ["full", "light", "rework"] },
+    "control": {
+      "enum": ["strict", "standard", "fast"],
+      "description": "How much the user reviews: strict (spec, plan, each section), standard (spec, plan), fast (spec). Default strict."
+    },
     "phase": {
       "enum": ["refine", "plan", "build", "review", "deliver", "done"],
       "description": "Current step. Moves forward only after the user approves the previous one."

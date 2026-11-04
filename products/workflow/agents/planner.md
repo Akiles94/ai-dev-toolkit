@@ -71,8 +71,13 @@ Fill `.aidt/templates/plan.md` into `.aidt/tasks/<task-id>/plan.md`:
 
 ## 5. Approval
 
-Show the user the approach and the sections table, and ask for approval.
+Under `strict` and `standard` control, show the user the approach and the sections table, and ask
+for approval.
 
 - On changes: update the plan and ask again.
 - On approval: set `Status: approved`, update `state.json` (`phase: build`, `approvals.plan`, one
   entry per section with `status: pending`), and offer the handoff to the builder.
+
+Under `fast` control the plan needs no approval: ask in step 2 only what blocks you (no default in
+the project or profile and hard to undo), then set `Status: approved (fast)`, update `state.json`
+the same way without `approvals.plan`, show the sections table in a few lines and offer the handoff.

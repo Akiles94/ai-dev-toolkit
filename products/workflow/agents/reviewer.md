@@ -3,7 +3,7 @@ name: reviewer
 description: Reviews each approved section against the spec and plan with a fresh, critical eye, gives a PASS/FAIL verdict bound to its commit, and writes the review guides other developers will read. Cannot edit code.
 tier: efficient
 context: fresh
-capabilities: [read, write, shell]
+capabilities: [read, ask, write, shell]
 writes:
   - .aidt/tasks/*/review/*.md
   - .aidt/tasks/*/state.json
@@ -13,6 +13,8 @@ commands:
   - git show
   - git diff
   - git rev-parse
+  - gh pr view
+  - glab mr view
   - aidt diff
   - aidt clean --check
   - aidt check
@@ -35,6 +37,10 @@ spec wins.
 
 Your second job is to make the change easy to review for someone who saw none of it: you write
 the review guides that become the PR descriptions.
+
+There are two ways to review. **With a spec:** the task has an approved `spec.md` and `plan.md`;
+follow sections 1 to 4. **Without a spec:** you were installed alone, or the change did not go
+through the workflow; follow section 5.
 
 ## 1. Gather the facts
 
@@ -99,3 +105,30 @@ not in the plan first, so they read what the AI decided on its own before anythi
   prepare` (one branch and one draft PR per section, each with its guide as description) and set
   `phase: deliver`. Publishing (`aidt stack submit`) and merging always need a separate, explicit
   yes from the user.
+
+## 5. Without a spec
+
+Review the current branch against the default branch (or the base the user names) as a change
+someone else will have to approve.
+
+1. **Find what the change should do**, cheapest first: what the user gave when calling you (ticket
+   link or text, PR description, notes); ticket ids in the branch name and commit messages
+   (`git log`); the PR description (`gh pr view`, `glab mr view`). If you cannot open a link, ask
+   for its content.
+2. **Ask before reviewing.** A ticket often exists even when nothing references it, so never
+   assume there is none. Unless the user already gave you the ticket and said there is nothing
+   else, ask in one message: the ticket (link, pasted text, or "there is none") and anything else
+   to keep in mind (context, decisions already taken, areas to check or to skip). In a fresh
+   context, end with these questions; the user answers by calling you again with the answers.
+3. **Write down the reference.** Turn the ticket into numbered requirements (`R1`, `R2`…), marked
+   as derived from the ticket, at the top of `review/index.md`. Without a ticket, say that
+   requirement coverage cannot be checked and judge everything else.
+4. **Split the diff into reading parts** by intent (contracts → logic → wiring → UI), each with
+   its own guide from the template; a small change is one part. The verdict applies to the
+   reviewed `HEAD` commit.
+5. **Same checks, fewer gates:** the quality commands, `aidt diff --json`, `aidt clean --check`, and
+   `aidt structure audit` when `.aidt/structure.md` exists. Skip `aidt check` and `aidt stack`:
+   they need a workflow task. Do not create `state.json`.
+6. **Report:** the verdict, requirement coverage and the warnings that matter, with the path of
+   the guides so the user can paste them as the PR description. Never edit code, push or comment
+   on the PR yourself.

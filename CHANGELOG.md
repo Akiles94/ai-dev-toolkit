@@ -12,6 +12,8 @@ First public release.
 - **`workflow` product:** four canonical agents (`refiner`, `planner`, `builder`, `reviewer`), the
   spec, plan and review templates, `state.json` schema, and practices (sustainable code, static
   analysis). Modes `full` / `light` / `rework` and control levels `strict` / `standard` / `fast`.
+  The `reviewer` also reviews a branch without a spec, against its ticket, and the `refiner`
+  alone ends at the approved spec.
 - **`structure` product:** common structure rules S1–S7, three levels (conventional, modular,
   architecture), nine stack presets (React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin
   Android, Swift iOS) built on their official guides, and the `architect` agent.

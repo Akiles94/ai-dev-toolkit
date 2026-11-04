@@ -78,6 +78,12 @@ describe("builder", () => {
   });
 });
 
+describe("refiner alone", () => {
+  it("delivers the approved spec when there is no planner", () => {
+    expect(agent("refiner").instructions.includes("Without the planner")).toBe(true);
+  });
+});
+
 describe("reviewer", () => {
   const reviewer = agent("reviewer");
 
@@ -96,5 +102,14 @@ describe("reviewer", () => {
 
   it("binds each verdict to a commit", () => {
     expect(reviewer.instructions.includes("A verdict is only valid for that commit")).toBe(true);
+  });
+
+  it("reviews without a spec, asking for the ticket even when nothing references it", () => {
+    expect(reviewer.instructions.includes("## 5. Without a spec")).toBe(true);
+    expect(
+      reviewer.instructions.includes("A ticket often exists even when nothing references it"),
+    ).toBe(true);
+    expect(reviewer.capabilities.includes("ask")).toBe(true);
+    expect(reviewer.commands.includes("gh pr view")).toBe(true);
   });
 });

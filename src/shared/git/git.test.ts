@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import { describe, expect, it } from "vitest";
 import { collectDiff } from "../changes/changes.ts";
 import { DEFAULT_CONFIG } from "../config/config.ts";
@@ -54,7 +55,8 @@ describe("git helpers", () => {
   it("finds the repository root and the default branch", async () => {
     const repo = featureRepo();
     expect(await defaultBranch(repo)).toBe("main");
-    expect((await repoRoot(repo)).endsWith(repo.split("/").pop() ?? "")).toBe(true);
+    // git prints `/` on every OS, so compare only the folder name.
+    expect(basename(await repoRoot(repo))).toBe(basename(repo));
   });
 
   it("explains which git command failed", async () => {

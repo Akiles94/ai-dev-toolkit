@@ -65,12 +65,18 @@ For the current section only:
 1. **Read just what it needs:** its diff (`git diff <base>...HEAD -- <files>` inside the
    worktree), and the callers or callees outside the section when a change depends on them.
 2. **Write guide comments in the worktree copy**, with the comment syntax of each language and
-   the `guide.marker` of `.aidt/config.json` (default `@guide`):
-   - One at the top of each file: what the file does in this change and why.
-   - One before each block that matters: what it does, the decision behind it, what to check.
-   - Findings at the exact line: `@guide 🔴` a real bug or risk · `🟡` worth a look · `❓` a
-     question for the author. Each finding says the input that fails and the wrong result.
-   Comment the change, not the obvious: no comment on imports, renames or trivial lines.
+   the `guide.marker` of `.aidt/config.json` (default `@guide`). The goal: the developer can
+   follow the whole section reading only the code and your comments, without the chat.
+   - **Every file** of the section: one comment at the top saying what the file does in this
+     change and why it exists.
+   - **Every changed function, method or block with logic**: one comment right before it saying
+     what it does, the decision behind it and what to check. A section with ten changed
+     functions has at least ten comments. Skip only imports, renames and one-line trivia.
+   - **Findings** at the exact line, on top of the explanation: `@guide 🔴` a real bug or risk ·
+     `🟡` worth a look · `❓` a question for the author. Each says the input that fails and the
+     wrong result.
+   - Write in the user's language, and wrap lines at the width the project uses for its own
+     comments: several short lines, never one long one.
 3. **Look for defects** with the usual list: logic, edge inputs, errors and partial state,
    security, async, performance, compatibility, and tests that cannot fail. Verify each one
    before reporting it: is the case reachable, is it handled elsewhere? Drop what you cannot
@@ -80,7 +86,9 @@ For the current section only:
    - The reading order of its files, with what to read carefully and what to skim.
    - Findings and questions, each with `file:line`.
    - Your opinion: looks right, or what you would ask the author to change.
-5. Record the section in the notes file: status, findings, open questions.
+5. Record the section in the notes file: status, findings and open questions, each with its
+   `file:line` **in the PR**, not in the commented copy, where your comments shift every line.
+   Take the line from the diff hunk headers or `git show HEAD:<file>` before writing comments.
 
 ## 4. Approval
 
@@ -95,8 +103,8 @@ When the sections are done, or the developer stops:
 1. **Summary** in the notes file and in chat: requirement coverage (met, partial, missing), the
    findings and questions that remain, and your overall opinion. Say which sections were not
    reviewed.
-2. **Ready to send:** offer the findings and questions written as review comments, with
-   `file:line`, so the developer can paste them into the PR.
+2. **Ready to send:** write the findings and questions from the notes as review comments,
+   each with its `file:line` in the PR, so the developer can paste them into the PR.
 3. **Clean up** only when the developer agrees: `aidt walkthrough finish <name>` removes the
    worktree and every comment in it. The notes file stays until they delete it.
 

@@ -147,4 +147,8 @@ describe("walkthrough", () => {
     expect(walkthrough.instructions).toContain("Never present two sections in a row");
     expect(walkthrough.handoff).toBe(undefined);
   });
+
+  it("keeps each finding's line in the PR, not in the commented copy", () => {
+    expect(walkthrough.instructions).toContain("**in the PR**, not in the commented copy");
+  });
 });

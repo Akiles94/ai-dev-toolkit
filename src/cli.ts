@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { cleanTargets, findGuides, formatClean, removeGuides } from "./commands/clean.ts";
 import { formatDiff } from "./commands/diff.ts";
+import { formatSync, planSync, writeSync } from "./commands/sync.ts";
 import { type AidtConfig, loadConfig } from "./core/config.ts";
 import { collectDiff, type DiffSource } from "./core/diff.ts";
 import { defaultBranch, GitError, repoRoot } from "./core/git.ts";
@@ -11,6 +12,7 @@ const HELP = `aidt: AI Dev Toolkit
 
 Usage
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
+  aidt sync  [--from <dir>]                Render the canonical agents for each AI tool
   aidt clean [paths…] [source] [--check]   Remove guide comments (--check: report, exit 1 if any)
 
 Source (default: <default branch>...HEAD)
@@ -23,7 +25,7 @@ Other
   -h, --help      Show this help
   -v, --version   Show the version
 
-Exit codes: 0 ok · 1 findings (clean --check) · 2 usage or git error`;
+Exit codes: 0 ok · 1 findings (clean --check, invalid agents) · 2 usage or git error`;
 
 class UsageError extends Error {}
 
@@ -60,6 +62,7 @@ function parseCli(argv: string[]) {
       files: { type: "boolean" },
       json: { type: "boolean" },
       check: { type: "boolean" },
+      from: { type: "string" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },
@@ -108,6 +111,14 @@ async function runClean(context: Context, givenPaths: string[]): Promise<number>
   return found.total > 0 ? 1 : 0;
 }
 
+async function runSync({ root, config, flags }: Context): Promise<number> {
+  const plan = await planSync(root, flags.from ?? config.sync.agents, config.sync.harnesses);
+  print(formatSync(plan));
+  if (plan.problems.length > 0) return 1;
+  await writeSync(root, plan.files);
+  return 0;
+}
+
 async function main(argv: string[]): Promise<number> {
   const { values: flags, positionals } = parseCli(argv);
   const [command, ...rest] = positionals;
@@ -118,6 +129,7 @@ async function main(argv: string[]): Promise<number> {
   const context = { root, config: await loadConfig(root), flags };
   if (command === "diff") return runDiff(context);
   if (command === "clean") return runClean(context, rest);
+  if (command === "sync") return runSync(context);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 

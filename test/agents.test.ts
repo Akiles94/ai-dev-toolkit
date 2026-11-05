@@ -1,90 +1,42 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { type Agent, parseAgent } from "../src/core/agent.ts";
 
 const DIR = join(import.meta.dirname, "..", "products", "workflow", "agents");
 const WORKFLOW = ["refiner", "planner", "builder", "reviewer"];
-const CAPABILITIES = ["read", "ask", "write", "edit", "shell"];
 
-type Frontmatter = Record<string, string | string[]>;
-
-/** `""` starts a block list, `[a, b]` is an inline list, anything else is a scalar. */
-function parseValue(value: string): string | string[] {
-  if (value === "") return [];
-  if (!value.startsWith("[")) return value;
-  return value
-    .slice(1, -1)
-    .split(",")
-    .map((v) => v.trim());
-}
-
-/** Minimal parser for the frontmatter subset agents use: scalars, [inline] and "- item" lists. */
-function frontmatter(markdown: string): { data: Frontmatter; body: string } {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(markdown);
-  if (!match) throw new Error("missing frontmatter");
-  const data: Frontmatter = {};
-  let listKey: string | undefined;
-  for (const line of (match[1] ?? "").split("\n")) {
-    const item = /^\s+-\s+(.+)$/.exec(line);
-    if (item && listKey) {
-      (data[listKey] as string[]).push(item[1] ?? "");
-      continue;
-    }
-    const [, key = "", value = ""] = /^(\w[\w-]*):\s*(.*)$/.exec(line) ?? [];
-    if (!key) continue;
-    data[key] = parseValue(value);
-    listKey = value === "" ? key : undefined;
-  }
-  return { data, body: match[2] ?? "" };
-}
-
-function agent(name: string) {
-  const found = agents.find((a) => a.data.name === name);
-  if (!found) throw new Error(`agent ${name} not found`);
-  return found;
+function load(file: string) {
+  const result = parseAgent(file, readFileSync(join(DIR, file), "utf8"));
+  if (!result.ok) throw new Error(`${file}: ${result.error.join("; ")}`);
+  return { file, agent: result.value };
 }
 
 const agents = readdirSync(DIR)
   .filter((f) => f.endsWith(".md") && f !== "README.md")
-  .map((file) => ({ file, ...frontmatter(readFileSync(join(DIR, file), "utf8")) }));
+  .map(load);
+
+function agent(name: string): Agent {
+  const found = agents.find((a) => a.agent.name === name);
+  if (!found) throw new Error(`agent ${name} not found`);
+  return found.agent;
+}
 
 describe("canonical agents", () => {
-  it("has the four workflow agents", () => {
-    expect(agents.map((a) => a.data.name).sort()).toEqual([...WORKFLOW].sort());
+  it("has the four workflow agents, all valid", () => {
+    expect(agents.map((a) => a.agent.name).sort()).toEqual([...WORKFLOW].sort());
   });
 
   it("chains them in order: refiner → planner → builder → reviewer", () => {
-    expect(agent("refiner").data.handoff).toBe("planner");
-    expect(agent("planner").data.handoff).toBe("builder");
-    expect(agent("builder").data.handoff).toBe("reviewer");
-    expect(agent("reviewer").data.handoff).toBe(undefined);
+    expect(agent("refiner").handoff).toBe("planner");
+    expect(agent("planner").handoff).toBe("builder");
+    expect(agent("builder").handoff).toBe("reviewer");
+    expect(agent("reviewer").handoff).toBe(undefined);
   });
 
-  for (const { file, data, body } of agents) {
-    describe(file, () => {
-      it("is named after its file", () => {
-        expect(data.name).toBe(file.replace(/\.md$/, ""));
-      });
-
-      it("declares a description and a valid tier", () => {
-        expect(typeof data.description === "string" && data.description.length > 20).toBe(true);
-        expect(["efficient", "balanced", "max"].includes(data.tier as string)).toBe(true);
-      });
-
-      it("only uses known capabilities, with their scopes", () => {
-        const caps = data.capabilities as string[];
-        expect(caps.every((c) => CAPABILITIES.includes(c))).toBe(true);
-        if (caps.includes("write")) expect((data.writes as string[]).length > 0).toBe(true);
-        if (caps.includes("shell")) expect((data.commands as string[]).length > 0).toBe(true);
-      });
-
-      it("hands off to another workflow agent", () => {
-        if (data.handoff) expect(WORKFLOW.includes(data.handoff as string)).toBe(true);
-      });
-
-      it("never moves on without the user's approval", () => {
-        expect(/## \d+\. Approval/.test(body)).toBe(true);
-      });
+  for (const { file, agent: a } of agents) {
+    it(`${file} never moves on without the user's approval`, () => {
+      expect(/## \d+\. Approval/.test(a.instructions)).toBe(true);
     });
   }
 });
@@ -93,35 +45,31 @@ describe("refiner", () => {
   const refiner = agent("refiner");
 
   it("cannot edit source code", () => {
-    expect((refiner.data.capabilities as string[]).includes("edit")).toBe(false);
-    expect(refiner.data.writes).toEqual([".aidt/tasks/*/spec.md", ".aidt/tasks/*/state.json"]);
+    expect(refiner.capabilities.includes("edit")).toBe(false);
+    expect(refiner.writes).toEqual([".aidt/tasks/*/spec.md", ".aidt/tasks/*/state.json"]);
   });
 
   it("settles the branch before anything else", () => {
-    expect(refiner.body.includes("## 1. Branch first")).toBe(true);
+    expect(refiner.instructions.includes("## 1. Branch first")).toBe(true);
   });
 });
 
 describe("planner", () => {
-  const planner = agent("planner");
-
   it("cannot edit source code or run commands", () => {
-    expect(planner.data.capabilities).toEqual(["read", "ask", "write"]);
+    expect(agent("planner").capabilities).toEqual(["read", "ask", "write"]);
   });
 });
 
 describe("builder", () => {
-  const builder = agent("builder");
+  const { instructions } = agent("builder");
 
   it("removes guide comments before committing", () => {
-    expect(builder.body.includes("`aidt clean --worktree`")).toBe(true);
-    expect(
-      builder.body.indexOf("aidt clean --worktree") < builder.body.indexOf("Commit only"),
-    ).toBe(true);
+    const clean = instructions.indexOf("aidt clean --worktree");
+    expect(clean > 0 && clean < instructions.indexOf("Commit only")).toBe(true);
   });
 
   it("never starts the next section on its own", () => {
-    expect(builder.body.includes("Never start it on your own")).toBe(true);
+    expect(instructions.includes("Never start it on your own")).toBe(true);
   });
 });
 
@@ -129,15 +77,15 @@ describe("reviewer", () => {
   const reviewer = agent("reviewer");
 
   it("cannot edit code and only writes review files and state", () => {
-    expect((reviewer.data.capabilities as string[]).includes("edit")).toBe(false);
-    expect(reviewer.data.writes).toEqual([".aidt/tasks/*/review/*.md", ".aidt/tasks/*/state.json"]);
+    expect(reviewer.capabilities.includes("edit")).toBe(false);
+    expect(reviewer.writes).toEqual([".aidt/tasks/*/review/*.md", ".aidt/tasks/*/state.json"]);
   });
 
   it("checks that no guide comments remain", () => {
-    expect((reviewer.data.commands as string[]).includes("aidt clean --check")).toBe(true);
+    expect(reviewer.commands.includes("aidt clean --check")).toBe(true);
   });
 
   it("binds each verdict to a commit", () => {
-    expect(reviewer.body.includes("A verdict is only valid for that commit")).toBe(true);
+    expect(reviewer.instructions.includes("A verdict is only valid for that commit")).toBe(true);
   });
 });

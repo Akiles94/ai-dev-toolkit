@@ -4,7 +4,8 @@ export default defineConfig({
   test: {
     // Tests sit next to the code they test; product content is tested next to the product.
     include: ["src/**/*.test.ts", "products/**/*.test.ts"],
-    testTimeout: 20_000,
+    // Many tests drive real git repos; on slow machines (Windows with antivirus) they need room.
+    testTimeout: 60_000,
     coverage: {
       provider: "v8",
       // Minimum only where the logic lives; coverage is a safety net, not a target.

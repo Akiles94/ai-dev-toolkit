@@ -1,5 +1,6 @@
-import type { Agent, Tier } from "../core/agent.ts";
-import { type Adapter, generatedBanner, limitsSection, markdown, yamlString } from "./shared.ts";
+import type { Agent, Tier } from "./agent.ts";
+import { generatedBanner, limitsSection, markdown, yamlString } from "./agent-markdown.ts";
+import type { AgentRenderer } from "./agent-renderer.port.ts";
 
 const MODELS: Record<Tier, string> = { efficient: "haiku", balanced: "sonnet", max: "opus" };
 
@@ -30,7 +31,7 @@ const handoffNote = (next: string) =>
   `When the user approves, suggest continuing with \`/${next}\`. Never start it yourself.`;
 
 /** Claude Code skill, invoked as `/<name>`: `.claude/skills/<name>/SKILL.md`. */
-export const claudeCode: Adapter = (agent, source) => {
+export const claudeCodeAgentRenderer: AgentRenderer = (agent, source) => {
   const fresh = agent.context === "fresh";
   const frontmatter = [
     "---",

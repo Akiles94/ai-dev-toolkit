@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CONFIG } from "../src/core/config.ts";
-import { collectDiff } from "../src/core/diff.ts";
-import { defaultBranch, GitError, repoRoot } from "../src/core/git.ts";
-import { commitAll, featureRepo, git, write } from "./helpers/repo.ts";
+import { collectDiff } from "./changes.ts";
+import { DEFAULT_CONFIG } from "./config.ts";
+import { defaultBranch, GitError, repoRoot } from "./git.ts";
+import { commitAll, featureRepo, git, write } from "./testing/temp-repo.ts";
 
 describe("collectDiff", () => {
   it("compares a branch with its base like a PR, ignoring later changes on the base", async () => {

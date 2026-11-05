@@ -1,4 +1,4 @@
-import type { DiffSummary, FileCategory, FileChange } from "../core/diff.ts";
+import type { DiffSummary, FileCategory, FileChange } from "../shared/changes.ts";
 
 const LABELS: Record<FileCategory, string> = {
   code: "Code",

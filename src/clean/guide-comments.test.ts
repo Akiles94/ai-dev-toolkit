@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isMarkdown, stripGuides } from "../src/core/guide.ts";
+import { isMarkdown, stripGuides } from "./guide-comments.ts";
 
 const M = "@guide";
 

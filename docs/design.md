@@ -135,6 +135,24 @@ if (limiter.isBlocked(ip)) return tooManyRequests(retryAfter);
 - Removed by script. Normal comments are untouched.
 - Not counted in section line limits.
 
+## 6b. Practices and quality gates
+
+The code the workflow produces follows written practices, checked by tools wherever a tool can do it.
+
+- **Practices** in `.aidt/practices/`, copied into the project and editable:
+  - `sustainable-code.md`: the ideas of *Código sostenible* (Carlos Blé) that pay off, split into
+    always / when it pays off / not applied, plus a review checklist. The planner designs with
+    it, the builder writes with it, the reviewer checks it.
+  - `static-analysis.md`: free tools that cover what SonarQube checks, per stack (cognitive
+    complexity, smells, duplication, unused code, SAST, coverage, vulnerable dependencies, secrets).
+- **Quality commands:** `quality.commands` in `.aidt/config.json`, or the project's single check
+  script (`npm run verify`). The builder runs them before showing a section; the reviewer runs
+  them as a gate, and any failure is a FAIL.
+- Project rules (`AGENTS.md`) win over the practices; the practices win over the developer profile.
+- This repository follows its own practices: `npm run verify` runs typecheck, Biome (with cognitive
+  complexity ≤ 15), knip, jscpd and tests with a coverage minimum on `src/core`; CI adds Semgrep and
+  `npm audit`, and reports findings as PR annotations.
+
 ## 7. Delivery: stacked PRs by default
 
 One section = one commit while building → one branch = one PR at delivery, each based on the previous one.

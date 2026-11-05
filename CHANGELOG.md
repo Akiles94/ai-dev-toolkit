@@ -23,10 +23,14 @@ First public release.
     without overwriting your files, then syncs.
   - `sync [--check]`: renders the canonical agents for GitHub Copilot and Claude Code. Removes the
     generated files of deleted agents and drops handoffs to agents that are not installed.
+    Agents may run every `aidt` command as `npx @akiles94/ai-dev-toolkit …` when `aidt` is not
+    installed globally.
   - `diff`: diff stats with tests, config, noise and formatting counted apart.
   - `clean [--check]`: removes `@guide` comments, including JSX and multi-line blocks.
   - `check`: section sizes and requirement → test mapping for the current task.
   - `stack prepare` / `stack submit [--dry-run]`: one branch and one draft PR per reviewed section,
     with `gh` (linked by `gh stack` when installed), `glab`, or push-only fallback.
   - `structure audit [--json]`: deterministic check of the structure rules.
+- `diff` and `clean` skip untracked symlinks (such as a package linked into `node_modules`)
+  instead of failing.
 - Zero runtime dependencies; CI on Linux, Windows and macOS; npm provenance on publish.

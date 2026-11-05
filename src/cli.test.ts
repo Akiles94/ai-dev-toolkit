@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { commitAll, featureRepo, write } from "./shared/testing/temp-repo.ts";
@@ -64,6 +64,20 @@ describe("errors", () => {
     expect(code).toBe(2);
     expect(err).toContain("Unknown command");
   });
+});
+
+describe("untracked symlinks", () => {
+  // Creating symlinks on Windows needs extra privileges; the code path is the same everywhere.
+  it.skipIf(process.platform === "win32")(
+    "are skipped, like a package linked into node_modules",
+    () => {
+      mkdirSync(join(repo, "linked"));
+      mkdirSync(join(repo, "node_modules"));
+      symlinkSync(join(repo, "linked"), join(repo, "node_modules", "pkg"));
+      expect(run(repo, "diff", "--worktree").code).toBe(0);
+      expect(run(repo, "clean", "--check").code).toBe(1); // the committed @guide in app.ts
+    },
+  );
 });
 
 describe("aidt add", () => {

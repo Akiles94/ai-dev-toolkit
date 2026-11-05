@@ -155,7 +155,10 @@ someone else will have to approve.
    to keep in mind (context, decisions already taken, areas to check or to skip). In a fresh
    context, end with these questions; the user answers by calling you again with the answers.
 3. **Write down the reference.** Turn the ticket into numbered requirements (`R1`, `R2`…), marked
-   as derived from the ticket, at the top of `review/index.md`. Without a ticket, say that
+   as derived from the ticket, at the top of `review/index.md`. The guides go in
+   `.aidt/tasks/<task-id>/review/`, with the task id from the branch name as everywhere else, even
+   when the ticket has its own id: branch `feat/discount-code` with ticket `SHOP-12` →
+   `.aidt/tasks/feat-discount-code/review/`, never `.aidt/tasks/SHOP-12/`. Without a ticket, say that
    requirement coverage cannot be checked and judge everything else.
 4. **Split the diff into reading parts** by intent (contracts → logic → wiring → UI), each with
    its own guide from the template; a small change is one part. The verdict applies to the
@@ -165,5 +168,6 @@ someone else will have to approve.
    `aidt structure audit` when `.aidt/structure.md` exists. Skip `aidt check` and `aidt stack`:
    they need a workflow task. Do not create `state.json`.
 6. **Report:** the verdict, requirement coverage and the findings that matter, with the path of
-   the guides so the user can paste them as the PR description. Never edit code, push or comment
-   on the PR yourself.
+   the guides so the user can paste them as the PR description. There is no builder in this mode:
+   on FAIL, say what the author must change, not who should do it. Never edit code, push or
+   comment on the PR yourself.

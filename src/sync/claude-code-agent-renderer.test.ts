@@ -25,6 +25,22 @@ describe("claudeCodeAgentRenderer", () => {
     ]);
   });
 
+  it("also allows every aidt command through npx, for projects without a global install", () => {
+    const agent = parsed(
+      "refiner.md",
+      REFINER.replace("  - git branch", "  - git branch\n  - aidt diff"),
+    );
+    expect(allowedTools(agent).slice(-3)).toEqual([
+      "Bash(git branch *)",
+      "Bash(aidt diff *)",
+      "Bash(npx @akiles94/ai-dev-toolkit diff *)",
+    ]);
+    expect(skill(REFINER.replace("  - git branch", "  - aidt diff"))?.content).toContain(
+      "If `aidt` is not installed, run the same command as `npx @akiles94/ai-dev-toolkit …`",
+    );
+    expect(skill(REFINER)?.content).not.toContain("npx");
+  });
+
   it("suggests the next step instead of starting it", () => {
     expect(skill(REFINER)?.content.trimEnd().endsWith("Never start it yourself.")).toBe(true);
   });

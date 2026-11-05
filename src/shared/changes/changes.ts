@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join, matchesGlob } from "node:path";
 import type { AidtConfig } from "../config/config.ts";
 import { git } from "../git/git.ts";
@@ -128,6 +128,10 @@ async function untrackedChanges(cwd: string): Promise<RawChange[]> {
   const paths = listed.split("\0").filter(Boolean);
   return Promise.all(
     paths.map(async (path) => {
+      // A symlink (even to a folder, like a linked package in node_modules) has no lines to review.
+      if ((await lstat(join(cwd, path))).isSymbolicLink()) {
+        return { path, added: 0, deleted: 0, binary: true };
+      }
       const content = await readFile(join(cwd, path));
       if (content.includes(0)) return { path, added: 0, deleted: 0, binary: true };
       const text = content.toString("utf8");

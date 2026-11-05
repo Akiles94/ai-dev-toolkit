@@ -43,6 +43,20 @@ describe("architect agent", () => {
 describe("stack presets", () => {
   const presets = readdirSync(join(DIR, "presets"));
 
+  it("ships the nine v0.1 stacks", () => {
+    expect(presets.sort()).toEqual([
+      "csharp.md",
+      "go.md",
+      "java.md",
+      "kotlin-android.md",
+      "nextjs.md",
+      "node.md",
+      "react-native.md",
+      "react.md",
+      "swift-ios.md",
+    ]);
+  });
+
   for (const file of presets) {
     it(`${file} covers every level, naming and boundaries, with official sources`, () => {
       const preset = read(`presets/${file}`);

@@ -1,11 +1,12 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { claudeCode } from "../adapters/claude-code.ts";
 import { copilot } from "../adapters/copilot.ts";
 import type { Adapter, GeneratedFile } from "../adapters/shared.ts";
 import { type Agent, parseAgent } from "../core/agent.ts";
 
 /** Supported AI tools, by the name used in `sync.harnesses`. */
-const ADAPTERS: Record<string, Adapter> = { copilot };
+const ADAPTERS: Record<string, Adapter> = { copilot, "claude-code": claudeCode };
 
 interface Problem {
   readonly file: string;
@@ -62,6 +63,22 @@ export async function writeSync(root: string, files: readonly GeneratedFile[]): 
     await mkdir(dirname(join(root, file.path)), { recursive: true });
     await writeFile(join(root, file.path), file.content);
   }
+}
+
+/** Generated files whose content on disk differs from what `sync` would write, or that are missing. */
+export async function staleFiles(root: string, files: readonly GeneratedFile[]): Promise<string[]> {
+  const stale: string[] = [];
+  for (const file of files) {
+    const current = await readFile(join(root, file.path), "utf8").catch(() => undefined);
+    if (current !== file.content) stale.push(file.path);
+  }
+  return stale;
+}
+
+export function formatStale(stale: readonly string[]): string {
+  if (stale.length === 0) return "Generated agent files are up to date.";
+  const lines = stale.map((path) => `  ✗ ${path}`);
+  return ["Out of date. Run `aidt sync` and commit the result:", ...lines].join("\n");
 }
 
 export function formatSync(plan: Plan): string {

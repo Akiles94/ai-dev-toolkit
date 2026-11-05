@@ -231,7 +231,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
 ```json
 {
   "$schema": "https://…/aidt.schema.json",
-  "harnesses": ["copilot", "claude-code"],
+  "sync": { "agents": ".aidt/agents", "harnesses": ["copilot", "claude-code"] },
   "limits": { "sectionLines": 300, "exclude": ["**/*.lock", "**/*.snap", "**/generated/**"] },
   "tests": { "coverage": 80, "requireRequirementTests": true },
   "configFiles": { "patterns": ["**/package.json", "**/tsconfig*.json", ".github/**"] },
@@ -251,9 +251,10 @@ Model tiers (`efficient` / `balanced` / `max`) map to concrete models per harnes
 
 ## 10. Agnostic by design
 
-- **Canonical agents** in `.aidt/agents/*.md`: frontmatter (name, role, tier, allowed capabilities: read / write / shell) + instructions.
-- **Adapters** render them per harness:
-  - v0: GitHub Copilot (VS Code agents, skills, instructions) and Claude Code (subagents, skills, hooks).
+- **Canonical agents** in `.aidt/agents/*.md`: frontmatter (name, description, tier, context, capabilities with scoped writes and commands, handoff) + instructions. Format: `products/workflow/agents/README.md`.
+- **Adapters** render them per harness with `aidt sync` (`aidt sync --check` fails in CI when the generated files are out of date):
+  - **GitHub Copilot:** one custom agent per agent in `.github/agents/<name>.agent.md`, tools mapped from capabilities and a handoff button to the next agent. Copilot cannot scope writes or commands, so the limits travel as explicit instructions.
+  - **Claude Code:** one skill per agent in `.claude/skills/<name>/SKILL.md`, invoked as `/<name>`, model from the tier (efficient → haiku, balanced → sonnet, max → opus), scoped writes and commands pre-approved (`Edit(<glob>)`, `Bash(<command> *)`) so anything else asks the user. Agents with `context: fresh` (the reviewer) run in a forked subagent that never saw the conversation.
   - Later: Codex, Gemini CLI, Cursor…
   - Chat-only tools (ChatGPT web, self-hosted UIs): exported as copy-paste prompts.
 - Shared standards used where they exist: `AGENTS.md`, Agent Skills.

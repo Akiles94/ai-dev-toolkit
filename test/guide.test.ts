@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countGuides, isMarkdown, stripGuides } from "../src/core/guide.ts";
+import { isMarkdown, stripGuides } from "../src/core/guide.ts";
 
 const M = "@guide";
 
@@ -37,7 +37,7 @@ describe("stripGuides", () => {
   });
 
   it("supports a custom marker", () => {
-    expect(countGuides("// @explain: hi\n// @guide: not this one\n", "@explain")).toBe(1);
+    expect(stripGuides("// @explain: hi\n// @guide: not this one\n", "@explain").removed).toBe(1);
   });
 
   it("leaves Markdown code fences untouched when asked", () => {

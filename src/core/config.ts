@@ -84,7 +84,7 @@ export const DEFAULT_CONFIG: AidtConfig = {
   guide: { marker: "@guide" },
 };
 
-export const CONFIG_PATH = join(".aidt", "config.json");
+const CONFIG_PATH = join(".aidt", "config.json");
 
 /**
  * Reads `.aidt/config.json` and merges it over the defaults, one group at a time.

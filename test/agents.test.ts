@@ -8,6 +8,16 @@ const CAPABILITIES = ["read", "ask", "write", "edit", "shell"];
 
 type Frontmatter = Record<string, string | string[]>;
 
+/** `""` starts a block list, `[a, b]` is an inline list, anything else is a scalar. */
+function parseValue(value: string): string | string[] {
+  if (value === "") return [];
+  if (!value.startsWith("[")) return value;
+  return value
+    .slice(1, -1)
+    .split(",")
+    .map((v) => v.trim());
+}
+
 /** Minimal parser for the frontmatter subset agents use: scalars, [inline] and "- item" lists. */
 function frontmatter(markdown: string): { data: Frontmatter; body: string } {
   const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(markdown);
@@ -22,19 +32,8 @@ function frontmatter(markdown: string): { data: Frontmatter; body: string } {
     }
     const [, key = "", value = ""] = /^(\w[\w-]*):\s*(.*)$/.exec(line) ?? [];
     if (!key) continue;
-    if (value === "") {
-      data[key] = [];
-      listKey = key;
-    } else if (value.startsWith("[")) {
-      data[key] = value
-        .slice(1, -1)
-        .split(",")
-        .map((v) => v.trim());
-      listKey = undefined;
-    } else {
-      data[key] = value;
-      listKey = undefined;
-    }
+    data[key] = parseValue(value);
+    listKey = value === "" ? key : undefined;
   }
   return { data, body: match[2] ?? "" };
 }

@@ -7,6 +7,7 @@ import { diffCommand } from "./diff/diff.command.ts";
 import { type CliContext, print, UsageError } from "./shared/cli-context.ts";
 import { loadConfig } from "./shared/config.ts";
 import { GitError, repoRoot } from "./shared/git.ts";
+import { stackCommand } from "./stack/stack.command.ts";
 import { syncCommand } from "./sync/sync.command.ts";
 
 // Delivery: parses the command line, builds the context and runs one command. Flows never call
@@ -20,6 +21,7 @@ Usage
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
   aidt clean [paths…] [source] [--check]   Remove guide comments (--check: report, exit 1 if any)
+  aidt stack prepare [--base <trunk>]      One local branch per reviewed section (pushes nothing)
 
 Source (default: <default branch>...HEAD)
   --base <ref>    Compare against <ref> (merge-base, like a PR)
@@ -31,7 +33,7 @@ Other
   -h, --help      Show this help
   -v, --version   Show the version
 
-Exit codes: 0 ok · 1 findings (--check, invalid agents) · 2 usage or git error`;
+Exit codes: 0 ok · 1 findings (--check, invalid agents, stack not ready) · 2 usage or git error`;
 
 function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -76,6 +78,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "clean") return cleanCommand(context, rest);
   if (command === "sync") return syncCommand(context);
   if (command === "add") return addThenSync(context, rest[0]);
+  if (command === "stack") return stackCommand(context, rest[0]);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 

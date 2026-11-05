@@ -172,6 +172,15 @@ One section = one commit while building → one branch = one PR at delivery, eac
 - Changing an approved section → builder restacks the branches above it.
 - Each PR description = its section guide + link to `index.md`.
 
+Two steps, so nothing leaves the machine without a yes:
+
+1. `aidt stack prepare [--base <trunk>]`: refuses unless every section is `PASS` with a commit, a
+   review guide, and the commits sit in order on the task branch. Then creates one local branch per
+   section at its commit (`<task-branch>-s01-<name>`, each based on the previous one), records them
+   in `state.json` (`phase: deliver`) and prints the plan. Never moves a branch that already exists
+   at another commit. Pushes nothing.
+2. `aidt stack submit`: pushes the branches and opens the draft PRs with the adapter above.
+
 ## 8. Artifacts
 
 ### spec.md

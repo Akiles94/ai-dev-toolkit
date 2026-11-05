@@ -126,4 +126,9 @@ describe("reviewer", () => {
     expect(reviewer.capabilities.includes("ask")).toBe(true);
     expect(reviewer.commands.includes("gh pr view")).toBe(true);
   });
+
+  it("names the task folder after the branch and hands a FAIL to the author, not a builder", () => {
+    expect(reviewer.instructions.includes("with the task id from the branch name")).toBe(true);
+    expect(reviewer.instructions.includes("There is no builder in this mode")).toBe(true);
+  });
 });

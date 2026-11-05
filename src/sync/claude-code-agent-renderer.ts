@@ -1,5 +1,11 @@
 import type { Agent, Tier } from "./agent.ts";
-import { generatedBanner, limitsSection, markdown, yamlString } from "./agent-markdown.ts";
+import {
+  allowedCommands,
+  generatedBanner,
+  limitsSection,
+  markdown,
+  yamlString,
+} from "./agent-markdown.ts";
 import type { AgentRenderer } from "./agent-renderer.port.ts";
 
 const MODELS: Record<Tier, string> = { efficient: "haiku", balanced: "sonnet", max: "opus" };
@@ -15,7 +21,7 @@ export function allowedTools(agent: Agent): string[] {
     ...(has("read") ? ["Read", "Grep", "Glob"] : []),
     ...(has("ask") ? ["AskUserQuestion"] : []),
     ...(has("edit") ? ["Edit", "Write"] : agent.writes.map((glob) => `Edit(${glob})`)),
-    ...agent.commands.map((command) => `Bash(${command} *)`),
+    ...allowedCommands(agent).map((command) => `Bash(${command} *)`),
   ];
 }
 

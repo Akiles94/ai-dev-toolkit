@@ -342,7 +342,7 @@ TypeScript, Node 24, minimal dependencies.
 | `aidt structure audit` | Check the common structure rules; exceptions from `.aidt/structure.md` |
 | `aidt customize <agent>` | Optional guided customization |
 
-Agents call these scripts instead of doing mechanical work with tokens.
+Agents call these scripts instead of doing mechanical work with tokens. Adapters also allow each `aidt` command as `npx @akiles94/ai-dev-toolkit …`, so agents work without a global install.
 
 ## 12. Distribution and security
 

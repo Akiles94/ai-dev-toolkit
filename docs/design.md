@@ -99,6 +99,7 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 - Fresh context: reads only spec, plan and diff. Cannot edit source (enforced by hooks where the harness supports them).
 - **Cleanup check** (script): `aidt clean --check` must find no guide comments left.
 - **Checks** (scripts first): section line count, coverage threshold, every requirement has a test.
+- **Defect search:** reads each changed function with its callers and tests, goes through a fixed list (logic, edges, errors, security, async, performance, compatibility, test quality), reuses static analysis output, and verifies every finding before reporting it. Each finding has `file:line`, a failing scenario with real values and a `suggestion` fix. Bounded on tokens: skips what cannot break, searches instead of reading whole files, verifies only candidates.
 - **Explains:** one review guide per section (§8) + `index.md`.
 - **Verdict** per section: `PASS` / `FAIL`, bound to the reviewed commit SHA (a stale PASS is invalid).
 - **Delivery:** prepares the stack. Publishing requires user confirmation.
@@ -273,7 +274,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
 - Read carefully / skim
 - Affected flows (direct and indirect, from changed symbols)
 - Ticket coverage for the requirements in this section
-- Warnings (misaligned with spec, not requested, risks)
+- Findings (verified defects with a failing scenario and a suggested fix; misaligned with spec, not requested)
 - Questions for the author
 
 ### state.json
@@ -307,7 +308,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
     "refiner": "balanced",
     "planner": "balanced",
     "builder": "balanced",
-    "reviewer": "efficient"
+    "reviewer": "balanced"
   },
   "artifacts": { "path": ".aidt/tasks", "commit": true }
 }

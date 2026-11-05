@@ -51,7 +51,7 @@ describe("workflow templates", () => {
       "Reading order",
       "Affected flows",
       "Requirement coverage",
-      "Warnings",
+      "Findings",
       "Questions for the author",
     ]);
   });

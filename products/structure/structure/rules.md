@@ -11,8 +11,8 @@ name, and finds what they look for without searching.**
 
 ## S1 · No junk drawers (audit)
 
-A folder or file named after nothing (`utils`, `helpers`, `common`, `misc`, `general`, `stuff`,
-`functions`, `tools`) collects whatever had no home, and grows forever.
+A folder or file named after nothing (`utils`, `helpers`, `misc`, `general`, `stuff`,
+`functions`) collects whatever had no home, and grows forever.
 
 - A helper lives **next to its only user**.
 - When two features need it, it moves to `shared/<what-it-is>/`, named by what it does:

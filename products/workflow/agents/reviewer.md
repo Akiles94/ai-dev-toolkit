@@ -59,8 +59,9 @@ Give `FAIL` when any of these holds, and say exactly what would turn it into `PA
   saying so.
 - Tests fail, a test was weakened or removed, or guide comments remain.
 - A quality command fails (complexity, duplication, unused code, security, coverage minimum).
-- It clearly breaks the checklist of `.aidt/practices/sustainable-code.md`. Minor deviations are
-  suggestions, not a FAIL.
+- It clearly breaks the checklist of `.aidt/practices/sustainable-code.md` or
+  `.aidt/practices/architecture-and-naming.md` (a flow importing another, data written by two
+  flows, a file whose name hides its role). Minor deviations are suggestions, not a FAIL.
 - Reviewable lines go clearly over `limits.sectionLines` without a reason in the plan.
 
 Separate real defects from suggestions. Do not invent problems to look thorough, and do not let

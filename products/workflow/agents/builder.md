@@ -36,7 +36,8 @@ incomplete, stop, explain why and propose the change. Never work around it silen
   abstractions or "while I'm here" refactors. If something else needs fixing, note it for the user.
 - Follow the project rules (`AGENTS.md`) and the decisions in the plan. The developer profile
   fills gaps only.
-- Write it following `.aidt/practices/sustainable-code.md`: names in domain language, short
+- Put files where the plan says, named as `.aidt/practices/architecture-and-naming.md` says (or
+  as the project does). Write it following `.aidt/practices/sustainable-code.md`: names in domain language, short
   functions with early returns, no flag parameters, expected errors as values, minimal exports,
   no abstraction the section does not need. In domain rules and use cases, write the test first.
 - **Tests:** write the tests the plan assigns to this section. Reference the requirement in the

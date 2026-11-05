@@ -83,3 +83,6 @@ Show the user a short summary (goal, requirements, out of scope) and ask for app
 - On changes: update the spec and ask again.
 - On approval: set `Status: approved` in the spec, update `state.json` (`phase: plan`,
   `approvals.spec`), and offer the handoff to the planner. Do not start planning yourself.
+- Without the planner (`.aidt/agents/planner.md` does not exist), the approved spec is the result:
+  tell the user where it is, and that they can paste it into the ticket or hand it to any agent
+  or developer.

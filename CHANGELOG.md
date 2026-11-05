@@ -12,12 +12,17 @@ First public release.
 - **`workflow` product:** four canonical agents (`refiner`, `planner`, `builder`, `reviewer`), the
   spec, plan and review templates, `state.json` schema, and practices (sustainable code, static
   analysis). Modes `full` / `light` / `rework` and control levels `strict` / `standard` / `fast`.
+  The `reviewer` searches for defects beyond the spec (verified findings with a failing scenario
+  and a suggested fix) on a `balanced` model, also reviews a branch without a spec, against its ticket, and the `refiner`
+  alone ends at the approved spec.
 - **`structure` product:** common structure rules S1–S7, three levels (conventional, modular,
   architecture), nine stack presets (React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin
   Android, Swift iOS) built on their official guides, and the `architect` agent.
 - **CLI `aidt`:**
-  - `add <product>`: copies a product into `.aidt/` without overwriting your files, then syncs.
-  - `sync [--check]`: renders the canonical agents for GitHub Copilot and Claude Code.
+  - `add <product|agent>`: copies a product, or the `refiner` or `reviewer` alone, into `.aidt/`
+    without overwriting your files, then syncs.
+  - `sync [--check]`: renders the canonical agents for GitHub Copilot and Claude Code. Removes the
+    generated files of deleted agents and drops handoffs to agents that are not installed.
   - `diff`: diff stats with tests, config, noise and formatting counted apart.
   - `clean [--check]`: removes `@guide` comments, including JSX and multi-line blocks.
   - `check`: section sizes and requirement → test mapping for the current task.

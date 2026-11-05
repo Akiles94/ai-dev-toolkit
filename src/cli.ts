@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { applyAdd, formatAdd, planAdd } from "./commands/add.ts";
 import { cleanTargets, findGuides, formatClean, removeGuides } from "./commands/clean.ts";
 import { formatDiff } from "./commands/diff.ts";
 import { formatStale, formatSync, planSync, staleFiles, writeSync } from "./commands/sync.ts";
@@ -11,6 +12,7 @@ import { defaultBranch, GitError, repoRoot } from "./core/git.ts";
 const HELP = `aidt: AI Dev Toolkit
 
 Usage
+  aidt add   <product>                     Copy a product into .aidt/ and sync it (products: workflow)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
@@ -127,6 +129,16 @@ async function runSync({ root, config, flags }: Context): Promise<number> {
   return print(formatSync(plan));
 }
 
+/** Copies the product, then renders its agents with the config it may have just created. */
+async function runAdd(context: Context, product: string | undefined): Promise<number> {
+  if (!product) throw new UsageError("Name the product to add, e.g. aidt add workflow.");
+  const plan = await planAdd(context.root, product);
+  if (!plan.ok) throw new UsageError(plan.error);
+  await applyAdd(context.root, plan.value);
+  print(formatAdd(plan.value));
+  return runSync({ ...context, config: await loadConfig(context.root) });
+}
+
 async function main(argv: string[]): Promise<number> {
   const { values: flags, positionals } = parseCli(argv);
   const [command, ...rest] = positionals;
@@ -138,6 +150,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "diff") return runDiff(context);
   if (command === "clean") return runClean(context, rest);
   if (command === "sync") return runSync(context);
+  if (command === "add") return runAdd(context, rest[0]);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 

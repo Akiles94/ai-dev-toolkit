@@ -85,6 +85,10 @@ describe("reviewer", () => {
     expect(reviewer.commands.includes("aidt clean --check")).toBe(true);
   });
 
+  it("reviews in a fresh context, without the conversation that built the code", () => {
+    expect(reviewer.context).toBe("fresh");
+  });
+
   it("binds each verdict to a commit", () => {
     expect(reviewer.instructions.includes("A verdict is only valid for that commit")).toBe(true);
   });

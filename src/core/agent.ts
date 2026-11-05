@@ -2,18 +2,26 @@ import { fail, ok, type Result } from "./result.ts";
 
 const TIERS = ["efficient", "balanced", "max"] as const;
 const CAPABILITIES = ["read", "ask", "write", "edit", "shell"] as const;
+const CONTEXTS = ["shared", "fresh"] as const;
 
 /** How much model the agent needs; each tool adapter maps it to a concrete model. */
-type Tier = (typeof TIERS)[number];
+export type Tier = (typeof TIERS)[number];
 
 /** What an agent may do; each tool adapter maps it to that tool's permissions. */
 export type Capability = (typeof CAPABILITIES)[number];
+
+/**
+ * `shared`: runs in the user's conversation. `fresh`: runs without it, so it judges the work
+ * without inheriting the reasoning that produced it (the reviewer).
+ */
+type AgentContext = (typeof CONTEXTS)[number];
 
 /** An agent defined once, in the canonical format, and rendered to every AI tool by `aidt sync`. */
 export interface Agent {
   readonly name: string;
   readonly description: string;
   readonly tier: Tier;
+  readonly context: AgentContext;
   readonly capabilities: readonly Capability[];
   /** Files it may create or change (globs). Only with the `write` capability. */
   readonly writes: readonly string[];
@@ -73,6 +81,10 @@ function validate(fields: Fields, fileName: string): string[] {
   )) {
     errors.push(`unknown capability "${unknown}"`);
   }
+  const context = text(fields, "context");
+  if (context && !(CONTEXTS as readonly string[]).includes(context)) {
+    errors.push(`context must be one of ${CONTEXTS.join(", ")}`);
+  }
   if (capabilities.includes("write") && list(fields, "writes").length === 0) {
     errors.push("the write capability needs a writes list");
   }
@@ -97,6 +109,7 @@ export function parseAgent(fileName: string, markdown: string): Result<Agent, st
     name: text(fields, "name"),
     description: text(fields, "description"),
     tier: text(fields, "tier") as Tier,
+    context: (text(fields, "context") || "shared") as AgentContext,
     capabilities: list(fields, "capabilities") as Capability[],
     writes: list(fields, "writes"),
     commands: list(fields, "commands"),

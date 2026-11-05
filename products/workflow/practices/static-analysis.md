@@ -13,6 +13,7 @@ What SonarQube reports, covered with free tools that run locally and in CI.
 | Cognitive complexity | Biome `noExcessiveCognitiveComplexity`, or ESLint + `eslint-plugin-sonarjs` | `ruff` (C901), `radon`, `complexipy` | `gocognit` (golangci-lint) |
 | Code smells, bugs | Biome / ESLint + `eslint-plugin-sonarjs` (Sonar's own rules) | `ruff` | `golangci-lint` |
 | Duplication | `jscpd` | `jscpd` | `jscpd`, `dupl` |
+| Boundaries between flows | `dependency-cruiser` | `import-linter` | `depguard` (golangci-lint) |
 | Unused code and exports | `knip` | `vulture` | `deadcode`, `unused` |
 | Security (SAST) | Semgrep Community Edition | Semgrep, `bandit` | Semgrep, `gosec` |
 | Coverage | Vitest / Jest coverage, minimum only in domain and use cases | `coverage.py` | `go test -cover` |

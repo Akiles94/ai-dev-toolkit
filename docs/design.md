@@ -143,6 +143,9 @@ The code the workflow produces follows written practices, checked by tools where
   - `sustainable-code.md`: the ideas of *Código sostenible* (Carlos Blé) that pay off, split into
     always / when it pays off / not applied, plus a review checklist. The planner designs with
     it, the builder writes with it, the reviewer checks it.
+  - `architecture-and-naming.md`: one bounded context per user flow, one writer per piece of
+    data, boundaries checked by a tool, and file names that say their role (`<what>.<role>.ts`),
+    with a full naming table. The planner uses it to place and name code.
   - `static-analysis.md`: free tools that cover what SonarQube checks, per stack (cognitive
     complexity, smells, duplication, unused code, SAST, coverage, vulnerable dependencies, secrets).
 - **Quality commands:** `quality.commands` in `.aidt/config.json`, or the project's single check

@@ -1,6 +1,6 @@
 {
   "name": "@akiles94/ai-dev-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Use AI to write code without losing control of it: spec-driven workflow, small explained sections, stacked PRs.",
   "license": "MIT",
   "author": "Oscar Vinueza",
@@ -20,7 +20,17 @@
     "spec-driven",
     "stacked-prs",
     "copilot",
-    "claude-code"
+    "claude-code",
+    "github-copilot",
+    "copilot-agents",
+    "custom-agents",
+    "claude-code-skills",
+    "ai-code-review",
+    "pull-request",
+    "code-quality",
+    "llm",
+    "developer-tools",
+    "cli"
   ],
   "type": "module",
   "engines": {

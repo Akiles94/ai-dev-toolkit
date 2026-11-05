@@ -3,7 +3,21 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] - Unreleased
+## [0.1.1] - 2026-11-05
+
+### Changed
+
+- README rewritten around what works today: quick start first, the reviewer as the one-minute
+  entry point, a CLI reference, and planned products moved to a short roadmap.
+- More npm keywords, so the package shows up for Copilot and Claude Code agent searches.
+
+### Fixed
+
+- Tests that drive real git repositories get 60 seconds each, so `npm publish` no longer times out
+  on slow machines.
+- The release workflow skips publishing when the version is already on npm.
+
+## [0.1.0] - 2026-11-05
 
 First public release.
 

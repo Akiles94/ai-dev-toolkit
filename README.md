@@ -1,51 +1,79 @@
 # AI Dev Toolkit
 
-**Use AI to write code without losing control of it.**
-A spec-driven workflow where AI does the typing and you keep the decisions, the understanding and the review.
+[![npm](https://img.shields.io/npm/v/@akiles94/ai-dev-toolkit)](https://www.npmjs.com/package/@akiles94/ai-dev-toolkit)
+[![CI](https://github.com/Akiles94/ai-dev-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/Akiles94/ai-dev-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-> Status: v0.1. `workflow` and `structure` work with GitHub Copilot and Claude Code. Design: [docs/design.md](docs/design.md).
+**Use AI to write code without losing control of it.**
+
+Agents for GitHub Copilot and Claude Code that turn a ticket into a spec you approve, a plan you
+approve, and small explained sections you approve, delivered as a stack of reviewable PRs. Use the
+whole workflow, or just the reviewer.
+
+## Quick start
+
+Requires Node 24 and git. Works on Windows, macOS and Linux.
+
+```bash
+cd your-project
+
+npx @akiles94/ai-dev-toolkit add reviewer    # just the reviewer: review any branch against its ticket
+npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → planner → builder → reviewer
+npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
+```
+
+Then, in your AI tool:
+
+| | GitHub Copilot (VS Code) | Claude Code |
+|---|---|---|
+| Review a branch | Pick `reviewer` in the chat, paste the ticket | `/reviewer <ticket>` |
+| Start a task | Pick `refiner`, paste the ticket; each agent offers a button to the next | `/refiner <ticket>`, then `/planner`, `/builder`, `/reviewer` |
+| Organise the code | Pick `architect` | `/architect` |
 
 ## The problem
 
-- **No control.** AI generates code faster than anyone can understand it. It "works", nobody knows exactly how, and it breaks later.
-- **No method.** Every developer on the team uses AI their own way. No shared structure, no documentation, no consistency.
-- **Unreviewable PRs.** 1,500–2,000 line pull requests that get skimmed and approved, or approved by another AI.
+- **No control.** AI writes code faster than anyone can understand it. It works, nobody knows
+  exactly how, and it breaks later.
+- **No method.** Every developer uses AI their own way: no shared structure, no consistency.
+- **Unreviewable PRs.** 1,500-line pull requests get skimmed and approved, or approved by another AI.
 
-## What you get
+## What's in the box
 
-- **Clear intent before code.** Every task becomes a business spec (*what*) and a technical plan (*how*) you approve before anything is written.
-- **Small, explained changes.** Work is split into sections of ~300 lines. Each one is built, explained and approved before the next starts.
-- **Reviewable by default.** Each section ships as its own PR in a stack, with its own reading guide. No more giant PRs.
-- **Works with your tools.** Agnostic: Copilot, Claude Code and more. Your models, your rules.
+| | What it does |
+|---|---|
+| `workflow` | Four agents. The **refiner** turns a ticket into a spec (*what*), the **planner** into a plan of sections of ~300 lines (*how*), the **builder** writes one section at a time with explanatory comments, and the **reviewer** checks everything with a fresh eye and writes one review guide per PR. |
+| `reviewer` alone | Reviews any branch against its ticket, no spec needed: hunts for real defects, verifies each one before reporting it, and writes a guide ready to paste as the PR description. |
+| `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. |
+| `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. |
+| `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. |
 
-## How it works
+Everything is copied into your repo as plain Markdown and becomes yours to edit. No runtime
+dependency, no network calls, no telemetry.
+
+## How the workflow works
 
 ```
 ticket ─► refiner ─► spec.md ─► planner ─► plan.md ─► builder ─► code ─► reviewer ─► stack of PRs
-          (what)      you ✓     (how)       you ✓    section by    you ✓   cleanup +      each with
+          (what)      you ✓     (how)       you ✓    section by    you ✓   checks +       each with
                                                      section                review guide   its guide
 ```
 
 | Step | Agent | You get | You decide |
 |---|---|---|---|
-| 1 | `refiner` | `spec.md`: branch, requirements, acceptance criteria | What to build |
-| 2 | `planner` | `plan.md`: approach, structure, sections ≤300 lines | How to build it |
-| 3 | `builder` | Code, one section at a time, with guide comments | Approve each section |
-| 4 | `reviewer` | Clean code + one review guide per section + stacked PRs | Publish |
+| 1 | `refiner` | `spec.md`: branch, numbered requirements, acceptance criteria with real data | What to build |
+| 2 | `planner` | `plan.md`: approach, structure, sections ≤300 lines, a test for every requirement | How to build it |
+| 3 | `builder` | Code, one section at a time, with `@guide` comments removed on approval | Approve each section |
+| 4 | `reviewer` | A verdict per section, verified findings, one review guide per PR | Publish |
 
-### Big feature or small fix
-
-The same flow scales to the size of the task. You pick the mode, or the refiner suggests one.
+**Big feature or small fix.** The refiner suggests a mode, or you pick one:
 
 | Mode | For | What changes |
 |---|---|---|
 | `full` | Features, multi-section work | All four steps, in full |
-| `light` | Small fixes and tasks | Same four steps, shortened: a few-line spec, a one-section plan, a quick review |
-| `rework` | Feedback on an open PR | Only the builder and reviewer, on the affected section |
+| `light` | Small fixes | The same steps, shortened: a few-line spec, a one-section plan |
+| `rework` | Feedback on an open PR | Only the builder and the reviewer, on the affected section |
 
-Small tasks get the same control with a fraction of the questions and tokens.
-
-And when time is short, choose how much you review, per task:
+**Short on time.** Choose how much you review, per task:
 
 | Control | You approve | The AI does on its own |
 |---|---|---|
@@ -53,73 +81,87 @@ And when time is short, choose how much you review, per task:
 | `standard` | Spec and plan | Builds all sections in a row and reviews them |
 | `fast` | Only the spec | Plans, builds and reviews; you review the finished stack of PRs |
 
-At every level the sections stay small, tests and quality checks run, a failed review is never delivered, and nothing is pushed or merged without your yes.
+At every level sections stay small, tests and quality checks run, a failed review is never
+delivered, and nothing is pushed or merged without your yes.
 
-## Get started
+## The reviewer, on a real branch
 
-Requires Node 24 and git.
+A test branch with three planted bugs and green tests. The reviewer found all three, and one more
+nobody planted:
 
-```bash
-cd your-project
-npx @akiles94/ai-dev-toolkit add workflow    # copies agents, templates and practices into .aidt/
-npx @akiles94/ai-dev-toolkit add structure   # optional: code organisation rules, presets, architect
+```markdown
+### 🔴 Cart total skips the first item · `src/checkout.js:6`
+**Fails when:** items = [{500c, qty 1}, {1000c, qty 1}] → total 1000 instead of 1500.
+The only test hides this by giving the first item price 0.
+**Fix:**
+    for (let i = 0; i < items.length; i++) total += items[i].priceCents * items[i].qty;
 
-npm i -g @akiles94/ai-dev-toolkit            # or install it once and use `aidt`
+### 🔴 Unknown code is silently ignored · `src/checkout.js:13`
+`Object.hasOwn` matters: with a plain `[]` lookup, code = "constructor" finds an inherited
+function and the total becomes NaN.
 ```
 
-Then start a task:
+How it gets there:
 
-- **GitHub Copilot (VS Code):** pick the `refiner` agent in the chat and paste the ticket. Each agent offers a button to hand off to the next one.
-- **Claude Code:** `/refiner <ticket or description>`, then `/planner`, `/builder`, `/reviewer`.
+- **Asks for the ticket first.** Tickets often exist even when the branch and commits don't
+  mention them.
+- **Reads beyond the diff.** Callers, callees and tests of every changed function.
+- **Goes through a fixed list.** Logic, edge cases, errors, security, async, performance,
+  compatibility and test quality.
+- **Verifies before reporting.** Every finding is re-checked and dropped if it can't be confirmed,
+  so the list stays short and real.
 
-Everything in `.aidt/` is yours to edit. After changing or deleting an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
+## The full workflow, on a real task
 
-## A real run
+A trial on [Valija](https://github.com/Akiles94/valija), a TypeScript CLI and desktop app, for
+"filter search by type" (approvals simulated to test the flow end to end):
 
-A trial on [Valija](https://github.com/Akiles94/valija), a TypeScript CLI + desktop app (the
-approvals were simulated to test the flow end to end):
-
-1. **Refiner** turned "filter search by type" into 5 requirements with real example data:
+1. **Refiner:** 5 requirements with real example data.
    > **R3** An unknown type is rejected with the same error `show` uses (`INVALID_ITEM_TYPE`).
-   > Given any vault · When searching "auth" with type `idea` · Then it fails and lists the valid types.
-2. **Planner** split it into two sections and mapped every requirement to a test:
+2. **Planner:** two sections, every requirement mapped to a test.
 
    | # | Section | Est. lines | Covers |
    |---|---|---|---|
    | S1 | Type filter in the domain | ~70 | R1, R2, R3 |
    | S2 | CLI and desktop | ~60 | R4, R5 |
-3. **Builder** wrote each section with `@guide` comments, stopped for approval, removed them and
-   committed: 45 and 81 reviewable lines.
-4. **Reviewer**, with a fresh context, met all 5 requirements but gave **FAIL** to both sections: a
-   format doc still said search had no type filter, and the generated guide was not regenerated.
-   Exactly the kind of drift a 1,500-line PR hides.
+3. **Builder:** each section with `@guide` comments, stopped for approval, then committed clean:
+   45 and 81 reviewable lines.
+4. **Reviewer:** all 5 requirements met, but **FAIL** on both sections. A format doc still said
+   search had no type filter, and a generated guide was stale. Exactly the kind of drift a
+   1,500-line PR hides.
 
-## Install only what you need
+## CLI
 
-Every product works on its own. Use one, some or all. Two workflow agents also work alone:
+Agents call these instead of spending tokens on mechanical work. They also work on their own in
+any git repository. Without a global install, run them as `npx @akiles94/ai-dev-toolkit <command>`.
 
-```bash
-npx @akiles94/ai-dev-toolkit add refiner    # only turn tickets into specs
-npx @akiles94/ai-dev-toolkit add reviewer   # only review a branch or PR, with or without a spec
-```
+| Command | What it does |
+|---|---|
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer` or `refiner` into `.aidt/` and generate the agents |
+| `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
+| `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
+| `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |
+| `aidt check` | Task gates: section sizes, every requirement has a test |
+| `aidt stack prepare` / `submit` | One branch and one draft PR per reviewed section (`gh` or `glab`) |
+| `aidt structure audit` | Check the structure rules; exceptions live in `.aidt/structure.md` |
 
-| Product | What it does | |
-|---|---|---|
-| `workflow` | The four agents above | ✅ v0.1 |
-| `structure` | Code organisation that scales, with or without an architecture: minimal conventional layout, feature modules or DDD/hexagonal, per stack. Audits existing projects and proposes a refactor, never forces one | ✅ v0.1 |
-| `review` | Review anyone's PR: splits it into sections with a reading order, checks it against the ticket | planned |
-| `init` | Guided setup of your project's AI files (`AGENTS.md`, rules, structure) | planned |
-| `profile` | Your personal coding preferences, applied on every project | planned |
-| `docs` | Living documentation for people, always in sync with the code. Powered by [living-docs](https://github.com/Akiles94/living-docs) | planned |
-| `context` | Lean, always-current context for AI agents: flows and invariants the code doesn't reveal. Powered by [easy-repo-context](https://github.com/Akiles94/easy-repo-context) | planned |
+## Make it yours
 
-`docs` and `context` are standalone npm packages you can also use on their own. When present, the workflow plugs into them: agents read the context instead of exploring the repo, and the reviewer uses them to detect affected flows and broken invariants.
+- Edit anything in `.aidt/`: agents, templates, practices. Then run `aidt sync`.
+- Add `aidt sync --check` and `aidt clean --check` to CI.
+- Models are chosen per agent by tier (`efficient`, `balanced`, `max`) and mapped to each tool, so
+  the same config works for Copilot and Claude Code.
 
-Files are copied into your repo and become yours: plain Markdown and small scripts, no runtime dependency, no network calls, no telemetry. Easy to audit, easy to customize.
+## Roadmap
 
-## Token usage
+- `init`: guided setup of your project's AI files (`AGENTS.md`, rules, structure).
+- `profile`: your personal coding preferences, applied on every project.
+- `docs` and `context`: living docs for people and lean context for agents, powered by
+  [living-docs](https://github.com/Akiles94/living-docs) and
+  [easy-repo-context](https://github.com/Akiles94/easy-repo-context).
+- More AI tools (Codex, Gemini CLI, Cursor) and published token measurements.
 
-Designed to be cheap by default: mechanical work runs as deterministic scripts, agents only see one section at a time, small fixes use a lighter mode, and models are picked per agent by tier (`efficient` · `balanced` · `max`). With `context` enabled, agents answer "how does X work" with up to 67% fewer tokens ([measured](https://github.com/Akiles94/easy-repo-context#proof-of-concept)). Measurements for the full workflow will be published once there are real runs.
+Design and decisions: [docs/design.md](docs/design.md). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

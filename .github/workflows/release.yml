@@ -22,5 +22,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Release tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Skip if this version is already on npm (e.g. the first version, published by hand)
+        id: published
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version >/dev/null 2>&1; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
       # prepublishOnly runs `verify` and `build` first.
-      - run: npm publish --provenance --access public
+      - if: steps.published.outputs.skip != 'true'
+        run: npm publish --provenance --access public

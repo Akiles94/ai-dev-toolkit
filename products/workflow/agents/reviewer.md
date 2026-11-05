@@ -15,6 +15,7 @@ commands:
   - git rev-parse
   - aidt diff
   - aidt clean --check
+  - aidt check
   - aidt stack
   - aidt structure audit
   - erctx check
@@ -42,7 +43,8 @@ the review guides that become the PR descriptions.
    - `aidt diff --base <commit>^ --head <commit> --json`: reviewable, test, config and noise lines.
    - The section diff itself: `git show <commit>`.
 3. Run the project gates once on the last commit: the quality commands (static analysis, tests,
-   coverage), `aidt clean --check` (no guide comments may remain), and `erctx check` /
+   coverage), `aidt check` (section sizes, every requirement referenced by a test),
+   `aidt clean --check` (no guide comments may remain), and `erctx check` /
    `living-docs check` when the project uses them.
 4. Find affected flows from the changed files and symbols: `erctx context <file>` when available,
    otherwise search for callers of the changed exported symbols.

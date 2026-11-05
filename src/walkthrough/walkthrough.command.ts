@@ -27,6 +27,8 @@ function sectionBlock(section: WalkthroughSection): string[] {
 
 function formatPlan(source: string, plan: WalkthroughPlan): string {
   const lines = plan.sections.reduce((sum, s) => sum + s.lines, 0);
+  const testLines = plan.sections.reduce((sum, s) => sum + s.testLines, 0);
+  const tests = testLines > 0 ? ` + ${testLines} test` : "";
   const count = plan.sections.length;
   const skipped =
     plan.skipped.length === 0
@@ -34,7 +36,7 @@ function formatPlan(source: string, plan: WalkthroughPlan): string {
       : [`Skipped (noise, formatting): ${plan.skipped.length}`, ...plan.skipped.map(fileLine)];
   return [
     `Source: ${source}`,
-    `Walkthrough: ${count} section${count === 1 ? "" : "s"} · ${lines} lines · limit ${plan.limit} per section`,
+    `Walkthrough: ${count} section${count === 1 ? "" : "s"} · ${lines} lines${tests} · limit ${plan.limit} per section`,
     "",
     ...plan.sections.flatMap(sectionBlock),
     ...skipped,

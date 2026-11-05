@@ -22,6 +22,7 @@ Usage
                                            (--check: exit 1 if generated files are out of date)
   aidt clean [paths…] [source] [--check]   Remove guide comments (--check: report, exit 1 if any)
   aidt stack prepare [--base <trunk>]      One local branch per reviewed section (pushes nothing)
+  aidt stack submit  [--dry-run]           Push them and open one draft PR per section (gh, glab)
 
 Source (default: <default branch>...HEAD)
   --base <ref>    Compare against <ref> (merge-base, like a PR)
@@ -53,6 +54,7 @@ function parseCli(argv: string[]) {
       json: { type: "boolean" },
       check: { type: "boolean" },
       from: { type: "string" },
+      "dry-run": { type: "boolean" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },

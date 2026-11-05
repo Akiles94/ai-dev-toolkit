@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { applyAdd, formatAdd, planAdd } from "./commands/add.ts";
-import { cleanTargets, findGuides, formatClean, removeGuides } from "./commands/clean.ts";
-import { formatDiff } from "./commands/diff.ts";
-import { formatStale, formatSync, planSync, staleFiles, writeSync } from "./commands/sync.ts";
-import { type AidtConfig, loadConfig } from "./core/config.ts";
-import { collectDiff, type DiffSource } from "./core/diff.ts";
-import { defaultBranch, GitError, repoRoot } from "./core/git.ts";
+import { applyAdd, formatAdd, planAdd } from "./add/add.command.ts";
+import { cleanTargets, findGuides, formatClean, removeGuides } from "./clean/clean.command.ts";
+import { formatDiff } from "./diff/diff.command.ts";
+import { collectDiff, type DiffSource } from "./shared/changes.ts";
+import { type AidtConfig, loadConfig } from "./shared/config.ts";
+import { defaultBranch, GitError, repoRoot } from "./shared/git.ts";
+import { formatStale, formatSync, planSync, staleFiles, writeSync } from "./sync/sync.command.ts";
 
 const HELP = `aidt: AI Dev Toolkit
 

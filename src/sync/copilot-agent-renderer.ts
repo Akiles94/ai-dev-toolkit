@@ -1,5 +1,6 @@
-import type { Agent, Capability } from "../core/agent.ts";
-import { type Adapter, generatedBanner, limitsSection, markdown, yamlString } from "./shared.ts";
+import type { Agent, Capability } from "./agent.ts";
+import { generatedBanner, limitsSection, markdown, yamlString } from "./agent-markdown.ts";
+import type { AgentRenderer } from "./agent-renderer.port.ts";
 
 /**
  * VS Code tool names per capability. Copilot cannot scope writes or commands, so `write` maps to
@@ -30,7 +31,7 @@ function handoff(next: string): string[] {
 }
 
 /** Custom agent for GitHub Copilot in VS Code: `.github/agents/<name>.agent.md`. */
-export const copilot: Adapter = (agent, source) => {
+export const copilotAgentRenderer: AgentRenderer = (agent, source) => {
   const frontmatter = [
     "---",
     `name: ${agent.name}`,

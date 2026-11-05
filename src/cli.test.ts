@@ -2,9 +2,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { commitAll, featureRepo, write } from "./helpers/repo.ts";
+import { commitAll, featureRepo, write } from "./shared/testing/temp-repo.ts";
 
-const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
+const CLI = join(import.meta.dirname, "cli.ts");
 const M = "@guide";
 
 function run(cwd: string, ...args: string[]) {

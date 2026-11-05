@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { DiffSummary } from "../core/diff.ts";
-import { isMarkdown, stripGuides } from "../core/guide.ts";
+import type { DiffSummary } from "../shared/changes.ts";
+import { isMarkdown, stripGuides } from "./guide-comments.ts";
 
 interface CleanResult {
   files: { path: string; removed: number }[];

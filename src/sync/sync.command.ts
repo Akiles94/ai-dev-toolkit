@@ -1,12 +1,15 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { claudeCode } from "../adapters/claude-code.ts";
-import { copilot } from "../adapters/copilot.ts";
-import type { Adapter, GeneratedFile } from "../adapters/shared.ts";
-import { type Agent, parseAgent } from "../core/agent.ts";
+import { type Agent, parseAgent } from "./agent.ts";
+import type { AgentRenderer, GeneratedFile } from "./agent-renderer.port.ts";
+import { claudeCodeAgentRenderer } from "./claude-code-agent-renderer.ts";
+import { copilotAgentRenderer } from "./copilot-agent-renderer.ts";
 
 /** Supported AI tools, by the name used in `sync.harnesses`. */
-const ADAPTERS: Record<string, Adapter> = { copilot, "claude-code": claudeCode };
+const RENDERERS: Record<string, AgentRenderer> = {
+  copilot: copilotAgentRenderer,
+  "claude-code": claudeCodeAgentRenderer,
+};
 
 interface Problem {
   readonly file: string;
@@ -43,16 +46,16 @@ export async function planSync(
   dir: string,
   harnesses: readonly string[],
 ): Promise<Plan> {
-  const unknown = harnesses.filter((h) => !(h in ADAPTERS));
-  const supported = `supported: ${Object.keys(ADAPTERS).join(", ")}`;
+  const unknown = harnesses.filter((h) => !(h in RENDERERS));
+  const supported = `supported: ${Object.keys(RENDERERS).join(", ")}`;
   const harnessProblems = unknown.map((h) => ({
     file: "sync.harnesses",
     messages: [`unknown harness "${h}" (${supported})`],
   }));
   const { agents, problems } = await loadAgents(root, dir);
-  const adapters = harnesses.flatMap((h) => ADAPTERS[h] ?? []);
+  const renderers = harnesses.flatMap((h) => RENDERERS[h] ?? []);
   const files = agents.flatMap(({ agent, source }) =>
-    adapters.flatMap((render) => render(agent, source)),
+    renderers.flatMap((render) => render(agent, source)),
   );
   return { files, problems: [...harnessProblems, ...problems] };
 }

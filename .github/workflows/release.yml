@@ -18,7 +18,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
+          # No registry-url: it writes an .npmrc with a placeholder token that shadows the OIDC
+          # exchange of trusted publishing. npm already defaults to registry.npmjs.org.
       - run: npm ci --no-audit --no-fund
       - name: Release tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"

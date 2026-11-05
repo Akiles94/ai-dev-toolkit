@@ -19,11 +19,14 @@ interface StripResult {
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** Comment openers that may span several lines, with what closes them. */
+const BLOCK_CLOSERS: Record<string, string> = { "{/*": "*/", "/*": "*/", "<!--": "-->" };
+
 function patterns(marker: string) {
   const m = escapeRegExp(marker);
   return {
-    /** The whole line is a guide comment. */
-    fullLine: new RegExp(String.raw`^\s*(?://|#|--|;|/\*+|\*|<!--)\s*${m}\b`),
+    /** The line starts a guide comment (`//`, `#`, `--`, `;`, `/*`, JSX `{/*`, `*`, `<!--`). */
+    fullLine: new RegExp(String.raw`^\s*(\{/\*+|/\*+|<!--|//|#|--|;|\*)\s*${m}\b`),
     /** A guide comment after code on the same line. */
     trailing: new RegExp(String.raw`\s+(?://|#)\s*${m}\b.*$`),
   };
@@ -39,37 +42,66 @@ const FENCE = /^\s*(```|~~~)/;
 /** Files whose fenced code blocks are documentation examples. */
 export const isMarkdown = (path: string): boolean => /\.(md|mdx|markdown)$/i.test(path);
 
-/** Removes guide comments, keeping the file's line endings and every other comment intact. */
+type Patterns = ReturnType<typeof patterns>;
+
+/** The closer still pending when a guide block comment opens on this line and does not end on it. */
+function openBlock(line: string, opener: string): string | undefined {
+  const normalized = opener.replace(/\*+$/, "*");
+  const closer = BLOCK_CLOSERS[normalized];
+  if (closer === undefined) return undefined;
+  const rest = line.slice(line.indexOf(opener) + opener.length);
+  return rest.includes(closer) ? undefined : closer;
+}
+
+interface LineState {
+  inFence: boolean;
+  /** Set while inside a multi-line guide block comment: the text that ends it. */
+  closer: string | undefined;
+}
+
+/** What to keep of one line, or `null` to drop it; updates the fence and block state. */
+function stripLine(
+  line: string,
+  state: LineState,
+  p: Patterns,
+  skipFences: boolean,
+): string | null {
+  const isFence = skipFences && FENCE.test(line);
+  if (isFence) state.inFence = !state.inFence;
+  if (isFence || state.inFence) return line;
+  if (state.closer !== undefined) {
+    if (line.includes(state.closer)) state.closer = undefined;
+    return null;
+  }
+  const guide = p.fullLine.exec(line);
+  if (guide) {
+    state.closer = openBlock(line, guide[1] ?? "");
+    return null;
+  }
+  return p.trailing.test(line) ? line.replace(p.trailing, "") : line;
+}
+
+/**
+ * Removes guide comments, keeping the file's line endings and every other comment intact. A guide
+ * block comment (`/* … *\/`, JSX `{/* … *\/}`, `<!-- … -->`) is removed whole, even when only its
+ * first line carries the marker.
+ */
 export function stripGuides(
   content: string,
   marker: string,
   options: StripOptions = {},
 ): StripResult {
-  const { fullLine, trailing } = patterns(marker);
+  const p = patterns(marker);
   const parts = content.split(/(\r?\n)/);
+  const state: LineState = { inFence: false, closer: undefined };
   const kept: string[] = [];
   let removed = 0;
-  let inFence = false;
-
   for (let i = 0; i < parts.length; i += 2) {
     const line = parts[i] ?? "";
-    const eol = parts[i + 1] ?? "";
-    const isFence = options.skipFences === true && FENCE.test(line);
-    if (isFence) inFence = !inFence;
-    if (isFence || inFence) {
-      kept.push(line, eol);
-      continue;
-    }
-    if (fullLine.test(line)) {
-      removed++;
-      continue;
-    }
-    if (trailing.test(line)) {
-      removed++;
-      kept.push(line.replace(trailing, ""), eol);
-      continue;
-    }
-    kept.push(line, eol);
+    const result = stripLine(line, state, p, options.skipFences === true);
+    if (result === null) removed++;
+    else kept.push(result, parts[i + 1] ?? "");
+    if (result !== null && result !== line) removed++;
   }
   return { content: kept.join(""), removed };
 }

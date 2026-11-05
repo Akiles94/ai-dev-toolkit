@@ -46,17 +46,30 @@ async function loadAgents(root: string, dir: string) {
   return { agents, problems };
 }
 
-/** Generated files already on disk, recognised by their banner so hand-written files are never touched. */
-async function generatedOnDisk(root: string): Promise<string[]> {
+/**
+ * The agent a generated file came from, read from its banner: the first line after the
+ * frontmatter. Anything else (a hand-written file, a file that only quotes the banner) has none.
+ */
+export function bannerSource(content: string): string | undefined {
+  const lines = content.split(/\r?\n/);
+  if (lines[0] !== "---") return undefined;
+  const close = lines.indexOf("---", 1);
+  const banner = lines.slice(close + 1).find((line) => line.trim() !== "");
+  if (close < 0 || !banner?.startsWith(GENERATED_MARKER)) return undefined;
+  return banner.slice(GENERATED_MARKER.length).split(". Edit that file")[0];
+}
+
+/** Generated files on disk rendered from an agent in `dir`, so `--from` never touches the others. */
+async function generatedOnDisk(root: string, dir: string): Promise<string[]> {
   const found: string[] = [];
-  for (const dir of OUTPUT_DIRS) {
-    const entries = await readdir(join(root, dir), { recursive: true, withFileTypes: true }).catch(
+  for (const out of OUTPUT_DIRS) {
+    const entries = await readdir(join(root, out), { recursive: true, withFileTypes: true }).catch(
       () => [],
     );
     for (const entry of entries.filter((e) => e.isFile() && e.name.endsWith(".md"))) {
       const path = join(entry.parentPath, entry.name);
-      const content = await readFile(path, "utf8");
-      if (content.includes(GENERATED_MARKER)) found.push(relative(root, path).split(sep).join("/"));
+      const source = bannerSource(await readFile(path, "utf8"));
+      if (source?.startsWith(`${dir}/`)) found.push(relative(root, path).split(sep).join("/"));
     }
   }
   return found.sort();
@@ -88,7 +101,7 @@ export async function planSync(
     renderers.flatMap((render) => render(withInstalledHandoff(agent, installed), source)),
   );
   const produced = new Set(files.map((f) => f.path));
-  const orphans = (await generatedOnDisk(root)).filter((path) => !produced.has(path));
+  const orphans = (await generatedOnDisk(root, dir)).filter((path) => !produced.has(path));
   return { files, orphans, problems: [...harnessProblems, ...problems] };
 }
 

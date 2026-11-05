@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { clean, cleanTargets, formatClean } from "./commands/clean.ts";
+import { cleanTargets, findGuides, formatClean, removeGuides } from "./commands/clean.ts";
 import { formatDiff } from "./commands/diff.ts";
-import { loadConfig } from "./core/config.ts";
+import { type AidtConfig, loadConfig } from "./core/config.ts";
 import { collectDiff, type DiffSource } from "./core/diff.ts";
 import { defaultBranch, GitError, repoRoot } from "./core/git.ts";
 
@@ -48,8 +48,8 @@ async function resolveSource(
   return { kind: "range", base, head: flags.head ?? "HEAD" };
 }
 
-async function main(argv: string[]): Promise<number> {
-  const { values, positionals } = parseArgs({
+function parseCli(argv: string[]) {
+  return parseArgs({
     args: argv,
     allowPositionals: true,
     options: {
@@ -64,41 +64,61 @@ async function main(argv: string[]): Promise<number> {
       version: { type: "boolean", short: "v" },
     },
   });
-  const [command, ...rest] = positionals;
+}
 
-  if (values.version) return print(version());
-  if (values.help || !command) return print(HELP);
+type Flags = ReturnType<typeof parseCli>["values"];
+
+interface Context {
+  root: string;
+  config: AidtConfig;
+  flags: Flags;
+}
+
+async function runDiff({ root, config, flags }: Context): Promise<number> {
+  const summary = await collectDiff(root, await resolveSource(root, flags), config);
+  if (flags.json) return print(JSON.stringify(summary, null, 2));
+  return print(
+    formatDiff(summary, {
+      sectionLines: config.limits.sectionLines,
+      listCodeFiles: flags.files ?? false,
+    }),
+  );
+}
+
+/**
+ * Paths to clean when none are given: the changed files of the chosen source. Without an explicit
+ * source, the branch diff plus the uncommitted changes, where guide comments usually live.
+ */
+async function changedPaths({ root, config, flags }: Context): Promise<string[]> {
+  const explicit = flags.base || flags.staged || flags.worktree;
+  const sources: DiffSource[] = [await resolveSource(root, flags)];
+  if (!explicit) sources.push({ kind: "worktree" });
+  const summaries = await Promise.all(sources.map((s) => collectDiff(root, s, config)));
+  return [...new Set(summaries.flatMap(cleanTargets))];
+}
+
+async function runClean(context: Context, givenPaths: string[]): Promise<number> {
+  const paths = givenPaths.length > 0 ? givenPaths : await changedPaths(context);
+  const { root, config, flags } = context;
+  if (!flags.check) {
+    return print(formatClean(await removeGuides(root, paths, config.guide.marker), "Removed"));
+  }
+  const found = await findGuides(root, paths, config.guide.marker);
+  print(formatClean(found, "Found"));
+  return found.total > 0 ? 1 : 0;
+}
+
+async function main(argv: string[]): Promise<number> {
+  const { values: flags, positionals } = parseCli(argv);
+  const [command, ...rest] = positionals;
+  if (flags.version) return print(version());
+  if (flags.help || !command) return print(HELP);
 
   const root = await repoRoot(process.cwd());
-  const config = await loadConfig(root);
-
-  switch (command) {
-    case "diff": {
-      const summary = await collectDiff(root, await resolveSource(root, values), config);
-      return print(
-        values.json
-          ? JSON.stringify(summary, null, 2)
-          : formatDiff(summary, config.limits.sectionLines, values.files ?? false),
-      );
-    }
-    case "clean": {
-      let paths = rest;
-      if (paths.length === 0) {
-        const explicit = values.base || values.staged || values.worktree;
-        const sources = explicit
-          ? [await resolveSource(root, values)]
-          : [await resolveSource(root, values), { kind: "worktree" } as const];
-        const summaries = await Promise.all(sources.map((s) => collectDiff(root, s, config)));
-        paths = [...new Set(summaries.flatMap(cleanTargets))];
-      }
-      const write = !values.check;
-      const result = await clean(root, paths, config.guide.marker, write);
-      print(formatClean(result, write));
-      return values.check && result.total > 0 ? 1 : 0;
-    }
-    default:
-      throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
-  }
+  const context = { root, config: await loadConfig(root), flags };
+  if (command === "diff") return runDiff(context);
+  if (command === "clean") return runClean(context, rest);
+  throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 
 function print(text: string): number {

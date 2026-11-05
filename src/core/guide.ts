@@ -12,7 +12,7 @@
  * The literal marker is not written here on purpose: this file would clean itself.
  */
 
-export interface StripResult {
+interface StripResult {
   content: string;
   removed: number;
 }
@@ -29,7 +29,7 @@ function patterns(marker: string) {
   };
 }
 
-export interface StripOptions {
+interface StripOptions {
   /** Leave fenced code blocks (```) untouched: in Markdown they are examples, not guides. */
   skipFences?: boolean;
 }
@@ -72,9 +72,4 @@ export function stripGuides(
     kept.push(line, eol);
   }
   return { content: kept.join(""), removed };
-}
-
-/** Counts guide comments without changing anything. */
-export function countGuides(content: string, marker: string, options: StripOptions = {}): number {
-  return stripGuides(content, marker, options).removed;
 }

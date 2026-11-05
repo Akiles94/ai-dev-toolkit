@@ -20,6 +20,32 @@ describe("stripGuides", () => {
     expect(result.removed).toBe(6);
   });
 
+  it("removes JSX guide comments, on one line or several", () => {
+    const input = [
+      "<form>",
+      `  {/* ${M}: one line */}`,
+      `  {/* ${M}: same labels as the Project screen:`,
+      "      only two of them are translated */}",
+      "  <select />",
+      "</form>",
+    ].join("\n");
+    const result = stripGuides(input, M);
+    expect(result.content).toBe("<form>\n  <select />\n</form>");
+    expect(result.removed).toBe(3);
+  });
+
+  it("removes a whole guide block comment when only its first line is marked", () => {
+    const input = [`/* ${M}: why this order`, "   matters for the lock", "*/", "lock();"].join(
+      "\n",
+    );
+    expect(stripGuides(input, M)).toEqual({ content: "lock();", removed: 3 });
+  });
+
+  it("keeps a normal block comment that follows a guide line", () => {
+    const input = [`// ${M}: explains`, "/* keep this", "   block */", "x();"].join("\n");
+    expect(stripGuides(input, M).content).toBe("/* keep this\n   block */\nx();");
+  });
+
   it("removes only the comment when it trails code", () => {
     const result = stripGuides(`check(ip); // ${M}: before the password\n`, M);
     expect(result.content).toBe("check(ip);\n");

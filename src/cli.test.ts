@@ -104,9 +104,33 @@ describe("aidt add", () => {
     expect(existsSync(join(repo, ".aidt/templates/structure.md"))).toBe(true);
   });
 
-  it("explains which products exist when the name is wrong", () => {
+  it("installs one workflow agent alone, with only the files it reads", () => {
+    const { code } = run(repo, "add", "reviewer");
+    expect(code).toBe(0);
+    for (const path of [
+      ".aidt/agents/reviewer.md",
+      ".aidt/templates/review-section.md",
+      ".aidt/practices/static-analysis.md",
+      ".github/agents/reviewer.agent.md",
+    ]) {
+      expect(existsSync(join(repo, path))).toBe(true);
+    }
+    expect(existsSync(join(repo, ".aidt/agents/planner.md"))).toBe(false);
+    expect(existsSync(join(repo, ".aidt/templates/spec.md"))).toBe(false);
+  });
+
+  it("gives a lone refiner no handoff to a planner that is not installed", () => {
+    expect(run(repo, "add", "refiner").code).toBe(0);
+    const refiner = readFileSync(join(repo, ".github/agents/refiner.agent.md"), "utf8");
+    expect(refiner).not.toContain("handoffs:");
+    expect(existsSync(join(repo, ".aidt/templates/spec.md"))).toBe(true);
+  });
+
+  it("explains what exists when the name is wrong", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
-    expect(err).toContain('Unknown product "nope". Available: workflow, structure.');
+    expect(err).toContain(
+      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer.',
+    );
   });
 });

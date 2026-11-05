@@ -14,7 +14,7 @@ Status: draft v0.1 · 2026-10-29
 
 ## 2. Products
 
-Each product is independent and installable alone.
+Each product is independent and installable alone. The `refiner` and the `reviewer` are also installable alone (`aidt add refiner`, `aidt add reviewer`): the refiner then ends at the approved spec, and the reviewer reviews a branch against its ticket when there is no spec (§5.4).
 
 | Product | Contents | Depends on |
 |---|---|---|
@@ -51,7 +51,7 @@ AGENTS.md                      ← project rules (source of truth, open standard
         │   └── s01-<slug>.md  ← one guide per section / PR
         └── state.json         ← progress (resumable)
 ```
-Harness-specific files (`.github/agents/…`, `.claude/agents/…`, `CLAUDE.md` importing `AGENTS.md`) are **generated** from `.aidt/agents/` by `aidt sync`. They are outputs, never edited by hand.
+Harness-specific files (`.github/agents/…`, `.claude/agents/…`, `CLAUDE.md` importing `AGENTS.md`) are **generated** from `.aidt/agents/` by `aidt sync`. They are outputs, never edited by hand. `sync` removes the generated files of agents that no longer exist (recognised by the banner right after their frontmatter, and only those rendered from the agents folder being synced, so `--from` never removes the others) and drops a `handoff` whose target agent is not installed.
 
 ### For the developer
 ```
@@ -99,9 +99,11 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 - Fresh context: reads only spec, plan and diff. Cannot edit source (enforced by hooks where the harness supports them).
 - **Cleanup check** (script): `aidt clean --check` must find no guide comments left.
 - **Checks** (scripts first): section line count, coverage threshold, every requirement has a test.
+- **Defect search:** reads each changed function with its callers and tests, goes through a fixed list (logic, edges, errors, security, async, performance, compatibility, test quality), reuses static analysis output, and verifies every finding before reporting it. Each finding has `file:line`, a failing scenario with real values and a `suggestion` fix. Bounded on tokens: skips what cannot break, searches instead of reading whole files, verifies only candidates.
 - **Explains:** one review guide per section (§8) + `index.md`.
 - **Verdict** per section: `PASS` / `FAIL`, bound to the reviewed commit SHA (a stale PASS is invalid).
 - **Delivery:** prepares the stack. Publishing requires user confirmation.
+- **Without a spec** (installed alone, or a change that skipped the workflow): reviews the branch against its ticket. It always asks for the ticket and anything else to consider before reviewing, since a ticket often exists even when the branch and commits do not reference it. The ticket becomes derived requirements; without one, it judges everything but coverage. No `aidt check`, no stack, no `state.json`.
 
 ### 5.5 Integrations with `docs` and `context`
 
@@ -272,7 +274,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
 - Read carefully / skim
 - Affected flows (direct and indirect, from changed symbols)
 - Ticket coverage for the requirements in this section
-- Warnings (misaligned with spec, not requested, risks)
+- Findings (verified defects with a failing scenario and a suggested fix; misaligned with spec, not requested)
 - Questions for the author
 
 ### state.json
@@ -306,7 +308,7 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
     "refiner": "balanced",
     "planner": "balanced",
     "builder": "balanced",
-    "reviewer": "efficient"
+    "reviewer": "balanced"
   },
   "artifacts": { "path": ".aidt/tasks", "commit": true }
 }
@@ -331,7 +333,7 @@ TypeScript, Node 24, minimal dependencies.
 
 | Command | What |
 |---|---|
-| `aidt add <product>` | Copy a product's files into the repo |
+| `aidt add <product\|agent>` | Copy a product's files into the repo, or one standalone agent (`refiner`, `reviewer`) with only the templates and practices it reads |
 | `aidt sync` | Render canonical agents to each configured harness |
 | `aidt diff [--section S1]` | Diff stats with noise filtered |
 | `aidt clean` | Remove guide comments |

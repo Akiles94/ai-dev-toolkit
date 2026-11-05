@@ -7,10 +7,34 @@ import { fail, ok, type Result } from "../shared/result/result.ts";
 /** Shipped next to the CLI, both from `src/` and from the built `dist/`. */
 const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));
 
-/** What each product copies into the project, as folders under `.aidt/`. */
-const PRODUCTS: Record<string, readonly string[]> = {
-  workflow: ["agents", "templates", "practices"],
-  structure: ["agents", "structure", "templates"],
+/** Something `add` installs: files or folders of one product, copied to the same path under `.aidt/`. */
+interface Installable {
+  readonly product: string;
+  readonly paths: readonly string[];
+}
+
+const AGENT_FORMAT = "agents/README.md";
+const STATE_SCHEMA = "templates/state.schema.json";
+
+/** Whole products, plus the workflow agents that also work alone, with only the files they read. */
+const INSTALLABLES: Record<string, Installable> = {
+  workflow: { product: "workflow", paths: ["agents", "templates", "practices"] },
+  structure: { product: "structure", paths: ["agents", "structure", "templates"] },
+  refiner: {
+    product: "workflow",
+    paths: [AGENT_FORMAT, "agents/refiner.md", "templates/spec.md", STATE_SCHEMA],
+  },
+  reviewer: {
+    product: "workflow",
+    paths: [
+      AGENT_FORMAT,
+      "agents/reviewer.md",
+      "templates/review-section.md",
+      "templates/review-index.md",
+      STATE_SCHEMA,
+      "practices",
+    ],
+  },
 };
 
 const CONFIG_FILE = ".aidt/config.json";
@@ -45,27 +69,32 @@ const exists = (path: string): Promise<boolean> =>
     () => false,
   );
 
-/** Every file under `dir`, as `/`-separated paths relative to it, subfolders included. */
-async function filesIn(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+/** The files under `path` of a product (or `path` itself), `/`-separated and relative to the product. */
+async function filesAt(productDir: string, path: string): Promise<string[]> {
+  const full = join(productDir, path);
+  if ((await stat(full)).isFile()) return [path];
+  const entries = await readdir(full, { recursive: true, withFileTypes: true });
   return entries
     .filter((e) => e.isFile())
-    .map((e) => relative(dir, join(e.parentPath, e.name)).split(sep).join("/"))
+    .map((e) => relative(productDir, join(e.parentPath, e.name)).split(sep).join("/"))
     .sort();
 }
 
 /** Lists what `add` would copy and what it would keep, without touching anything. */
-async function planAdd(root: string, product: string): Promise<Result<AddPlan, string>> {
-  const folders = PRODUCTS[product];
-  if (!folders)
-    return fail(`Unknown product "${product}". Available: ${Object.keys(PRODUCTS).join(", ")}.`);
+async function planAdd(root: string, name: string): Promise<Result<AddPlan, string>> {
+  const installable = INSTALLABLES[name];
+  if (!installable) {
+    const available = Object.keys(INSTALLABLES).join(", ");
+    return fail(`Unknown product or agent "${name}". Available: ${available}.`);
+  }
+  const productDir = join(PRODUCTS_DIR, installable.product);
   const copies: Copy[] = [];
   const kept: string[] = [];
-  for (const folder of folders) {
-    for (const name of await filesIn(join(PRODUCTS_DIR, product, folder))) {
-      const target = `.aidt/${folder}/${name}`;
+  for (const path of installable.paths) {
+    for (const file of await filesAt(productDir, path)) {
+      const target = `.aidt/${file}`;
       if (await exists(join(root, target))) kept.push(target);
-      else copies.push({ source: join(PRODUCTS_DIR, product, folder, name), target });
+      else copies.push({ source: join(productDir, file), target });
     }
   }
   return ok({ copies, kept, createConfig: !(await exists(join(root, CONFIG_FILE))) });
@@ -92,13 +121,10 @@ function formatAdd(plan: AddPlan): string {
   return lines.join("\n");
 }
 
-/** `aidt add <product>`: copies the product's files the project does not have yet. */
-export async function addCommand(
-  { root }: CliContext,
-  product: string | undefined,
-): Promise<number> {
-  if (!product) throw new UsageError("Name the product to add, e.g. aidt add workflow.");
-  const plan = await planAdd(root, product);
+/** `aidt add <product|agent>`: copies its files the project does not have yet. */
+export async function addCommand({ root }: CliContext, name: string | undefined): Promise<number> {
+  if (!name) throw new UsageError("Name what to add, e.g. aidt add workflow or aidt add reviewer.");
+  const plan = await planAdd(root, name);
   if (!plan.ok) throw new UsageError(plan.error);
   await applyAdd(root, plan.value);
   return print(formatAdd(plan.value));

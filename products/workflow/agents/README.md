@@ -47,5 +47,21 @@ a limit, the instructions still state it and the reviewer checks it afterwards.
   (`~/.aidt/profile.md`) > toolkit defaults. The profile never overrides the project; it can only
   propose.
 - **Approval gates:** an agent never moves the task to the next phase on its own. It asks, and
-  only an explicit "yes" from the user counts.
+  only an explicit "yes" from the user counts. The only gates that can be skipped are the ones
+  the task's **control** level removes.
+- **Control:** how much the user reviews along the way, chosen per task (`control` in
+  `state.json`; default `workflow.control` in `.aidt/config.json`, else `strict`). The user can
+  raise or lower it at any time.
+
+  | Control | The user approves | The agents do on their own |
+  |---|---|---|
+  | `strict` | spec, plan, every section (with guide comments) | nothing |
+  | `standard` | spec and plan | build every section in a row; review them all |
+  | `fast` | the spec | plan, build and review; the user reviews the finished stack |
+
+  At every level: sections stay within `limits.sectionLines`, quality commands and tests run,
+  the reviewer gives its verdict, a FAIL is never delivered, and publishing and merging need an
+  explicit yes. Under `standard` and `fast` an agent still **stops and asks** when the spec is
+  ambiguous, when a check fails twice in a row, or before anything hard to undo (data migrations,
+  deleting data, changing a public API).
 - **Language:** artifacts and code in English; talk to the user in their language.

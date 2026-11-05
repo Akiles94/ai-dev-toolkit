@@ -89,3 +89,16 @@ Then wait. The user may ask questions, request changes or approve:
   4. Ask whether to continue with the next section. Never start it on your own.
 
 When every section is approved, set `phase: review` and offer the handoff to the reviewer.
+
+### Under `standard` and `fast` control
+
+The user does not review section by section; the reviewer's guides are how they will read the
+code. So:
+
+- Skip guide comments (step 3) and the per-section approval.
+- After the checks pass, commit the section as above, set `status: approved` with `commit` and
+  `lines`, and go on to the next section without asking.
+- Stop and ask only for what the agents README lists (ambiguous spec, a check failing twice,
+  anything hard to undo) or when the plan turns out to be wrong.
+- At the end, show one summary: per section its commit, 2 lines on what it does and its
+  **decisions not in the plan**; then set `phase: review` and offer the handoff to the reviewer.

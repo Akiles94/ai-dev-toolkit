@@ -39,13 +39,19 @@ Before anything else, make sure the work happens on its own branch:
   (living-docs). Read code only to understand current behavior, never to design.
 - **State:** if `.aidt/tasks/<task-id>/state.json` exists, resume from it instead of starting over.
 
-## 3. Choose the mode
+## 3. Choose the mode and the control
 
-Propose one and let the user confirm:
+Propose both and let the user confirm. The **mode** is the size of the task:
 
 - `full`: a feature or anything that will need more than one section.
 - `light`: a small, well-understood fix or task. Same steps, shorter artifacts.
 - `rework`: changes requested on an existing PR. Skip refining; hand off to the builder.
+
+The **control** is how much the user reviews along the way (see the agents README): `strict`
+(approves spec, plan and every section), `standard` (spec and plan) or `fast` (only the spec).
+Start from `workflow.control` in `.aidt/config.json` (default `strict`); suggest `fast` for
+well-understood work when the user is short of time, and `strict` for risky or unfamiliar areas.
+Record both in `state.json`.
 
 ## 4. Ask what matters, nothing else
 

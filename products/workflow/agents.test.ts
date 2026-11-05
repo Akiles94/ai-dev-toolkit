@@ -34,6 +34,11 @@ describe("canonical agents", () => {
     expect(agent("reviewer").handoff).toBe(undefined);
   });
 
+  it("every agent knows the control levels, and the refiner records them", () => {
+    for (const { agent: a } of agents) expect(a.instructions).toContain("control");
+    expect(agent("refiner").instructions).toContain("`strict`");
+  });
+
   for (const { file, agent: a } of agents) {
     it(`${file} never moves on without the user's approval`, () => {
       expect(/## \d+\. Approval/.test(a.instructions)).toBe(true);

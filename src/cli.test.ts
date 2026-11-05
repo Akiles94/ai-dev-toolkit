@@ -42,6 +42,19 @@ describe("aidt diff", () => {
   });
 });
 
+describe("aidt walkthrough plan", () => {
+  it("splits the branch into sections, tests next to their code and noise skipped", () => {
+    const { code, out } = run(repo, "walkthrough", "plan", "--json");
+    expect(code).toBe(0);
+    const plan = JSON.parse(out);
+    expect(plan.source).toBe("main...HEAD");
+    expect(
+      plan.sections.map((s: { files: { path: string }[] }) => s.files.map((f) => f.path)),
+    ).toEqual([["app.ts", "app.test.ts"]]);
+    expect(plan.skipped.map((f: { path: string }) => f.path)).toEqual(["package-lock.json"]);
+  });
+});
+
 describe("aidt clean", () => {
   it("reports guide comments with --check and fails", () => {
     const { code, out } = run(repo, "clean", "--check");

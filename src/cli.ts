@@ -11,6 +11,7 @@ import { GitError, repoRoot } from "./shared/git/git.ts";
 import { stackCommand } from "./stack/stack.command.ts";
 import { structureCommand } from "./structure/structure.command.ts";
 import { syncCommand } from "./sync/sync.command.ts";
+import { walkthroughCommand } from "./walkthrough/walkthrough.command.ts";
 
 // Delivery: parses the command line, builds the context and runs one command. Flows never call
 // each other; when a command needs another (add → sync), it is chained here.
@@ -28,6 +29,7 @@ Usage
   aidt stack prepare [--base <trunk>]      One local branch per reviewed section (pushes nothing)
   aidt stack submit  [--dry-run]           Push them and open one draft PR per section (gh, glab)
   aidt structure audit [--json]            Check the common structure rules (exit 1 if broken)
+  aidt walkthrough plan [source] [--json]  Split a large change into sections to review in order
 
 Source (default: <default branch>...HEAD)
   --base <ref>    Compare against <ref> (merge-base, like a PR)
@@ -88,6 +90,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "add") return addThenSync(context, rest[0]);
   if (command === "stack") return stackCommand(context, rest[0]);
   if (command === "structure") return structureCommand(context, rest[0]);
+  if (command === "walkthrough") return walkthroughCommand(context, rest[0]);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 

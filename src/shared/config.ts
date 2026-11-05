@@ -27,6 +27,22 @@ export interface AidtConfig {
     /** AI tools to render the agents for. */
     harnesses: string[];
   };
+  structure: {
+    /** The project's structure decision; its "Exceptions" section lists globs the audit skips. */
+    decision: string;
+    /** Source file extensions the audit looks at; everything else is ignored. */
+    extensions: string[];
+    maxFileLines: number;
+    maxFolderFiles: number;
+    /** Names that hold whatever had no home (`utils`): always reported. */
+    junkNames: string[];
+    /** Umbrella folders (`shared`): fine only when every file in them sits in a subject subfolder. */
+    umbrellaNames: string[];
+    /** One-file-for-everything names (`api`, `types`): reported at a source root or umbrella. */
+    globalNames: string[];
+    /** File names that may sit among folders as entry points (`index`, `main`). */
+    entryNames: string[];
+  };
 }
 
 export const DEFAULT_CONFIG: AidtConfig = {
@@ -93,6 +109,19 @@ export const DEFAULT_CONFIG: AidtConfig = {
   },
   guide: { marker: "@guide" },
   sync: { agents: ".aidt/agents", harnesses: ["copilot", "claude-code"] },
+  structure: {
+    decision: ".aidt/structure.md",
+    extensions: [
+      ...["ts", "tsx", "js", "jsx", "mjs", "cjs", "vue", "svelte"],
+      ...["go", "cs", "java", "kt", "kts", "swift", "py", "rb", "php", "rs", "dart"],
+    ],
+    maxFileLines: 300,
+    maxFolderFiles: 15,
+    junkNames: ["utils", "util", "helpers", "helper", "misc", "general", "stuff", "functions"],
+    umbrellaNames: ["shared", "common", "lib", "core"],
+    globalNames: ["api", "types", "constants", "store", "services", "endpoints", "interfaces"],
+    entryNames: ["index", "main", "app", "server", "program", "cli", "mod", "lib", "startup"],
+  },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");
@@ -115,5 +144,6 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
     configFiles: { ...DEFAULT_CONFIG.configFiles, ...parsed.configFiles },
     guide: { ...DEFAULT_CONFIG.guide, ...parsed.guide },
     sync: { ...DEFAULT_CONFIG.sync, ...parsed.sync },
+    structure: { ...DEFAULT_CONFIG.structure, ...parsed.structure },
   };
 }

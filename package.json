@@ -1,0 +1,49 @@
+{
+  "name": "ai-dev-toolkit",
+  "version": "0.0.1",
+  "description": "Use AI to write code without losing control of it: spec-driven workflow, small explained sections, stacked PRs.",
+  "license": "MIT",
+  "author": "Oscar Vinueza",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akiles94/ai-dev-toolkit.git"
+  },
+  "homepage": "https://github.com/Akiles94/ai-dev-toolkit#readme",
+  "keywords": [
+    "ai",
+    "agents",
+    "agents-md",
+    "code-review",
+    "spec-driven",
+    "stacked-prs",
+    "copilot",
+    "claude-code"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "aidt": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "node src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.10"
+  }
+}

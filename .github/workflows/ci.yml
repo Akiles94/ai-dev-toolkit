@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      # GitHub reporter: errors show up as annotations on the PR.
+      - run: npx biome ci --reporter=github .
+      # Run every check even if one fails, so a single run reports everything.
+      - if: ${{ !cancelled() }}
+        run: npm test
+      - if: ${{ !cancelled() }}
+        run: npm run build
+      - if: ${{ !cancelled() }}
+        run: node dist/cli.js --help

@@ -1,8 +1,8 @@
 import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type CliContext, print, UsageError } from "../shared/cli-context.ts";
-import { fail, ok, type Result } from "../shared/result.ts";
+import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
+import { fail, ok, type Result } from "../shared/result/result.ts";
 
 /** Shipped next to the CLI, both from `src/` and from the built `dist/`. */
 const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));

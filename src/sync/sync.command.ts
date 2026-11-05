@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { type CliContext, print } from "../shared/cli-context.ts";
+import { type CliContext, print } from "../shared/cli/cli-context.ts";
 import { type Agent, parseAgent } from "./agent.ts";
 import type { AgentRenderer, GeneratedFile } from "./agent-renderer.port.ts";
 import { claudeCodeAgentRenderer } from "./claude-code-agent-renderer.ts";

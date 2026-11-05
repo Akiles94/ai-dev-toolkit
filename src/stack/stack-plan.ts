@@ -1,5 +1,5 @@
-import { fail, ok, type Result } from "../shared/result.ts";
-import type { SectionState, TaskState } from "../shared/task-state.ts";
+import { fail, ok, type Result } from "../shared/result/result.ts";
+import type { SectionState, TaskState } from "../shared/task/task-state.ts";
 
 /** One pull request of the stack: a branch at the section's commit, based on the one below it. */
 export interface StackEntry {

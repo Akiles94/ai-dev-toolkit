@@ -1,6 +1,6 @@
 {
-  "name": "ai-dev-toolkit",
-  "version": "0.0.1",
+  "name": "@akiles94/ai-dev-toolkit",
+  "version": "0.1.0",
   "description": "Use AI to write code without losing control of it: spec-driven workflow, small explained sections, stacked PRs.",
   "license": "MIT",
   "author": "Oscar Vinueza",
@@ -9,6 +9,9 @@
     "url": "git+https://github.com/Akiles94/ai-dev-toolkit.git"
   },
   "homepage": "https://github.com/Akiles94/ai-dev-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/Akiles94/ai-dev-toolkit/issues"
+  },
   "keywords": [
     "ai",
     "agents",
@@ -31,6 +34,8 @@
     "products",
     "!products/**/*.test.ts",
     "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
@@ -54,5 +59,9 @@
     "knip": "^6.44.1",
     "typescript": "^5.9.0",
     "vitest": "^4.1.10"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

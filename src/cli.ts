@@ -16,7 +16,7 @@ import { syncCommand } from "./sync/sync.command.ts";
 const HELP = `aidt: AI Dev Toolkit
 
 Usage
-  aidt add   <product>                     Copy a product into .aidt/ and sync it (products: workflow)
+  aidt add   <product>                     Copy a product into .aidt/ and sync it (workflow, structure)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)

@@ -1,11 +1,14 @@
 <!--
-  Practices: architecture and naming · default, adapted from a real project's conventions.
-  The planner uses it to decide where code goes and how it is named, the builder writes with it,
-  the reviewer checks it. Project rules (AGENTS.md) win: if the project already has a structure,
-  follow it and only propose this one for new code. Edit freely; the example is TypeScript, the
-  rules are not.
+  Structure level 3 of 3: architecture. Bounded contexts per user flow with domain / application /
+  infra layers (DDD + hexagonal), adapted from a real project's conventions. The examples are
+  TypeScript; each stack preset in ../presets/ maps the same layers to its own conventions.
+  The common rules in ../rules.md apply on top. Edit freely.
 -->
-# Architecture and naming
+# Level 3 · Architecture
+
+**Choose it when** the product has real business rules that change often, several user flows
+that must not break each other, or a team that wants boundaries checked by a tool. It costs more
+files and more names; for a CRUD app or a small team, level 2 (`modular.md`) is usually enough.
 
 **Rule of thumb: whoever opens a folder or a file for the first time knows what it contains by
 its name.**

@@ -45,6 +45,16 @@ The same flow scales to the size of the task. You pick the mode, or the refiner 
 
 Small tasks get the same control with a fraction of the questions and tokens.
 
+And when time is short, choose how much you review, per task:
+
+| Control | You approve | The AI does on its own |
+|---|---|---|
+| `strict` | Spec, plan and every section | Nothing |
+| `standard` | Spec and plan | Builds all sections in a row and reviews them |
+| `fast` | Only the spec | Plans, builds and reviews; you review the finished stack of PRs |
+
+At every level the sections stay small, tests and quality checks run, a failed review is never delivered, and nothing is pushed or merged without your yes.
+
 ## Get started
 
 Requires Node 24 and git.

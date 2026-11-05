@@ -3,7 +3,7 @@
 **Use AI to write code without losing control of it.**
 A spec-driven workflow where AI does the typing and you keep the decisions, the understanding and the review.
 
-> ⚠️ Status: early v0. The `workflow` product works with GitHub Copilot and Claude Code; not on npm yet. Design: [docs/design.md](docs/design.md).
+> Status: v0.1. `workflow` and `structure` work with GitHub Copilot and Claude Code. Design: [docs/design.md](docs/design.md).
 
 ## The problem
 
@@ -60,11 +60,11 @@ At every level the sections stay small, tests and quality checks run, a failed r
 Requires Node 24 and git.
 
 ```bash
-git clone https://github.com/Akiles94/ai-dev-toolkit.git
-cd ai-dev-toolkit && npm ci && npm run build && npm link   # makes `aidt` available
-
 cd your-project
-aidt add workflow    # copies agents, templates and practices into .aidt/ and renders them
+npx @akiles94/ai-dev-toolkit add workflow    # copies agents, templates and practices into .aidt/
+npx @akiles94/ai-dev-toolkit add structure   # optional: code organisation rules, presets, architect
+
+npm i -g @akiles94/ai-dev-toolkit            # or install it once and use `aidt`
 ```
 
 Then start a task:
@@ -74,19 +74,39 @@ Then start a task:
 
 Everything in `.aidt/` is yours to edit. After changing an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
 
+## A real run
+
+A trial on [Valija](https://github.com/Akiles94/valija), a TypeScript CLI + desktop app (the
+approvals were simulated to test the flow end to end):
+
+1. **Refiner** turned "filter search by type" into 5 requirements with real example data:
+   > **R3** An unknown type is rejected with the same error `show` uses (`INVALID_ITEM_TYPE`).
+   > Given any vault · When searching "auth" with type `idea` · Then it fails and lists the valid types.
+2. **Planner** split it into two sections and mapped every requirement to a test:
+
+   | # | Section | Est. lines | Covers |
+   |---|---|---|---|
+   | S1 | Type filter in the domain | ~70 | R1, R2, R3 |
+   | S2 | CLI and desktop | ~60 | R4, R5 |
+3. **Builder** wrote each section with `@guide` comments, stopped for approval, removed them and
+   committed: 45 and 81 reviewable lines.
+4. **Reviewer**, with a fresh context, met all 5 requirements but gave **FAIL** to both sections: a
+   format doc still said search had no type filter, and the generated guide was not regenerated.
+   Exactly the kind of drift a 1,500-line PR hides.
+
 ## Install only what you need
 
 Every product works on its own. Use one, some or all.
 
-| Product | What it does |
-|---|---|
-| `workflow` | The four agents above |
-| `structure` | Code organisation that scales, with or without an architecture: minimal conventional layout, feature modules or DDD/hexagonal, per stack. Audits existing projects and proposes a refactor, never forces one |
-| `review` | Review anyone's PR: splits it into sections with a reading order, checks it against the ticket |
-| `init` | Guided setup of your project's AI files (`AGENTS.md`, rules, structure) |
-| `profile` | Your personal coding preferences, applied on every project |
-| `docs` | Living documentation for people, always in sync with the code. Powered by [living-docs](https://github.com/Akiles94/living-docs) |
-| `context` | Lean, always-current context for AI agents: flows and invariants the code doesn't reveal. Powered by [easy-repo-context](https://github.com/Akiles94/easy-repo-context) |
+| Product | What it does | |
+|---|---|---|
+| `workflow` | The four agents above | ✅ v0.1 |
+| `structure` | Code organisation that scales, with or without an architecture: minimal conventional layout, feature modules or DDD/hexagonal, per stack. Audits existing projects and proposes a refactor, never forces one | ✅ v0.1 |
+| `review` | Review anyone's PR: splits it into sections with a reading order, checks it against the ticket | planned |
+| `init` | Guided setup of your project's AI files (`AGENTS.md`, rules, structure) | planned |
+| `profile` | Your personal coding preferences, applied on every project | planned |
+| `docs` | Living documentation for people, always in sync with the code. Powered by [living-docs](https://github.com/Akiles94/living-docs) | planned |
+| `context` | Lean, always-current context for AI agents: flows and invariants the code doesn't reveal. Powered by [easy-repo-context](https://github.com/Akiles94/easy-repo-context) | planned |
 
 `docs` and `context` are standalone npm packages you can also use on their own. When present, the workflow plugs into them: agents read the context instead of exploring the repo, and the reviewer uses them to detect affected flows and broken invariants.
 

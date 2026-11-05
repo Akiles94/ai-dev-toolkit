@@ -1,5 +1,5 @@
 import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type CliContext, print, UsageError } from "../shared/cli-context.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
@@ -43,6 +43,15 @@ const exists = (path: string): Promise<boolean> =>
     () => false,
   );
 
+/** Every file under `dir`, as `/`-separated paths relative to it, subfolders included. */
+async function filesIn(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+  return entries
+    .filter((e) => e.isFile())
+    .map((e) => relative(dir, join(e.parentPath, e.name)).split(sep).join("/"))
+    .sort();
+}
+
 /** Lists what `add` would copy and what it would keep, without touching anything. */
 async function planAdd(root: string, product: string): Promise<Result<AddPlan, string>> {
   const folders = PRODUCTS[product];
@@ -51,7 +60,7 @@ async function planAdd(root: string, product: string): Promise<Result<AddPlan, s
   const copies: Copy[] = [];
   const kept: string[] = [];
   for (const folder of folders) {
-    for (const name of await readdir(join(PRODUCTS_DIR, product, folder))) {
+    for (const name of await filesIn(join(PRODUCTS_DIR, product, folder))) {
       const target = `.aidt/${folder}/${name}`;
       if (await exists(join(root, target))) kept.push(target);
       else copies.push({ source: join(PRODUCTS_DIR, product, folder, name), target });

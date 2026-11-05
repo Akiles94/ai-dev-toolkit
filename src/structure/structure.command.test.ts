@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "../shared/config.ts";
+import { loadConfig } from "../shared/config/config.ts";
 import { featureRepo, write } from "../shared/testing/temp-repo.ts";
 import { structureCommand } from "./structure.command.ts";
 

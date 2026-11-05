@@ -3,8 +3,8 @@ import {
   type DiffSummary,
   type FileCategory,
   type FileChange,
-} from "../shared/changes.ts";
-import { type CliContext, print, resolveSource } from "../shared/cli-context.ts";
+} from "../shared/changes/changes.ts";
+import { type CliContext, print, resolveSource } from "../shared/cli/cli-context.ts";
 
 const LABELS: Record<FileCategory, string> = {
   code: "Code",

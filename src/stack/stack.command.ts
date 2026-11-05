@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { type CliContext, print, UsageError } from "../shared/cli-context.ts";
-import { git } from "../shared/git.ts";
-import { writeTaskState } from "../shared/task-state.ts";
+import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
+import { git } from "../shared/git/git.ts";
+import { writeTaskState } from "../shared/task/task-state.ts";
 import type { CommandRunner } from "./command-runner.port.ts";
 import { createBranches, loadLocalStack } from "./local-stack.ts";
 import type { StackEntry } from "./stack-plan.ts";

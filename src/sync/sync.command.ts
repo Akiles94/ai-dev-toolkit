@@ -1,5 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { type CliContext, print } from "../shared/cli-context.ts";
 import { type Agent, parseAgent } from "./agent.ts";
 import type { AgentRenderer, GeneratedFile } from "./agent-renderer.port.ts";
 import { claudeCodeAgentRenderer } from "./claude-code-agent-renderer.ts";
@@ -78,15 +79,31 @@ export async function staleFiles(root: string, files: readonly GeneratedFile[]):
   return stale;
 }
 
-export function formatStale(stale: readonly string[]): string {
+function formatStale(stale: readonly string[]): string {
   if (stale.length === 0) return "Generated agent files are up to date.";
   const lines = stale.map((path) => `  ✗ ${path}`);
   return ["Out of date. Run `aidt sync` and commit the result:", ...lines].join("\n");
 }
 
-export function formatSync(plan: Plan): string {
+function formatSync(plan: Plan): string {
   const problems = plan.problems.flatMap((p) => p.messages.map((m) => `  ✗ ${p.file}: ${m}`));
   const written = plan.files.map((f) => `    ${f.path}`);
   if (problems.length > 0) return ["Nothing written. Fix these first:", ...problems].join("\n");
   return [`Generated ${plan.files.length} file(s):`, ...written].join("\n");
+}
+
+/** `aidt sync`: renders the agents, or with `--check` lists generated files out of date. */
+export async function syncCommand({ root, config, flags }: CliContext): Promise<number> {
+  const plan = await planSync(root, flags.from ?? config.sync.agents, config.sync.harnesses);
+  if (plan.problems.length > 0) {
+    print(formatSync(plan));
+    return 1;
+  }
+  if (flags.check) {
+    const stale = await staleFiles(root, plan.files);
+    print(formatStale(stale));
+    return stale.length > 0 ? 1 : 0;
+  }
+  await writeSync(root, plan.files);
+  return print(formatSync(plan));
 }

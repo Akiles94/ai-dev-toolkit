@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { type CliContext, print, UsageError } from "../shared/cli-context.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
 
 /** Shipped next to the CLI, both from `src/` and from the built `dist/`. */
@@ -43,7 +44,7 @@ const exists = (path: string): Promise<boolean> =>
   );
 
 /** Lists what `add` would copy and what it would keep, without touching anything. */
-export async function planAdd(root: string, product: string): Promise<Result<AddPlan, string>> {
+async function planAdd(root: string, product: string): Promise<Result<AddPlan, string>> {
   const folders = PRODUCTS[product];
   if (!folders)
     return fail(`Unknown product "${product}". Available: ${Object.keys(PRODUCTS).join(", ")}.`);
@@ -60,7 +61,7 @@ export async function planAdd(root: string, product: string): Promise<Result<Add
 }
 
 /** Copies the missing files and creates the config when the project has none. */
-export async function applyAdd(root: string, plan: AddPlan): Promise<void> {
+async function applyAdd(root: string, plan: AddPlan): Promise<void> {
   for (const { source, target } of plan.copies) {
     await mkdir(dirname(join(root, target)), { recursive: true });
     await copyFile(source, join(root, target));
@@ -68,7 +69,7 @@ export async function applyAdd(root: string, plan: AddPlan): Promise<void> {
   if (plan.createConfig) await writeFile(join(root, CONFIG_FILE), STARTER_CONFIG);
 }
 
-export function formatAdd(plan: AddPlan): string {
+function formatAdd(plan: AddPlan): string {
   const lines = [`Added ${plan.copies.length} file(s) to .aidt/`];
   if (plan.createConfig) lines.push(`Created ${CONFIG_FILE}`);
   if (plan.kept.length > 0) {
@@ -78,4 +79,16 @@ export function formatAdd(plan: AddPlan): string {
     );
   }
   return lines.join("\n");
+}
+
+/** `aidt add <product>`: copies the product's files the project does not have yet. */
+export async function addCommand(
+  { root }: CliContext,
+  product: string | undefined,
+): Promise<number> {
+  if (!product) throw new UsageError("Name the product to add, e.g. aidt add workflow.");
+  const plan = await planAdd(root, product);
+  if (!plan.ok) throw new UsageError(plan.error);
+  await applyAdd(root, plan.value);
+  return print(formatAdd(plan.value));
 }

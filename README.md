@@ -1,5 +1,9 @@
 # AI Dev Toolkit
 
+[![npm](https://img.shields.io/npm/v/@akiles94/ai-dev-toolkit)](https://www.npmjs.com/package/@akiles94/ai-dev-toolkit)
+[![CI](https://github.com/Akiles94/ai-dev-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/Akiles94/ai-dev-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Use AI to write code without losing control of it.**
 A spec-driven workflow where AI does the typing and you keep the decisions, the understanding and the review.
 
@@ -73,6 +77,32 @@ Then start a task:
 - **Claude Code:** `/refiner <ticket or description>`, then `/planner`, `/builder`, `/reviewer`.
 
 Everything in `.aidt/` is yours to edit. After changing or deleting an agent, run `aidt sync`; in CI, `aidt sync --check` fails if the generated files are out of date.
+
+## Try the reviewer in one minute
+
+No spec needed. It reviews your current branch against its ticket, like a careful senior reviewer:
+
+```bash
+npx @akiles94/ai-dev-toolkit add reviewer
+```
+
+Then `/reviewer <ticket text>` in Claude Code, or pick `reviewer` in Copilot Chat. On a test branch
+with three planted bugs (tests green), it found all three and one more nobody planted:
+
+```markdown
+### 🔴 Cart total skips the first item · `src/checkout.js:6`
+**Fails when:** items = [{500c, qty 1}, {1000c, qty 1}] → total 1000 instead of 1500.
+The only test hides this by giving the first item price 0.
+**Fix:**
+    for (let i = 0; i < items.length; i++) total += items[i].priceCents * items[i].qty;
+
+### 🔴 Unknown code is silently ignored · `src/checkout.js:13`
+`Object.hasOwn` matters: with a plain `[]` lookup, code = "constructor" finds an inherited
+function and the total becomes NaN.
+```
+
+If there is no ticket in the branch or commits, it asks for one before reviewing: tickets often
+exist even when nothing references them.
 
 ## A real run
 

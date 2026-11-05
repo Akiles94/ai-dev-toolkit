@@ -20,7 +20,17 @@
     "spec-driven",
     "stacked-prs",
     "copilot",
-    "claude-code"
+    "claude-code",
+    "github-copilot",
+    "copilot-agents",
+    "custom-agents",
+    "claude-code-skills",
+    "ai-code-review",
+    "pull-request",
+    "code-quality",
+    "llm",
+    "developer-tools",
+    "cli"
   ],
   "type": "module",
   "engines": {

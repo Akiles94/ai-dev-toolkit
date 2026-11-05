@@ -23,8 +23,8 @@ function agent(name: string): Agent {
 }
 
 describe("canonical agents", () => {
-  it("has the four workflow agents, all valid", () => {
-    expect(agents.map((a) => a.agent.name).sort()).toEqual([...WORKFLOW].sort());
+  it("has the four workflow agents and the walkthrough, all valid", () => {
+    expect(agents.map((a) => a.agent.name).sort()).toEqual([...WORKFLOW, "walkthrough"].sort());
   });
 
   it("chains them in order: refiner → planner → builder → reviewer", () => {
@@ -35,7 +35,7 @@ describe("canonical agents", () => {
   });
 
   it("every agent knows the control levels, and the refiner records them", () => {
-    for (const { agent: a } of agents) expect(a.instructions).toContain("control");
+    for (const name of WORKFLOW) expect(agent(name).instructions).toContain("control");
     expect(agent("refiner").instructions).toContain("`strict`");
   });
 
@@ -130,5 +130,25 @@ describe("reviewer", () => {
   it("names the task folder after the branch and hands a FAIL to the author, not a builder", () => {
     expect(reviewer.instructions.includes("with the task id from the branch name")).toBe(true);
     expect(reviewer.instructions.includes("There is no builder in this mode")).toBe(true);
+  });
+});
+
+describe("walkthrough", () => {
+  const walkthrough = agent("walkthrough");
+
+  it("writes only inside its ignored worktree folder, never the real code", () => {
+    expect(walkthrough.capabilities.includes("edit")).toBe(false);
+    expect(walkthrough.writes).toEqual([".aidt/walkthrough/**"]);
+    expect(walkthrough.commands.includes("aidt walkthrough")).toBe(true);
+    expect(walkthrough.commands.some((c) => /push|commit|merge/.test(c))).toBe(false);
+  });
+
+  it("stops after every section and is not part of the workflow chain", () => {
+    expect(walkthrough.instructions).toContain("Never present two sections in a row");
+    expect(walkthrough.handoff).toBe(undefined);
+  });
+
+  it("keeps each finding's line in the PR, not in the commented copy", () => {
+    expect(walkthrough.instructions).toContain("**in the PR**, not in the commented copy");
   });
 });

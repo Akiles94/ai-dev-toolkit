@@ -8,7 +8,7 @@
 
 Agents for GitHub Copilot and Claude Code that turn a ticket into a spec you approve, a plan you
 approve, and small explained sections you approve, delivered as a stack of reviewable PRs. Use the
-whole workflow, or just the reviewer.
+whole workflow, just the reviewer, or the walkthrough to get through a teammate's huge PR.
 
 ## Quick start
 
@@ -18,6 +18,7 @@ Requires Node 24 and git. Works on Windows, macOS and Linux.
 cd your-project
 
 npx @akiles94/ai-dev-toolkit add reviewer    # just the reviewer: review any branch against its ticket
+npx @akiles94/ai-dev-toolkit add walkthrough # walk a big PR from a teammate, 300 lines at a time
 npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → planner → builder → reviewer
 npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
 ```
@@ -27,6 +28,7 @@ Then, in your AI tool:
 | | GitHub Copilot (VS Code) | Claude Code |
 |---|---|---|
 | Review a branch | Pick `reviewer` in the chat, paste the ticket | `/reviewer <ticket>` |
+| Walk a big PR | Pick `walkthrough`, give the PR number | `/walkthrough 123` |
 | Start a task | Pick `refiner`, paste the ticket; each agent offers a button to the next | `/refiner <ticket>`, then `/planner`, `/builder`, `/reviewer` |
 | Organise the code | Pick `architect` | `/architect` |
 
@@ -43,6 +45,7 @@ Then, in your AI tool:
 |---|---|
 | `workflow` | Four agents. The **refiner** turns a ticket into a spec (*what*), the **planner** into a plan of sections of ~300 lines (*how*), the **builder** writes one section at a time with explanatory comments, and the **reviewer** checks everything with a fresh eye and writes one review guide per PR. |
 | `reviewer` alone | Reviews any branch against its ticket, no spec needed: hunts for real defects, verifies each one before reporting it, and writes a guide ready to paste as the PR description. |
+| `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. |
 | `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. |
 | `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. |
 | `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. |
@@ -111,6 +114,34 @@ How it gets there:
 - **Verifies before reporting.** Every finding is re-checked and dropped if it can't be confirmed,
   so the list stays short and real.
 
+## The walkthrough, on a real PR
+
+A 970-line PR on [Valija](https://github.com/Akiles94/valija) (vault lifecycle, context save,
+search and export). `aidt walkthrough start` split it, for free, into:
+
+```
+S1  Contracts and types + Core logic · src/domain, src/domain/ports, …  (287 lines)
+S2  Core logic + Integration · src/application/usecases, …              (276 lines + 257 test)
+S3  Integration · src/infrastructure/keychain, src/infrastructure       (78 lines)
+S4  Tests · tests/helpers                                               (79 lines)
+```
+
+Then the agent went one section at a time and waited after each. You read the code in your
+editor, explained inline (translated from Spanish, the language of the conversation):
+
+```ts
+// @guide Flow: read header -> key from the keychain (null = VAULT_LOCKED) ->
+// @guide open the DB with the key -> migrate -> return repos + close().
+open(): Result<VaultSession, DomainError> {
+  …
+  // @guide 🔴 If migrate() throws, nobody closes the connection openVaultDb returned:
+  // @guide one leaked handle per failed attempt. Fix: close db in the catch.
+  migrate(db);
+```
+
+At the end: requirement coverage, 3 🔴 and 9 🟡 findings written as review comments ready to
+paste, and the local copy removed with every comment in it. Your branch is never touched.
+
 ## The full workflow, on a real task
 
 A trial on [Valija](https://github.com/Akiles94/valija), a TypeScript CLI and desktop app, for
@@ -137,13 +168,15 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer` or `refiner` into `.aidt/` and generate the agents |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
 | `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
 | `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
 | `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |
 | `aidt check` | Task gates: section sizes, every requirement has a test |
 | `aidt stack prepare` / `submit` | One branch and one draft PR per reviewed section (`gh` or `glab`) |
 | `aidt structure audit` | Check the structure rules; exceptions live in `.aidt/structure.md` |
+| `aidt walkthrough plan` | Split a change into sections of ≤300 lines, in reading order |
+| `aidt walkthrough start <ref> <name>` / `finish <name>` | Check a PR out in an ignored local copy and plan it / remove it with its comments |
 
 ## Make it yours
 

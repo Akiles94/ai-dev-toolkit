@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../shared/config.ts";
 import { commitAll, featureRepo, git, write } from "../shared/testing/temp-repo.ts";
+import type { CommandRunner } from "./command-runner.port.ts";
 import { stackCommand } from "./stack.command.ts";
 
 const TASK = ".aidt/tasks/feature";
@@ -94,5 +95,58 @@ describe("aidt stack prepare", () => {
     await expect(stackCommand(context, "publish")).rejects.toThrow(
       'Unknown stack action "publish"',
     );
+  });
+});
+
+describe("aidt stack submit", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  async function submit(repo: string, flags = {}, runner?: CommandRunner): Promise<number> {
+    const context = { root: repo, config: await loadConfig(repo), flags };
+    return stackCommand(context, "submit", runner);
+  }
+
+  function preparedTask(): string {
+    const repo = reviewedTask();
+    git(repo, "remote", "add", "origin", "git@github.com:o/r.git");
+    return repo;
+  }
+
+  it("refuses until the stack is prepared", async () => {
+    const repo = preparedTask();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(await submit(repo, {}, async () => "")).toBe(1);
+    expect(err.mock.calls.map((c) => String(c[0])).join("")).toContain("run aidt stack prepare");
+  });
+
+  it("--dry-run lists the commands and changes nothing", async () => {
+    const repo = preparedTask();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    await prepare(repo);
+    const before = readFileSync(join(repo, TASK, "state.json"), "utf8");
+
+    expect(await submit(repo, { "dry-run": true })).toBe(0);
+    const printed = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(printed).toContain("git push --force-with-lease -u origin feature-s01-store");
+    expect(printed).toContain('--title "feat: toast UI"');
+    expect(readFileSync(join(repo, TASK, "state.json"), "utf8")).toBe(before);
+  });
+
+  it("records each PR and the tool in state.json", async () => {
+    const repo = preparedTask();
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    await prepare(repo);
+    let pr = 0;
+    const runner: CommandRunner = async (command, args) =>
+      command === "gh" && args[1] === "create" ? `https://github.com/o/r/pull/${++pr}\n` : "";
+
+    expect(await submit(repo, {}, runner)).toBe(0);
+    const state = JSON.parse(readFileSync(join(repo, TASK, "state.json"), "utf8"));
+    expect(state.phase).toBe("done");
+    expect(state.delivery).toEqual({ mode: "stack", tool: "gh-stack" });
+    expect(state.sections.map((s: { pr: string; status: string }) => [s.pr, s.status])).toEqual([
+      ["https://github.com/o/r/pull/1", "delivered"],
+      ["https://github.com/o/r/pull/2", "delivered"],
+    ]);
   });
 });

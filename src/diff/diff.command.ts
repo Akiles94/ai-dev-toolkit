@@ -1,4 +1,10 @@
-import type { DiffSummary, FileCategory, FileChange } from "../shared/changes.ts";
+import {
+  collectDiff,
+  type DiffSummary,
+  type FileCategory,
+  type FileChange,
+} from "../shared/changes.ts";
+import { type CliContext, print, resolveSource } from "../shared/cli-context.ts";
 
 const LABELS: Record<FileCategory, string> = {
   code: "Code",
@@ -33,7 +39,7 @@ function sectionEstimate(summary: DiffSummary, sectionLines: number): string {
 }
 
 /** Human-readable report for `aidt diff`. Code files are listed only on request: they are many. */
-export function formatDiff(
+function formatDiff(
   summary: DiffSummary,
   { sectionLines, listCodeFiles }: { sectionLines: number; listCodeFiles: boolean },
 ): string {
@@ -47,4 +53,16 @@ export function formatDiff(
     "",
     sectionEstimate(summary, sectionLines),
   ].join("\n");
+}
+
+/** `aidt diff`: change stats of the chosen source, as text or `--json`. */
+export async function diffCommand({ root, config, flags }: CliContext): Promise<number> {
+  const summary = await collectDiff(root, await resolveSource(root, flags), config);
+  if (flags.json) return print(JSON.stringify(summary, null, 2));
+  return print(
+    formatDiff(summary, {
+      sectionLines: config.limits.sectionLines,
+      listCodeFiles: flags.files ?? false,
+    }),
+  );
 }

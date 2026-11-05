@@ -6,7 +6,7 @@
   - Every claim points to `file:line`. Never describe code you have not read.
   - "Walkthrough" uses one realistic input and follows it step by step with real values.
   - Numbers in "At a glance" come from `aidt diff --json`, never estimated.
-  - Warnings: 🔴 breaks a requirement or is a real risk · 🟡 worth a look · ℹ️ not requested.
+  - Findings: 🔴 a real bug, risk or broken requirement · 🟡 worth a look · ℹ️ not requested.
   - Keep every block. Write "None" when a block has nothing to say. Customize the set of blocks
     by editing this template; the reviewer follows whatever blocks it contains.
   Delete these comments when filling the template.
@@ -60,7 +60,18 @@ Input: `…`
 |---|---|---|---|
 | R1 | `…:…` | `…` | ✅ Met / ⚠️ Partial / ❌ Missing |
 
-## Warnings
+## Findings
+
+<!--
+  Confirmed defects from the defect search, most severe first. One block each:
+
+  ### 🔴 <the problem in one sentence> · `file:line`
+  **Fails when:** <concrete input or state> → <wrong result>.
+  **Fix:**
+  ```suggestion
+  <replacement lines>
+  ```
+-->
 
 - None
 

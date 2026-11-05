@@ -3,6 +3,20 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-11-05
+
+### Added
+
+- **`walkthrough` agent** (`aidt add walkthrough`): walks a developer through someone else's
+  large PR one section of at most 300 lines at a time, in reading order, with guide comments
+  written into a local copy of the code, verified findings and questions per section, and a
+  pause after each one. Ends with requirement coverage and review comments ready to paste.
+  Never commits, pushes or comments on the PR. The `reviewer` is unchanged.
+- **`aidt walkthrough plan`**: splits a change into ordered sections (contracts, core,
+  integration, UI, docs, tests, config), keeping folders together and each test next to its code.
+- **`aidt walkthrough start <ref> <name>` / `finish <name>`**: check a PR out in
+  `.aidt/walkthrough/<name>/`, ignored by git, and plan it; remove it with every comment in it.
+
 ## [0.1.1] - 2026-11-05
 
 ### Changed

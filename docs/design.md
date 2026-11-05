@@ -14,13 +14,12 @@ Status: draft v0.1 · 2026-10-29
 
 ## 2. Products
 
-Each product is independent and installable alone. The `refiner` and the `reviewer` are also installable alone (`aidt add refiner`, `aidt add reviewer`): the refiner then ends at the approved spec, and the reviewer reviews a branch against its ticket when there is no spec (§5.4).
+Each product is independent and installable alone. The `refiner`, the `reviewer` and the `walkthrough` are also installable alone (`aidt add refiner`, `aidt add reviewer`, `aidt add walkthrough`): the refiner then ends at the approved spec, the reviewer reviews a branch against its ticket when there is no spec (§5.4), and the walkthrough guides a developer through someone else's large PR (§5.4b).
 
 | Product | Contents | Depends on |
 |---|---|---|
-| `workflow` | `refiner`, `planner`, `builder`, `reviewer` agents + scripts | — |
+| `workflow` | `refiner`, `planner`, `builder`, `reviewer` agents + scripts; `walkthrough` agent for other people's PRs | — |
 | `structure` | Code organisation: common rules, 3 levels, stack presets, `aidt structure audit`, `architect` agent (§6c) | — (the workflow reads it if present) |
-| `review` | Review of external PRs/diffs (no spec or plan required) | — (shares scripts with `workflow`) |
 | `init` | Guided creation of project AI files | — |
 | `profile` | Guided creation of the developer profile | — |
 | `docs` | Living docs for people (business flows + reference), checked in CI | [`living-docs`](https://github.com/Akiles94/living-docs) (npm, TS only) |
@@ -104,6 +103,13 @@ Conflict rule: **the profile never overrides the project; it can only propose.**
 - **Verdict** per section: `PASS` / `FAIL`, bound to the reviewed commit SHA (a stale PASS is invalid).
 - **Delivery:** prepares the stack. Publishing requires user confirmation.
 - **Without a spec** (installed alone, or a change that skipped the workflow): reviews the branch against its ticket. It always asks for the ticket and anything else to consider before reviewing, since a ticket often exists even when the branch and commits do not reference it. The ticket becomes derived requirements; without one, it judges everything but coverage. No `aidt check`, no stack, no `state.json`.
+
+### 5.4b Walkthrough (someone else's large PR)
+The reviewer is fast and verdict-oriented. The walkthrough is for keeping control of a PR too big to read in one go, usually a teammate's. Separate agent, so the quick review stays quick.
+- **Split by script:** `aidt walkthrough start <ref> <name>` checks the PR out (detached) in `.aidt/walkthrough/<name>/`, ignored through `.git/info/exclude`, and plans it: sections of at most `limits.sectionLines` in reading order (contracts, core, integration, UI, docs, loose tests, config). Small neighbouring layers share a section, a folder that fits is never split, each test joins its code (same name, or the folder its test folder mirrors), config joins the last section when it fits, an oversized file gets its own section, noise and formatting are listed apart.
+- **One section at a time:** the agent writes guide comments in that copy (a header per file, one per changed function, findings `🔴 🟡 ❓` at the line), presents the section in chat and waits for the developer's answer before the next one.
+- **Notes** in `.aidt/walkthrough/<name>.md`: progress, derived requirements, findings with their line in the PR (not in the commented copy). A later session resumes from them.
+- **Close:** coverage, remaining findings written as review comments to paste, and `aidt walkthrough finish <name>`, which removes the copy and every comment in it. It never commits, pushes or comments on the PR.
 
 ### 5.5 Integrations with `docs` and `context`
 
@@ -333,13 +339,14 @@ TypeScript, Node 24, minimal dependencies.
 
 | Command | What |
 |---|---|
-| `aidt add <product\|agent>` | Copy a product's files into the repo, or one standalone agent (`refiner`, `reviewer`) with only the templates and practices it reads |
+| `aidt add <product\|agent>` | Copy a product's files into the repo, or one standalone agent (`refiner`, `reviewer`, `walkthrough`) with only the templates and practices it reads |
 | `aidt sync` | Render canonical agents to each configured harness |
 | `aidt diff [--section S1]` | Diff stats with noise filtered |
 | `aidt clean` | Remove guide comments |
 | `aidt check` | Task gates: every section within the line limit, every spec requirement referenced by a test of the task. Coverage stays in the quality commands |
 | `aidt stack <prepare\|submit>` | Build / publish the stack via the detected delivery adapter |
 | `aidt structure audit` | Check the common structure rules; exceptions from `.aidt/structure.md` |
+| `aidt walkthrough <plan\|start\|finish>` | Split a change into ordered sections; check a PR out in an ignored worktree and remove it (§5.4b) |
 | `aidt customize <agent>` | Optional guided customization |
 
 Agents call these scripts instead of doing mechanical work with tokens. Adapters also allow each `aidt` command as `npx @akiles94/ai-dev-toolkit …`, so agents work without a global install.

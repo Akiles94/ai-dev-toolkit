@@ -55,6 +55,24 @@ describe("aidt walkthrough plan", () => {
   });
 });
 
+describe("aidt walkthrough start and finish", () => {
+  it("checks a change out in an ignored worktree, plans it, and removes it with its comments", () => {
+    const started = run(repo, "walkthrough", "start", "feature", "PR 7", "--json");
+    expect(started.code).toBe(0);
+    const plan = JSON.parse(started.out);
+    expect(plan.worktree).toBe(".aidt/walkthrough/pr-7");
+    expect(plan.sections).toHaveLength(1);
+
+    const worktree = join(repo, plan.worktree);
+    writeFileSync(join(worktree, "app.ts"), `// ${M}: explains the change\n`);
+    const status = spawnSync("git", ["status", "--porcelain"], { cwd: repo, encoding: "utf8" });
+    expect(status.stdout).toBe("");
+
+    expect(run(repo, "walkthrough", "finish", "PR 7").code).toBe(0);
+    expect(existsSync(worktree)).toBe(false);
+  });
+});
+
 describe("aidt clean", () => {
   it("reports guide comments with --check and fails", () => {
     const { code, out } = run(repo, "clean", "--check");
@@ -146,6 +164,13 @@ describe("aidt add", () => {
     expect(existsSync(join(repo, ".aidt/templates/spec.md"))).toBe(false);
   });
 
+  it("installs the walkthrough alone, for both AI tools", () => {
+    expect(run(repo, "add", "walkthrough").code).toBe(0);
+    expect(existsSync(join(repo, ".github/agents/walkthrough.agent.md"))).toBe(true);
+    expect(existsSync(join(repo, ".claude/skills/walkthrough/SKILL.md"))).toBe(true);
+    expect(existsSync(join(repo, ".aidt/agents/reviewer.md"))).toBe(false);
+  });
+
   it("gives a lone refiner no handoff to a planner that is not installed", () => {
     expect(run(repo, "add", "refiner").code).toBe(0);
     const refiner = readFileSync(join(repo, ".github/agents/refiner.agent.md"), "utf8");
@@ -157,7 +182,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer.',
+      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer, walkthrough.',
     );
   });
 });

@@ -20,7 +20,7 @@ const HELP = `aidt: AI Dev Toolkit
 
 Usage
   aidt add   <product|agent>               Copy into .aidt/ and sync: a product (workflow, structure)
-                                           or one agent alone (refiner, reviewer)
+                                           or one agent alone (refiner, reviewer, walkthrough)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
@@ -30,6 +30,9 @@ Usage
   aidt stack submit  [--dry-run]           Push them and open one draft PR per section (gh, glab)
   aidt structure audit [--json]            Check the common structure rules (exit 1 if broken)
   aidt walkthrough plan [source] [--json]  Split a large change into sections to review in order
+  aidt walkthrough start <ref> [name]      Check <ref> out in an ignored worktree and plan it
+                       [--base <ref>]      (under .aidt/walkthrough/; nothing is committed)
+  aidt walkthrough finish <name>           Remove that worktree and the comments written in it
 
 Source (default: <default branch>...HEAD)
   --base <ref>    Compare against <ref> (merge-base, like a PR)
@@ -90,7 +93,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "add") return addThenSync(context, rest[0]);
   if (command === "stack") return stackCommand(context, rest[0]);
   if (command === "structure") return structureCommand(context, rest[0]);
-  if (command === "walkthrough") return walkthroughCommand(context, rest[0]);
+  if (command === "walkthrough") return walkthroughCommand(context, rest);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 

@@ -95,9 +95,17 @@ describe("aidt add", () => {
     expect(readFileSync(practices, "utf8")).toBe("# Our own rules\n");
   });
 
+  it("copies a product's nested folders, alone or next to the workflow", () => {
+    const { code, out } = run(repo, "add", "structure");
+    expect(code).toBe(0);
+    expect(out).toContain("Added 5 file(s)");
+    expect(existsSync(join(repo, ".aidt/structure/levels/modular.md"))).toBe(true);
+    expect(existsSync(join(repo, ".aidt/templates/structure.md"))).toBe(true);
+  });
+
   it("explains which products exist when the name is wrong", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
-    expect(err).toContain('Unknown product "nope". Available: workflow.');
+    expect(err).toContain('Unknown product "nope". Available: workflow, structure.');
   });
 });

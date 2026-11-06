@@ -17,6 +17,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 - **`aidt walkthrough start <ref> <name>` / `finish <name>`**: check a PR out in
   `.aidt/walkthrough/<name>/`, ignored by git, and plan it; remove it with every comment in it.
 
+### Fixed
+
+- The `builder` can run the project's test and check scripts (`npm test`, `npm run`, pnpm, yarn),
+  as its instructions require; before, it could not verify a section.
+- The `refiner`, installed alone, names the task folder after the branch, not the ticket, so the
+  planner and `aidt check` find the task.
+
+### Docs
+
+- One page per tool (`docs/reviewer.md`, `walkthrough.md`, `refiner.md`, `structure.md`,
+  `workflow.md`, `cli.md`), each with a real run on the
+  [aidt-examples](https://github.com/Akiles94/aidt-examples) repository and its measured cost.
+
 ## [0.1.1] - 2026-11-05
 
 ### Changed

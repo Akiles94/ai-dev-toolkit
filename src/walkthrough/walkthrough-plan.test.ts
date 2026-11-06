@@ -84,31 +84,46 @@ describe("planWalkthrough", () => {
     );
   });
 
-  it("joins a test to the folder its test folder mirrors, while its tests fit the limit", () => {
+  it("joins a test to the code in the folder its test folder mirrors", () => {
     const plan = planWalkthrough(
       [
         file("src/application/usecases/save.ts", 200),
         file("src/infrastructure/db.ts", 200),
-        file("tests/application/usecases.test.ts", 150, "test"),
-        file("tests/application/lifecycle.test.ts", 200, "test"),
+        file("tests/application/usecases.test.ts", 90, "test"),
         file("tests/helpers/vault.ts", 50, "test"),
       ],
       300,
     );
     expect(paths(plan)).toEqual([
-      ["src/application/usecases/save.ts", "tests/application/lifecycle.test.ts"],
+      ["src/application/usecases/save.ts", "tests/application/usecases.test.ts"],
       ["src/infrastructure/db.ts"],
-      ["tests/application/usecases.test.ts", "tests/helpers/vault.ts"],
+      ["tests/helpers/vault.ts"],
     ]);
   });
 
-  it("reads each test next to the file it tests, without counting it toward the limit", () => {
+  it("reads each test next to its code while both fit the limit, else right after it", () => {
     const plan = planWalkthrough(
-      [file("src/cart/cart.ts", 280), file("src/cart/cart.test.ts", 150, "test")],
+      [
+        file("src/cart/cart.ts", 120),
+        file("src/cart/cart.test.ts", 80, "test"),
+        file("src/orders/orders.ts", 200),
+        file("src/orders/orders.test.ts", 250, "test"),
+        file("src/ui/view.tsx", 290),
+      ],
       300,
     );
-    expect(paths(plan)).toEqual([["src/cart/cart.ts", "src/cart/cart.test.ts"]]);
-    expect(plan.sections[0]).toMatchObject({ lines: 280, testLines: 150, oversized: false });
+    expect(paths(plan)).toEqual([
+      ["src/cart/cart.ts", "src/cart/cart.test.ts"],
+      ["src/orders/orders.ts"],
+      ["src/orders/orders.test.ts"],
+      ["src/ui/view.tsx"],
+    ]);
+    expect(plan.sections.map((s) => [s.layer, s.lines, s.testLines])).toEqual([
+      ["core", 120, 80],
+      ["core", 200, 0],
+      ["tests", 250, 0],
+      ["ui", 290, 0],
+    ]);
   });
 
   it("keeps a folder together when it fits, and starts a new section when it does not", () => {

@@ -28,6 +28,10 @@ Before anything else, make sure the work happens on its own branch:
    (types: `feat`, `fix`, `refactor`, `chore`, `docs`). Ask the user to confirm or change it,
    then create and switch to it.
 3. If the user already created a branch for this task, use it.
+4. The task folder is named after the branch, with `/` replaced by `-`, even when the ticket has
+   its own id: branch `feat/SHOP-24-low-stock-alerts` → `.aidt/tasks/feat-SHOP-24-low-stock-alerts/`,
+   never `.aidt/tasks/SHOP-24/`. The planner, the builder, the reviewer and `aidt check` find the
+   task from the branch.
 
 ## 2. Gather input
 

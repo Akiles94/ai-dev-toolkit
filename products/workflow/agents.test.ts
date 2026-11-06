@@ -92,6 +92,16 @@ describe("reviewer defect search", () => {
   });
 });
 
+describe("quality commands", () => {
+  it("the builder and the reviewer may run the project's tests and check scripts", () => {
+    for (const name of ["builder", "reviewer"]) {
+      for (const command of ["npm test", "npm run", "pnpm run", "yarn run"]) {
+        expect(agent(name).commands).toContain(command);
+      }
+    }
+  });
+});
+
 describe("refiner alone", () => {
   it("names the task folder after the branch, not the ticket", () => {
     expect(agent("refiner").instructions).toContain("never `.aidt/tasks/SHOP-24/`");

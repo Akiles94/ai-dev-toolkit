@@ -93,6 +93,10 @@ describe("reviewer defect search", () => {
 });
 
 describe("refiner alone", () => {
+  it("names the task folder after the branch, not the ticket", () => {
+    expect(agent("refiner").instructions).toContain("never `.aidt/tasks/SHOP-24/`");
+  });
+
   it("delivers the approved spec when there is no planner", () => {
     expect(agent("refiner").instructions.includes("Without the planner")).toBe(true);
   });

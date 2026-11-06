@@ -36,7 +36,7 @@ The developer decides.
    with `<ref>` = `FETCH_HEAD` or `origin/<branch>`, and `<name>` = `pr-<n>` or the branch. It
    creates a worktree in `.aidt/walkthrough/<name>/` that git ignores, and prints the sections: at
    most `limits.sectionLines` lines each, in reading order (contracts, core logic, integration, UI,
-   docs, loose tests, config), with each test next to the code it tests. Noise and formatting are
+   docs, loose tests, config), with each test next to the code it tests or right after it. Noise and formatting are
    listed apart and never read.
 4. **Ask for the context**, in one message: the ticket (link, pasted text, or "there is none"),
    and anything to keep in mind (areas to focus on or to skip). A ticket often exists even when the

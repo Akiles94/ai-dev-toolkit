@@ -59,9 +59,9 @@ export interface WalkthroughSection {
   id: string;
   layer: Layer;
   title: string;
-  /** Reviewable lines (added + deleted) of the production files; the section limit applies here. */
+  /** Reviewable lines (added + deleted) of the section's own files (the tests in a test section). */
   lines: number;
-  /** Lines of the tests read next to the code they test; they do not count toward the limit. */
+  /** Lines of the tests read next to their code; `lines + testLines` stays within the limit. */
   testLines: number;
   /** A single file bigger than the limit: the agent splits it by hunks. */
   oversized: boolean;
@@ -142,43 +142,63 @@ function titleOf(files: FileChange[], layer: Layer): string {
   return `${layers.map((l) => LAYER_LABELS[l]).join(" + ")} · ${shown}`;
 }
 
+const TESTS: Layer = "tests";
+
+interface Chunk {
+  layer: Layer;
+  files: FileChange[];
+}
+
 const sum = (files: FileChange[], keep: (f: FileChange) => boolean) =>
   files.filter(keep).reduce((total, f) => total + size(f), 0);
 
 /**
  * Splits a change into sections a person can review in one sitting, in reading order.
- * Each test joins the section of the file it tests (same name, or the folder its test folder
- * mirrors) while the tests there stay under the limit; the rest go together after the code.
+ * Each test is read with the file it tests (same name, or the folder its test folder mirrors)
+ * while code and tests together fit the limit, else in a test section right after that code;
+ * tests with no match go together after the code. No section goes over the limit.
  * Config joins the last section when it fits; noise and formatting are skipped.
  */
 export function planWalkthrough(files: readonly FileChange[], limit: number): WalkthroughPlan {
   const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
   const rank = (f: FileChange) => CODE_LAYERS.indexOf(layerOf(f.path));
   const code = sorted.filter((f) => f.category === "code").sort((a, b) => rank(a) - rank(b));
-  const chunks = pack(code, limit).map((chunk) => ({
+  let chunks: Chunk[] = pack(code, limit).map((chunk) => ({
     layer: layerOf(chunk[0]?.path ?? ""),
     files: chunk,
   }));
 
-  const looseTests: FileChange[] = [];
-  for (const test of sorted.filter((f) => f.category === "test")) {
-    const fits = (c: { files: FileChange[] }) =>
-      sum(c.files, (f) => f.category === "test") + size(test) <= limit;
-    const byName = chunks.find((c) => c.files.some((f) => stem(f.path) === subjectOf(test.path)));
-    const mirror = mirroredFolder(test.path);
-    const byFolderMirror = chunks.findLast(
-      (c) => fits(c) && c.files.some((f) => f.category === "code" && inFolder(f.path, mirror)),
+  // Each test goes home to the chunk with its code: same name, else the last chunk with code in
+  // the folder its test folder mirrors. It is read there while code plus tests fit the limit;
+  // otherwise it goes to a test section right after that chunk, never far from its code.
+  const homeOf = (test: FileChange) => {
+    const byName = chunks.findIndex((c) =>
+      c.files.some((f) => stem(f.path) === subjectOf(test.path)),
     );
-    const home = byName ?? byFolderMirror;
-    if (home) home.files.push(test);
-    else looseTests.push(test);
-  }
-  for (const chunk of pack(looseTests, limit)) chunks.push({ layer: "tests", files: chunk });
+    if (byName >= 0) return byName;
+    const mirror = mirroredFolder(test.path);
+    return chunks.findLastIndex((c) =>
+      c.files.some((f) => f.category === "code" && inFolder(f.path, mirror)),
+    );
+  };
+  const tests = sorted.filter((f) => f.category === "test");
+  const homes = new Map(tests.map((t) => [t, homeOf(t)]));
+  const ordered: Chunk[] = [];
+  chunks.forEach((chunk, i) => {
+    const overflow: FileChange[] = [];
+    for (const test of tests.filter((t) => homes.get(t) === i)) {
+      if (sum(chunk.files, () => true) + size(test) <= limit) chunk.files.push(test);
+      else overflow.push(test);
+    }
+    ordered.push(chunk, ...pack(overflow, limit).map((files) => ({ layer: TESTS, files })));
+  });
+  const looseTests = tests.filter((t) => homes.get(t) === -1);
+  for (const files of pack(looseTests, limit)) ordered.push({ layer: TESTS, files });
+  chunks = ordered;
 
   const config = sorted.filter((f) => f.category === "config");
   const last = chunks.at(-1);
-  const counted = (c: { layer: Layer; files: FileChange[] }) =>
-    sum(c.files, (f) => f.category !== "test" || c.layer === "tests");
+  const counted = (c: Chunk) => sum(c.files, (f) => f.category !== "test" || c.layer === "tests");
   if (last && config.length > 0 && counted(last) + sum(config, () => true) <= limit) {
     last.files.push(...config);
   } else if (config.length > 0) chunks.push({ layer: "config", files: config });

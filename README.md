@@ -41,17 +41,29 @@ Then, in your AI tool:
 
 ## What's in the box
 
-| | What it does |
-|---|---|
-| `workflow` | Four agents. The **refiner** turns a ticket into a spec (*what*), the **planner** into a plan of sections of ~300 lines (*how*), the **builder** writes one section at a time with explanatory comments, and the **reviewer** checks everything with a fresh eye and writes one review guide per PR. |
-| `reviewer` alone | Reviews any branch against its ticket, no spec needed: hunts for real defects, verifies each one before reporting it, and writes a guide ready to paste as the PR description. |
-| `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. |
-| `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. |
-| `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. |
-| `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. |
+| | What it does | Docs and example |
+|---|---|---|
+| `workflow` | Four agents. The **refiner** turns a ticket into a spec (*what*), the **planner** into a plan of sections of ~300 lines (*how*), the **builder** writes one section at a time with explanatory comments, and the **reviewer** checks everything with a fresh eye and writes one review guide per PR. | [workflow](docs/workflow.md) |
+| `reviewer` alone | Reviews any branch against its ticket, no spec needed: hunts for real defects, verifies each one before reporting it, and writes a guide ready to paste as the PR description. | [reviewer](docs/reviewer.md) |
+| `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. | [walkthrough](docs/walkthrough.md) |
+| `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. | [refiner](docs/refiner.md) |
+| `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. | [structure](docs/structure.md) |
+| `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. | [cli](docs/cli.md) |
 
 Everything is copied into your repo as plain Markdown and becomes yours to edit. No runtime
 dependency, no network calls, no telemetry.
+
+Each page explains what the tool does step by step and shows a real run on
+[shop-api](https://github.com/Akiles94/aidt-examples), a small demo repository where every output
+is kept in full, so you can see the results before installing anything. Measured with Claude Code:
+
+| Run | Model | Agent time | Cost at API prices |
+|---|---|---|---|
+| [Reviewer](docs/reviewer.md#cost-and-model), 65-line branch | Sonnet | 1 min 23 s | $0.27 |
+| [Walkthrough](docs/walkthrough.md#cost-and-model), 893-line PR, all 5 sections | Sonnet | 6 min 55 s | $1.11 |
+| [Refiner](docs/refiner.md#cost-and-model), one-line ticket to spec | Sonnet | 1 min 40 s | $0.25 |
+| [Architect](docs/structure.md#cost-and-model), audit and proposal | Sonnet | 34 s | $0.15 |
+| [Full workflow](docs/workflow.md#cost-and-model), ticket to 2 stacked PRs | Sonnet | 7 min 36 s | $1.43 |
 
 ## How the workflow works
 
@@ -182,8 +194,8 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - Edit anything in `.aidt/`: agents, templates, practices. Then run `aidt sync`.
 - Add `aidt sync --check` and `aidt clean --check` to CI.
-- Models are chosen per agent by tier (`efficient`, `balanced`, `max`) and mapped to each tool, so
-  the same config works for Copilot and Claude Code.
+- Each agent has a tier (`efficient`, `balanced`, `max`). In Claude Code it sets the model (Haiku,
+  Sonnet, Opus); in Copilot the agent uses the model you select in the chat.
 
 ## Roadmap
 

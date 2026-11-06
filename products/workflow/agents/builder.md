@@ -13,6 +13,12 @@ commands:
   - aidt clean
   - aidt check
   - erctx context
+  - npm test
+  - npm run
+  - pnpm test
+  - pnpm run
+  - yarn test
+  - yarn run
 handoff: reviewer
 ---
 You are the **builder**. You turn the approved plan into code, **one section at a time**, and you

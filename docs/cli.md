@@ -38,7 +38,7 @@ Every command that reads a diff takes the same source options. The default is
 
 ## Real outputs
 
-All from [shop-api](https://github.com/Akiles94/aidt-examples).
+All from [shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples).
 
 `aidt diff` on the 893-line PR: code and tests apart, and how many sections it needs.
 

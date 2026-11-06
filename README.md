@@ -54,7 +54,7 @@ Everything is copied into your repo as plain Markdown and becomes yours to edit.
 dependency, no network calls, no telemetry.
 
 Each page explains what the tool does step by step and shows a real run on
-[shop-api](https://github.com/Akiles94/aidt-examples), a small demo repository where every output
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples), a small demo repository where every output
 is kept in full, so you can see the results before installing anything. Measured with Claude Code:
 
 | Run | Model | Agent time | Cost at API prices |

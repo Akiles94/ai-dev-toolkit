@@ -28,7 +28,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 - One page per tool (`docs/reviewer.md`, `walkthrough.md`, `refiner.md`, `structure.md`,
   `workflow.md`, `cli.md`), each with a real run on the
-  [aidt-examples](https://github.com/Akiles94/aidt-examples) repository and its measured cost.
+  [ai-dev-toolkit-examples](https://github.com/Akiles94/ai-dev-toolkit-examples) repository and its measured cost.
 
 ## [0.1.1] - 2026-11-05
 

@@ -59,7 +59,7 @@ Progress and findings are kept in `.aidt/walkthrough/<name>.md`, so a later sess
 
 ## Example: checkout and orders, 893 lines
 
-[shop-api](https://github.com/Akiles94/aidt-examples), PR `feat/checkout-orders` for ticket
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples), PR `feat/checkout-orders` for ticket
 SHOP-31: checkout with all-or-nothing stock, a payment gateway port, and the order lifecycle.
 893 changed lines in 12 files, written by another agent playing the teammate.
 
@@ -101,8 +101,8 @@ pattern. A guard like `if (!body || typeof body !== "object")` would fix it.
 ```
 
 Full output: [every section as the agent presented it, all the guide comments, the notes and the
-closing comments](https://github.com/Akiles94/aidt-examples/tree/main/examples/walkthrough), and
-[the PR](https://github.com/Akiles94/aidt-examples/pull/2).
+closing comments](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/walkthrough), and
+[the PR](https://github.com/Akiles94/ai-dev-toolkit-examples/pull/2).
 
 ## Cost and model
 

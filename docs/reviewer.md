@@ -68,7 +68,7 @@ The blocks come from `.aidt/templates/review-section.md`: edit it to change the 
 
 ## Example: discount codes
 
-[shop-api](https://github.com/Akiles94/aidt-examples), branch `feat/discount-codes`: 65
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples), branch `feat/discount-codes`: 65
 reviewable lines for ticket SHOP-12, with 11 green tests and three bugs the ticket contradicts.
 The call:
 
@@ -100,8 +100,8 @@ Plus the expiry bug (a code dies at 00:00 UTC of its last valid day), the missin
 all three pass, a 500 on a `null` body nobody planted, and a coverage table: 4 requirements met,
 2 partial, 3 missing.
 
-Full output: [the guide, the chat answer and the ticket](https://github.com/Akiles94/aidt-examples/tree/main/examples/reviewer),
-and [the PR](https://github.com/Akiles94/aidt-examples/pull/1) with the guide as its description.
+Full output: [the guide, the chat answer and the ticket](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/reviewer),
+and [the PR](https://github.com/Akiles94/ai-dev-toolkit-examples/pull/1) with the guide as its description.
 
 ## Cost and model
 

@@ -82,7 +82,7 @@ the builder's own decisions first, so you read what the AI decided alone before 
 
 ## Example: low-stock alerts, end to end
 
-[shop-api](https://github.com/Akiles94/aidt-examples), ticket SHOP-24 (*"the shop owner should find
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples), ticket SHOP-24 (*"the shop owner should find
 out when stock drops below a threshold; show low-stock products in the admin"*), mode `full`,
 control `strict`. Approvals were given by hand at every gate.
 
@@ -128,9 +128,9 @@ exists; alerts live in memory. After the yes, `aidt stack prepare`:
 ```
 
 Full output: [spec, plan, every builder and reviewer answer, the guide comments of each section and
-the review guides](https://github.com/Akiles94/aidt-examples/tree/main/examples/workflow), and the
-two stacked PRs, [#3](https://github.com/Akiles94/aidt-examples/pull/3) and
-[#4](https://github.com/Akiles94/aidt-examples/pull/4), with their guides as descriptions.
+the review guides](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/workflow), and the
+two stacked PRs, [#3](https://github.com/Akiles94/ai-dev-toolkit-examples/pull/3) and
+[#4](https://github.com/Akiles94/ai-dev-toolkit-examples/pull/4), with their guides as descriptions.
 
 ## Cost and model
 

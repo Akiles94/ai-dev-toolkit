@@ -61,7 +61,7 @@ go under `## Exceptions` in `.aidt/structure.md`.
 
 ## Example: a shop API that will grow
 
-[shop-api](https://github.com/Akiles94/aidt-examples) on `main`: 5 source files and 241 lines. The
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples) on `main`: 5 source files and 241 lines. The
 audit, with no AI:
 
 ```text
@@ -93,7 +93,7 @@ It recommended C because each upcoming resource gets its own folder from day one
 
 It ended by offering step 1 as a ticket for the refiner, without starting it.
 
-Full output: [the audit, both answers and the decision file](https://github.com/Akiles94/aidt-examples/tree/main/examples/structure).
+Full output: [the audit, both answers and the decision file](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/structure).
 
 ## Cost and model
 

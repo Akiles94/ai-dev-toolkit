@@ -54,7 +54,7 @@ with the workflow it offers the hand-off to the planner.
 
 ## Example: low-stock alerts
 
-[shop-api](https://github.com/Akiles94/aidt-examples), ticket SHOP-24: *"When a product's stock
+[shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples), ticket SHOP-24: *"When a product's stock
 drops below a threshold after a purchase, the shop owner should find out. Show low-stock products
 in the admin."*
 
@@ -86,7 +86,7 @@ requirements and 13 acceptance criteria using the real catalog:
 It also added one requirement on its own (a view of the recorded alerts) and asked whether to keep
 it rather than slipping it in.
 
-Full output: [the conversation, the answers and the spec](https://github.com/Akiles94/aidt-examples/tree/main/examples/refiner).
+Full output: [the conversation, the answers and the spec](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/refiner).
 The same spec continues through the [full workflow example](workflow.md#example-low-stock-alerts-end-to-end).
 
 ## Cost and model

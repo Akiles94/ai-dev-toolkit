@@ -27,8 +27,11 @@ Per dimension, one of:
 
 - ✅ **Good:** nothing worth changing.
 - 🟡 **Improvable:** a concrete change would make it clearly better. Not blocking.
-- 🔴 **Broken rule:** it breaks a written rule (`.aidt/structure.md`, AGENTS.md, the practices)
-  or a confirmed security or performance problem. Blocking.
+- 🔴 **Broken rule:** the change breaks a written rule (`.aidt/structure.md`, AGENTS.md, the
+  practices) or adds a confirmed security or performance problem. Blocking.
+  A problem the change only inherits (a file that was already mixed or too big, and the change
+  adds a few lines to it) is 🟡, with a suggestion to fix it apart. Only what the change
+  introduces is 🔴: a new file in the wrong place, or a file that crosses a limit because of it.
 - ➖ **Not applicable:** the change has nothing for this dimension (no queries, no input…).
 
 ## Suggestions

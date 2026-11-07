@@ -107,6 +107,10 @@ The audit is a script: free. The architect, measured on the example above with C
 On a bigger codebase it reads more files, so it costs more. In Copilot it uses the model
 selected in the chat; not measured.
 
+Setup: Claude Code with the default configuration
+([how it was measured](../README.md#how-these-numbers-were-measured)). The model, and so the cost,
+change with [`models` in the config](cli.md#models).
+
 ## Limits
 
 - Never moves or rewrites code. The only file it writes is `.aidt/structure.md`.

@@ -49,6 +49,11 @@ const STARTER_CONFIG = `${JSON.stringify(
     limits: { sectionLines: 300 },
     guide: { marker: "@guide" },
     sync: { agents: ".aidt/agents", harnesses: ["copilot", "claude-code"] },
+    models: {
+      agents: {},
+      "claude-code": { efficient: "haiku", balanced: "sonnet", max: "opus" },
+      copilot: {},
+    },
     workflow: { control: "strict" },
   },
   null,

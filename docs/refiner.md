@@ -99,6 +99,10 @@ Measured on the example above with Claude Code on 2026-11-06 (questions, answers
 
 In Copilot it uses the model selected in the chat; not measured.
 
+Setup: Claude Code with the default configuration
+([how it was measured](../README.md#how-these-numbers-were-measured)). The model, and so the cost,
+change with [`models` in the config](cli.md#models).
+
 ## Limits
 
 - Writes only `spec.md` and `state.json` in the task folder. Never writes code.

@@ -119,6 +119,10 @@ is cache reads (a tenth of the price of fresh input). Stopping early costs only 
 another PR of 970 lines it cost $0.68 for two sections and the close. In Copilot it uses the model
 selected in the chat; not measured.
 
+Setup: Claude Code with the default configuration
+([how it was measured](../README.md#how-these-numbers-were-measured)). The model, and so the cost,
+change with [`models` in the config](cli.md#models).
+
 ## Limits
 
 - Writes only inside `.aidt/walkthrough/`. Never changes your checkout or branch.

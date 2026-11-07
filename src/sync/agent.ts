@@ -1,6 +1,6 @@
 import { fail, ok, type Result } from "../shared/result/result.ts";
 
-const TIERS = ["efficient", "balanced", "max"] as const;
+export const TIERS = ["efficient", "balanced", "max"] as const;
 const CAPABILITIES = ["read", "ask", "write", "edit", "shell"] as const;
 const CONTEXTS = ["shared", "fresh"] as const;
 

@@ -3,6 +3,17 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Code quality review** in the `reviewer` and the `walkthrough`: beyond bugs, both rate the
+  changed code on structure, practices, readability, maintainability, performance, security and
+  tests (✅ / 🟡 / 🔴 / ➖), with at most 5 concrete suggestions per section. The dimensions live
+  in `.aidt/practices/code-quality.md`, shared by both agents and editable per team. Only a broken
+  written rule or a confirmed security or performance problem fails a section; suggestions never
+  do. The review guide has a new `Quality` block.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added

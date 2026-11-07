@@ -92,6 +92,22 @@ describe("reviewer defect search", () => {
   });
 });
 
+describe("code quality review", () => {
+  it("the reviewer and the walkthrough rate the same dimensions from one shared file", () => {
+    for (const name of ["reviewer", "walkthrough"]) {
+      expect(agent(name).instructions).toContain(".aidt/practices/code-quality.md");
+      expect(agent(name).instructions).toContain("at most 5");
+    }
+  });
+
+  it("only a broken rule fails a section, never a suggestion", () => {
+    expect(agent("reviewer").instructions).toContain("## 3. Rate the quality");
+    expect(agent("reviewer").instructions).toContain(
+      "🟡 ratings and suggestions never fail a\n  section.",
+    );
+  });
+});
+
 describe("quality commands", () => {
   it("the builder and the reviewer may run the project's tests and check scripts", () => {
     for (const name of ["builder", "reviewer"]) {
@@ -133,7 +149,7 @@ describe("reviewer", () => {
   });
 
   it("reviews without a spec, asking for the ticket even when nothing references it", () => {
-    expect(reviewer.instructions.includes("## 6. Without a spec")).toBe(true);
+    expect(reviewer.instructions.includes("## 7. Without a spec")).toBe(true);
     expect(
       reviewer.instructions.includes("A ticket often exists even when nothing references it"),
     ).toBe(true);

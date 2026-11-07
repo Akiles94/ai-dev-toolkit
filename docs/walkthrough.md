@@ -44,8 +44,9 @@ it the branch and the base.
 3. **Shows the map** (sections, lines, what each is about, reading time) and asks for the ticket.
 4. **One section at a time.** It writes `@guide` comments into the copy: one per file, one per
    changed function (what it does, the decision behind it, what to check), and findings at the
-   exact line (🔴 bug · 🟡 worth a look · ❓ question). In the chat it sums the section up and
-   gives its opinion, then **waits** for you: next, go back, dig deeper, or stop.
+   exact line (🔴 bug · 🟡 worth a look · ❓ question). It rates the section's quality with the
+   same dimensions as the [reviewer](reviewer.md#how-it-reviews) and leaves up to 5 suggestions as
+   `@guide 💡` comments. In the chat it sums the section up and gives its opinion, then **waits** for you: next, go back, dig deeper, or stop.
 5. **Closes:** requirement coverage, and the findings written as review comments to paste, with
    the line in the PR. With your yes, `aidt walkthrough finish` removes the copy and every comment.
 

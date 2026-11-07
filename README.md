@@ -194,8 +194,10 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - Edit anything in `.aidt/`: agents, templates, practices. Then run `aidt sync`.
 - Add `aidt sync --check` and `aidt clean --check` to CI.
-- Each agent has a tier (`efficient`, `balanced`, `max`). In Claude Code it sets the model (Haiku,
-  Sonnet, Opus); in Copilot the agent uses the model you select in the chat.
+- Choose the model of every agent in one place, `models` in `.aidt/config.json`: move an agent to
+  another tier (`efficient`, `balanced`, `max`) and say which model each tier uses per tool. In
+  Claude Code the tiers default to Haiku, Sonnet and Opus; in Copilot the agent uses the model
+  selected in the chat unless you set one. Details: [configuration](docs/cli.md#configuration).
 
 ## Roadmap
 

@@ -27,6 +27,12 @@ export interface AidtConfig {
     /** AI tools to render the agents for. */
     harnesses: string[];
   };
+  /**
+   * Which model each agent runs on. `agents` changes an agent's tier (`efficient`, `balanced`,
+   * `max`); every other key is an AI tool (`claude-code`, `copilot`) mapping each tier to a model.
+   * A tier with no model in a tool leaves the choice to that tool (Copilot: the chat's model).
+   */
+  models: Record<string, Record<string, string>>;
   structure: {
     /** The project's structure decision; its "Exceptions" section lists globs the audit skips. */
     decision: string;
@@ -109,6 +115,11 @@ export const DEFAULT_CONFIG: AidtConfig = {
   },
   guide: { marker: "@guide" },
   sync: { agents: ".aidt/agents", harnesses: ["copilot", "claude-code"] },
+  models: {
+    agents: {},
+    "claude-code": { efficient: "haiku", balanced: "sonnet", max: "opus" },
+    copilot: {},
+  },
   structure: {
     decision: ".aidt/structure.md",
     extensions: [
@@ -125,6 +136,16 @@ export const DEFAULT_CONFIG: AidtConfig = {
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");
+
+/** Each tool's map is merged over its defaults, so setting one tier keeps the others. */
+function mergeModels(
+  overrides: Partial<Record<string, Record<string, string>>> = {},
+): AidtConfig["models"] {
+  const keys = new Set([...Object.keys(DEFAULT_CONFIG.models), ...Object.keys(overrides)]);
+  return Object.fromEntries(
+    [...keys].map((key) => [key, { ...DEFAULT_CONFIG.models[key], ...overrides[key] }]),
+  );
+}
 
 /**
  * Reads `.aidt/config.json` and merges it over the defaults, one group at a time.
@@ -144,6 +165,7 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
     configFiles: { ...DEFAULT_CONFIG.configFiles, ...parsed.configFiles },
     guide: { ...DEFAULT_CONFIG.guide, ...parsed.guide },
     sync: { ...DEFAULT_CONFIG.sync, ...parsed.sync },
+    models: mergeModels(parsed.models),
     structure: { ...DEFAULT_CONFIG.structure, ...parsed.structure },
   };
 }

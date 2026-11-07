@@ -327,7 +327,7 @@ Model tiers (`efficient` / `balanced` / `max`) map to concrete models per harnes
 - **Canonical agents** in `.aidt/agents/*.md`: frontmatter (name, description, tier, context, capabilities with scoped writes and commands, handoff) + instructions. Format: `products/workflow/agents/README.md`.
 - **Adapters** render them per harness with `aidt sync` (`aidt sync --check` fails in CI when the generated files are out of date):
   - **GitHub Copilot:** one custom agent per agent in `.github/agents/<name>.agent.md`, tools mapped from capabilities and a handoff button to the next agent. Copilot cannot scope writes or commands, so the limits travel as explicit instructions.
-  - **Claude Code:** one skill per agent in `.claude/skills/<name>/SKILL.md`, invoked as `/<name>`, model from the tier (efficient → haiku, balanced → sonnet, max → opus), scoped writes and commands pre-approved (`Edit(<glob>)`, `Bash(<command> *)`) so anything else asks the user. Agents with `context: fresh` (the reviewer) run in a forked subagent that never saw the conversation.
+  - **Claude Code:** one skill per agent in `.claude/skills/<name>/SKILL.md`, invoked as `/<name>`, model from the tier (efficient → haiku, balanced → sonnet, max → opus, changed with `models` in `.aidt/config.json`, which can also move an agent to another tier and give Copilot a model per tier), scoped writes and commands pre-approved (`Edit(<glob>)`, `Bash(<command> *)`) so anything else asks the user. Agents with `context: fresh` (the reviewer) run in a forked subagent that never saw the conversation.
   - Later: Codex, Gemini CLI, Cursor…
   - Chat-only tools (ChatGPT web, self-hosted UIs): exported as copy-paste prompts.
 - Shared standards used where they exist: `AGENTS.md`, Agent Skills.

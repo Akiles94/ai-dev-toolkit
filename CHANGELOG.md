@@ -12,7 +12,8 @@ versions follow [Semantic Versioning](https://semver.org/).
   tests (✅ / 🟡 / 🔴 / ➖), with at most 5 concrete suggestions per section. The dimensions live
   in `.aidt/practices/code-quality.md`, shared by both agents and editable per team. Only a broken
   written rule or a confirmed security or performance problem fails a section; suggestions never
-  do. The review guide has a new `Quality` block.
+  do: a problem the change only inherits is a 🟡 suggestion. The review guide has a new
+  `Quality` block.
 
 ## [0.2.0] - 2026-11-05
 

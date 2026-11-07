@@ -59,7 +59,7 @@ is kept in full, so you can see the results before installing anything. Measured
 
 | Run | Model | Agent time | Cost at API prices |
 |---|---|---|---|
-| [Reviewer](docs/reviewer.md#cost-and-model), 65-line branch | Sonnet | 1 min 23 s | $0.27 |
+| [Reviewer](docs/reviewer.md#cost-and-model), 65-line branch | Sonnet | 1 min 17 s | $0.22 |
 | [Walkthrough](docs/walkthrough.md#cost-and-model), 893-line PR, all 5 sections | Sonnet | 6 min 55 s | $1.11 |
 | [Refiner](docs/refiner.md#cost-and-model), one-line ticket to spec | Sonnet | 1 min 40 s | $0.25 |
 | [Architect](docs/structure.md#cost-and-model), audit and proposal | Sonnet | 34 s | $0.15 |

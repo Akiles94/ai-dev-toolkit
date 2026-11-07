@@ -117,8 +117,9 @@ Give `FAIL` when any of these holds, and say exactly what would turn it into `PA
 - A quality dimension is rated 🔴: it breaks `.aidt/structure.md`, AGENTS.md or the practices
   (a junk-drawer file, a feature importing another's internals, a file whose name hides its role),
   or has a confirmed security or performance problem. 🟡 ratings and suggestions never fail a
-  section. When `.aidt/structure.md` exists, run `aidt structure audit`: a finding in a file this section added or
-  grew is a FAIL; findings in untouched files are not.
+  section. When `.aidt/structure.md` exists, run `aidt structure audit`: a finding this section
+  introduces (a new file, or a file that crosses a limit because of it) is a FAIL; a finding the
+  file already had is a 🟡 suggestion, and findings in untouched files are not reported.
 - Reviewable lines go clearly over `limits.sectionLines` without a reason in the plan.
 - A confirmed 🔴 finding from section 2.
 

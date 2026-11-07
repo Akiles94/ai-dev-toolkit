@@ -87,34 +87,46 @@ subtotal after the discount. (…) Nothing else to keep in mind, base is main.
 Verdict **FAIL**, with the three bugs found, each with a failing case and a fix:
 
 ````markdown
-### 🔴 Fixed discount is not capped at the subtotal · `src/discounts.ts:31`
-**Fails when:** subtotal is 500 cents and `BIGSAVER` (3000) is applied: discount 3000,
-total = 500 − 3000 + 499 = −2001. An empty cart with `FIVEOFF` gives total −500.
+### 🔴 Fixed discount can exceed the subtotal · `src/discounts.ts:30`
+**Fails when:** one 2999-cent item and `BIGSAVER` (3000) → discount 3000. With an empty cart and
+`FIVEOFF` → discount 500, `totalCents = -500`. Negative totals are possible.
 **Fix:**
 ```suggestion
   return Math.min(code.value, subtotalCents);
 ```
 
-### 🔴 Free shipping ignores the discount · `src/cart.ts:60-61`
-**Fails when:** subtotal 5400 and `BIGSAVER` applied. After the discount the subtotal is 2400,
-under $50, so shipping (499) is due. The code uses 5400, charges 0 shipping, and the customer
-pays 2400 instead of 2899.
+### 🔴 Free shipping uses the subtotal before the discount · `src/cart.ts:62`
+**Fails when:** 5000-cent subtotal with `WELCOME10`: discount 500, post-discount 4500, but
+`subtotalCents >= 5000` gives shipping 0. The ticket says free shipping is based on the subtotal
+after the discount, so shipping should be 499.
 ````
 
-Plus the expiry bug (a code dies at 00:00 UTC of its last valid day), the missing tests that let
-all three pass, a 500 on a `null` body nobody planted, and a coverage table: 4 requirements met,
-2 partial, 3 missing.
+Plus the expiry bug (a code dies at the start of its last valid day) and a coverage table: 5
+requirements met, 1 partial, 3 missing. Then the quality of the new code:
+
+| Dimension | Rating | Why |
+|---|---|---|
+| Structure | 🟡 | New `src/discounts.ts` is well placed. The audit flags `src/types.ts` and `src/utils.ts`, both existing before; this change only adds 2 lines to `types.ts`. |
+| Practices | ✅ | Errors as values, same style as `addItem`. |
+| Readability | ✅ | Small functions, clear names. |
+| Maintainability | 🟡 | Code table hard-coded at `discounts.ts:10`; `totals` cannot inject the date, so it is hard to test expiry through the cart. |
+| Performance | ✅ | One lookup per totals call. |
+| Security | ✅ | Body type checked; lookup is a record key with uppercased input. |
+| Tests | 🔴 | No test covers the boundary day, the cap, the shipping rule or the HTTP 400 responses. Three requirements with bugs have no test. |
+
+With two suggestions: the exact tests to add, and a `Map` for the code table so user input can
+never hit inherited object keys.
 
 Full output: [the guide, the chat answer and the ticket](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/reviewer),
 and [the PR](https://github.com/Akiles94/ai-dev-toolkit-examples/pull/1) with the guide as its description.
 
 ## Cost and model
 
-Measured on the example above with Claude Code on 2026-11-06:
+Measured on the example above with Claude Code on 2026-11-07, quality review included:
 
 | Model | Turns | Agent time | Tokens in (cached) | Tokens out | Cost at API prices |
 |---|---|---|---|---|---|
-| `claude-sonnet-5-5` (tier `balanced`) | 1 | 1 min 23 s | 411k (356k) | 10k | $0.27 |
+| `claude-sonnet-5-5` (tier `balanced`) | 1 | 1 min 17 s | 332k (298k) | 11k | $0.22 |
 
 Most input tokens are cache reads, which cost a tenth of fresh input. With a Claude subscription
 the run counts toward your usage limits instead of costing money. In Copilot the agent uses the

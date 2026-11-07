@@ -133,6 +133,10 @@ the run counts toward your usage limits instead of costing money. In Copilot the
 model selected in the chat and counts as premium requests of your plan; we have not measured it.
 The cost grows with the size of the change and of the code around it, not with the repository.
 
+Setup: Claude Code with the default configuration
+([how it was measured](../README.md#how-these-numbers-were-measured)). The model, and so the cost,
+change with [`models` in the config](cli.md#models).
+
 ## Limits
 
 - Never changes source code, pushes, merges or comments on the PR. The only files it writes are

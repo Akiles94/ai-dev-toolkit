@@ -52,6 +52,7 @@ describe("workflow templates", () => {
       "Affected flows",
       "Requirement coverage",
       "Findings",
+      "Quality",
       "Questions for the author",
     ]);
   });

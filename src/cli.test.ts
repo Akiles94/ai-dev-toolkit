@@ -168,6 +168,7 @@ describe("aidt add", () => {
     expect(run(repo, "add", "walkthrough").code).toBe(0);
     expect(existsSync(join(repo, ".github/agents/walkthrough.agent.md"))).toBe(true);
     expect(existsSync(join(repo, ".claude/skills/walkthrough/SKILL.md"))).toBe(true);
+    expect(existsSync(join(repo, ".aidt/practices/code-quality.md"))).toBe(true);
     expect(existsSync(join(repo, ".aidt/agents/reviewer.md"))).toBe(false);
   });
 

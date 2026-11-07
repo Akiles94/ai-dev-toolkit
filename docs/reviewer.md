@@ -1,8 +1,8 @@
 # Reviewer
 
 Reviews a branch against its ticket, like a careful senior reviewer: it hunts for real defects
-beyond the diff, verifies each one before reporting it, gives a PASS or FAIL verdict and writes a
-guide ready to paste as the PR description. It never edits code.
+beyond the diff, verifies each one before reporting it, rates the quality of the new code, gives a
+PASS or FAIL verdict and writes a guide ready to paste as the PR description. It never edits code.
 
 [Install](#install-and-run) · [How it reviews](#how-it-reviews) · [What you get](#what-you-get) ·
 [Example](#example-discount-codes) · [Cost](#cost-and-model) · [Limits](#limits)
@@ -45,8 +45,12 @@ Run it on the branch to review. It compares it with the default branch, or with 
    errors and partial state, security, async, performance, compatibility and test quality.
 4. **Verifies every finding** by trying to prove it wrong. What it cannot confirm is dropped, so the
    list stays short and real.
-5. **Judges:** each requirement is met, partial or missing, with `file:line`. Any confirmed 🔴, a
-   missing requirement or a failing check means FAIL, with exactly what would turn it into PASS.
+5. **Rates the quality** of the changed code with `.aidt/practices/code-quality.md`: structure,
+   practices, readability, maintainability, performance, security and tests, each ✅ good,
+   🟡 improvable, 🔴 broken rule or ➖ not applicable, plus at most 5 concrete suggestions per
+   section. Edit that file to add or change dimensions.
+6. **Judges:** each requirement is met, partial or missing, with `file:line`. Any confirmed 🔴, a
+   missing requirement, a failing check or a quality rule broken means FAIL (a 🟡 never does), with exactly what would turn it into PASS.
    The verdict is bound to the reviewed commit.
 
 ## What you get
@@ -62,6 +66,7 @@ A short verdict in the chat, and the guides in `.aidt/tasks/<branch>/review/`:
 | Reading order | Which files to read carefully and which to skim |
 | Requirement coverage | Each requirement: where, which test, met / partial / missing |
 | Findings | 🔴 bug · 🟡 worth a look · ℹ️ note, each with the input that fails and the fix |
+| Quality | One rating per dimension, and up to 5 suggestions with `file:line` and the change |
 | Questions for the author | What only the author can answer |
 
 The blocks come from `.aidt/templates/review-section.md`: edit it to change the review.

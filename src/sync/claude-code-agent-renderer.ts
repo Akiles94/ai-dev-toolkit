@@ -4,10 +4,12 @@ import {
   generatedBanner,
   limitsSection,
   markdown,
+  yamlModel,
   yamlString,
 } from "./agent-markdown.ts";
 import type { AgentRenderer } from "./agent-renderer.port.ts";
 
+/** Used when the project's config has no model for a tier. */
 const MODELS: Record<Tier, string> = { efficient: "haiku", balanced: "sonnet", max: "opus" };
 
 /**
@@ -37,7 +39,7 @@ const handoffNote = (next: string) =>
   `When the user approves, suggest continuing with \`/${next}\`. Never start it yourself.`;
 
 /** Claude Code skill, invoked as `/<name>`: `.claude/skills/<name>/SKILL.md`. */
-export const claudeCodeAgentRenderer: AgentRenderer = (agent, source) => {
+export const claudeCodeAgentRenderer: AgentRenderer = (agent, source, model) => {
   const fresh = agent.context === "fresh";
   const frontmatter = [
     "---",
@@ -45,7 +47,7 @@ export const claudeCodeAgentRenderer: AgentRenderer = (agent, source) => {
     `description: ${yamlString(agent.description)}`,
     // Workflow steps run when the user asks, never because the model thinks they apply.
     "disable-model-invocation: true",
-    `model: ${MODELS[agent.tier]}`,
+    `model: ${yamlModel(model ?? MODELS[agent.tier])}`,
     "allowed-tools:",
     ...allowedTools(agent).map((rule) => `  - ${yamlString(rule)}`),
     ...(fresh ? ["context: fork", "agent: general-purpose", "background: false"] : []),

@@ -1,5 +1,11 @@
 import type { Agent, Capability } from "./agent.ts";
-import { generatedBanner, limitsSection, markdown, yamlString } from "./agent-markdown.ts";
+import {
+  generatedBanner,
+  limitsSection,
+  markdown,
+  yamlModel,
+  yamlString,
+} from "./agent-markdown.ts";
 import type { AgentRenderer } from "./agent-renderer.port.ts";
 
 /**
@@ -30,13 +36,17 @@ function handoff(next: string): string[] {
   ];
 }
 
-/** Custom agent for GitHub Copilot in VS Code: `.github/agents/<name>.agent.md`. */
-export const copilotAgentRenderer: AgentRenderer = (agent, source) => {
+/**
+ * Custom agent for GitHub Copilot in VS Code: `.github/agents/<name>.agent.md`. Without a
+ * configured model it runs on the one selected in the chat.
+ */
+export const copilotAgentRenderer: AgentRenderer = (agent, source, model) => {
   const frontmatter = [
     "---",
     `name: ${agent.name}`,
     `description: ${yamlString(agent.description)}`,
     `tools: ${tools(agent)}`,
+    ...(model ? [`model: ${yamlModel(model)}`] : []),
     ...(agent.handoff ? handoff(agent.handoff) : []),
     "---",
   ].join("\n");

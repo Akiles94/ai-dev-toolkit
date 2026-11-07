@@ -6,5 +6,8 @@ export interface GeneratedFile {
   readonly content: string;
 }
 
-/** Renders a canonical agent into the files one AI tool understands. */
-export type AgentRenderer = (agent: Agent, source: string) => GeneratedFile[];
+/**
+ * Renders a canonical agent into the files one AI tool understands. `model` is the one the
+ * project configured for the agent's tier in this tool, if any.
+ */
+export type AgentRenderer = (agent: Agent, source: string, model?: string) => GeneratedFile[];

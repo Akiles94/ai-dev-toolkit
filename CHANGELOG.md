@@ -3,6 +3,16 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-07
+
+### Added
+
+- **Model of each agent in the config:** `models` in `.aidt/config.json` moves an agent to another
+  tier (`"agents": { "reviewer": "max" }`) and sets the model of each tier per tool
+  (`"claude-code"`, `"copilot"`). Copilot agents get a fixed model only when one is configured;
+  otherwise they keep using the chat's model. A misspelled agent or tier makes `aidt sync` fail
+  with the reason. New projects get the block in their starter config.
+
 ## [0.3.0] - 2026-11-07
 
 ### Added

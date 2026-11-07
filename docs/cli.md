@@ -108,3 +108,24 @@ S2 · One module per resource (1)
 | `guide.marker` | `@guide` | The marker of removable guide comments |
 | `sync.harnesses` | `["copilot", "claude-code"]` | Which AI tools to generate agents for |
 | `workflow.control` | `strict` | Default control level for new tasks |
+| `models.agents` | `{}` | An agent's tier, over the one in its file: `{ "reviewer": "max" }` |
+| `models.claude-code` | `haiku`, `sonnet`, `opus` | The model of each tier in Claude Code |
+| `models.copilot` | `{}` | The model of each tier in Copilot; a tier without one uses the chat's model |
+
+### Models
+
+Each agent has a tier: `efficient`, `balanced` or `max`. The tier picks the model, per tool, so
+one change in `.aidt/config.json` moves every agent of that tier. Run `aidt sync` afterwards.
+
+```json
+"models": {
+  "agents": { "reviewer": "max", "refiner": "efficient" },
+  "claude-code": { "efficient": "haiku", "balanced": "sonnet", "max": "opus" },
+  "copilot": { "max": "Claude Opus 4.1 (copilot)" }
+}
+```
+
+Here the reviewer runs on Opus in Claude Code and on the named model in Copilot, the refiner on
+Haiku, and every other agent keeps its tier. Copilot model names are the ones its model picker
+shows. A misspelled agent or tier makes `aidt sync` fail with the reason, so no setting is ignored
+silently.

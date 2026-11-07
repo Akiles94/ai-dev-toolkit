@@ -33,6 +33,47 @@ describe("sync", () => {
   });
 });
 
+describe("sync with configured models", () => {
+  const MODELS = {
+    agents: { refiner: "max" },
+    "claude-code": { efficient: "haiku", balanced: "sonnet", max: "claude-opus-4-1" },
+    copilot: { max: "Claude Opus 4.1 (copilot)" },
+  };
+
+  it("moves an agent to another tier and uses each tool's model for it", async () => {
+    const repo = repoWithAgents({ "refiner.md": REFINER });
+    const plan = await planSync(repo, ".aidt/agents", ["copilot", "claude-code"], MODELS);
+    expect(plan.problems).toEqual([]);
+    const [copilot, claude] = plan.files.map((f) => f.content);
+    expect(copilot).toContain('model: "Claude Opus 4.1 (copilot)"');
+    expect(claude).toContain("model: claude-opus-4-1");
+  });
+
+  it("leaves Copilot on the chat's model when no model is configured for the tier", async () => {
+    const repo = repoWithAgents({ "refiner.md": REFINER });
+    const plan = await planSync(repo, ".aidt/agents", ["copilot"], { ...MODELS, agents: {} });
+    expect(plan.files[0]?.content).not.toContain("model:");
+  });
+
+  it("reports unknown agents and tiers instead of ignoring them", async () => {
+    const repo = repoWithAgents({ "refiner.md": REFINER });
+    const plan = await planSync(repo, ".aidt/agents", ["copilot"], {
+      agents: { refinr: "max", refiner: "fast" },
+      copilot: { large: "x" },
+    });
+    expect(plan.problems).toEqual([
+      {
+        file: ".aidt/config.json",
+        messages: [
+          "models.agents.refinr: no agent with that name",
+          'models.agents.refiner: "fast" is not a tier (efficient, balanced, max)',
+          "models.copilot.large: not a tier (efficient, balanced, max)",
+        ],
+      },
+    ]);
+  });
+});
+
 describe("sync with part of the workflow", () => {
   const PLANNER = REFINER.replace("name: refiner", "name: planner").replace(
     "handoff: planner\n",

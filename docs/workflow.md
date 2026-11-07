@@ -148,6 +148,10 @@ Measured on the example above with Claude Code on 2026-11-06. Every agent is tie
 Your reading and approvals are not in the agent time. Cost grows with the number of sections and
 the code each one touches. In Copilot each agent uses the model selected in the chat; not measured.
 
+Setup: Claude Code with the default configuration
+([how it was measured](../README.md#how-these-numbers-were-measured)). The model, and so the cost,
+change with [`models` in the config](cli.md#models).
+
 ## Limits
 
 - Only the builder changes source code, and only inside the approved plan.

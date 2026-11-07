@@ -65,6 +65,24 @@ is kept in full, so you can see the results before installing anything. Measured
 | [Architect](docs/structure.md#cost-and-model), audit and proposal | Sonnet | 34 s | $0.15 |
 | [Full workflow](docs/workflow.md#cost-and-model), ticket to 2 stacked PRs | Sonnet | 7 min 36 s | $1.43 |
 
+### How these numbers were measured
+
+- **Tool:** Claude Code 2.1.319, run headless (`claude -p`), with approvals and answers typed by
+  hand at every gate, as a user would.
+- **Configuration:** the defaults, with no `models` block in `.aidt/config.json`. Every agent
+  is tier `balanced`, so all runs used `claude-sonnet-5-5`.
+- **Cost:** what Claude Code reports at API list prices, cache reads included (most input tokens
+  are cache reads, a tenth of the price of fresh input). With a Claude subscription the runs count
+  toward usage limits instead.
+- **One run each**, on a small demo repository. Three reviewer runs on the same branch cost
+  between $0.22 and $0.29: expect that kind of spread from run to run.
+- **Not measured:** GitHub Copilot, which bills by premium requests of your plan and uses the model
+  selected in the chat or [configured per tier](docs/cli.md#models).
+
+Your cost depends on that configuration: [choosing the model](docs/cli.md#models) of each agent
+is the biggest lever. A `max` tier (Opus) costs more per token than `balanced` (Sonnet), and
+`efficient` (Haiku) less. It also grows with the size of the change and the code around it.
+
 ## How the workflow works
 
 ```
@@ -194,8 +212,10 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - Edit anything in `.aidt/`: agents, templates, practices. Then run `aidt sync`.
 - Add `aidt sync --check` and `aidt clean --check` to CI.
-- Each agent has a tier (`efficient`, `balanced`, `max`). In Claude Code it sets the model (Haiku,
-  Sonnet, Opus); in Copilot the agent uses the model you select in the chat.
+- Choose the model of every agent in one place, `models` in `.aidt/config.json`: move an agent to
+  another tier (`efficient`, `balanced`, `max`) and say which model each tier uses per tool. In
+  Claude Code the tiers default to Haiku, Sonnet and Opus; in Copilot the agent uses the model
+  selected in the chat unless you set one. Details: [configuration](docs/cli.md#configuration).
 
 ## Roadmap
 

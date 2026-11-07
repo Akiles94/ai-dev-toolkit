@@ -1,6 +1,6 @@
 {
   "name": "@akiles94/ai-dev-toolkit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Use AI to write code without losing control of it: spec-driven workflow, small explained sections, stacked PRs.",
   "license": "MIT",
   "author": "Oscar Vinueza",

@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { type CliContext, print } from "../shared/cli/cli-context.ts";
-import { type Agent, parseAgent } from "./agent.ts";
+import { type Agent, parseAgent, TIERS, type Tier } from "./agent.ts";
 import { GENERATED_MARKER } from "./agent-markdown.ts";
 import type { AgentRenderer, GeneratedFile } from "./agent-renderer.port.ts";
 import { claudeCodeAgentRenderer } from "./claude-code-agent-renderer.ts";
@@ -82,11 +82,44 @@ function withInstalledHandoff(agent: Agent, installed: ReadonlySet<string>): Age
   return rest;
 }
 
+type Models = Readonly<Record<string, Readonly<Record<string, string>>>>;
+
+/** Mistakes in `models` that would otherwise be ignored without a word. */
+function modelProblems(models: Models, agents: readonly Agent[]): Problem[] {
+  const names = new Set(agents.map((a) => a.name));
+  const tiers = TIERS.join(", ");
+  const messages = Object.entries(models).flatMap(([key, map]) =>
+    Object.entries(map).flatMap(([name, value]) => {
+      if (key !== "agents") {
+        return (TIERS as readonly string[]).includes(name)
+          ? []
+          : [`models.${key}.${name}: not a tier (${tiers})`];
+      }
+      return [
+        ...(names.has(name) ? [] : [`models.agents.${name}: no agent with that name`]),
+        ...((TIERS as readonly string[]).includes(value)
+          ? []
+          : [`models.agents.${name}: "${value}" is not a tier (${tiers})`]),
+      ];
+    }),
+  );
+  return messages.length > 0 ? [{ file: ".aidt/config.json", messages }] : [];
+}
+
+/** The agent with the tier the project chose for it, if any. */
+function withConfiguredTier(agent: Agent, models: Models): Agent {
+  const tier = models.agents?.[agent.name];
+  return tier && (TIERS as readonly string[]).includes(tier)
+    ? { ...agent, tier: tier as Tier }
+    : agent;
+}
+
 /** Reads the canonical agents and renders them for each harness, without writing anything. */
 export async function planSync(
   root: string,
   dir: string,
   harnesses: readonly string[],
+  models: Models = {},
 ): Promise<Plan> {
   const unknown = harnesses.filter((h) => !(h in RENDERERS));
   const supported = `supported: ${Object.keys(RENDERERS).join(", ")}`;
@@ -95,14 +128,21 @@ export async function planSync(
     messages: [`unknown harness "${h}" (${supported})`],
   }));
   const { agents, problems } = await loadAgents(root, dir);
-  const renderers = harnesses.flatMap((h) => RENDERERS[h] ?? []);
   const installed = new Set(agents.map(({ agent }) => agent.name));
-  const files = agents.flatMap(({ agent, source }) =>
-    renderers.flatMap((render) => render(withInstalledHandoff(agent, installed), source)),
-  );
+  const files = agents.flatMap(({ agent, source }) => {
+    const ready = withConfiguredTier(withInstalledHandoff(agent, installed), models);
+    return harnesses.flatMap((h) => {
+      const render = RENDERERS[h];
+      return render ? render(ready, source, models[h]?.[ready.tier]) : [];
+    });
+  });
   const produced = new Set(files.map((f) => f.path));
   const orphans = (await generatedOnDisk(root, dir)).filter((path) => !produced.has(path));
-  return { files, orphans, problems: [...harnessProblems, ...problems] };
+  const configProblems = modelProblems(
+    models,
+    agents.map(({ agent }) => agent),
+  );
+  return { files, orphans, problems: [...harnessProblems, ...problems, ...configProblems] };
 }
 
 /** Writes every generated file, creating folders as needed, and removes the orphans. */
@@ -149,7 +189,12 @@ function formatSync(plan: Plan): string {
 
 /** `aidt sync`: renders the agents, or with `--check` lists generated files out of date. */
 export async function syncCommand({ root, config, flags }: CliContext): Promise<number> {
-  const plan = await planSync(root, flags.from ?? config.sync.agents, config.sync.harnesses);
+  const plan = await planSync(
+    root,
+    flags.from ?? config.sync.agents,
+    config.sync.harnesses,
+    config.models,
+  );
   if (plan.problems.length > 0) {
     print(formatSync(plan));
     return 1;

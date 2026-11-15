@@ -3,6 +3,21 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **QA agent** (`aidt add qa`): after a block, it uses the product as each person who will use it
+  (a running app in a real browser, a clickable design or a written process) in the journeys the
+  block changed and the older ones it touches, and reports dead ends, bugs, contradictions, broken
+  promises and blind spots with a PASS/FAIL verdict. It asks for the scope and a token estimate
+  before walking, never drops an unconfirmed finding, and fails while a 🟡 is neither fixed nor
+  accepted. Three modes: `block`, `flow`, `audit`. Its project facts live in `.aidt/qa.md` (created
+  from `templates/qa-project.md` on the first call); its report follows `templates/qa-report.md`.
+- **Plan check** (`practices/plan-check.md`): the list a block's plan goes through before anything
+  is built (people, states, seams with older journeys, contradictions, official data, business,
+  promises, out of scope).
+
 ## [0.4.0] - 2026-11-07
 
 ### Added

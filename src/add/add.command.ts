@@ -39,6 +39,16 @@ const INSTALLABLES: Record<string, Installable> = {
     product: "workflow",
     paths: [AGENT_FORMAT, "agents/walkthrough.md", "practices"],
   },
+  qa: {
+    product: "workflow",
+    paths: [
+      AGENT_FORMAT,
+      "agents/qa.md",
+      "templates/qa-report.md",
+      "templates/qa-project.md",
+      "practices/plan-check.md",
+    ],
+  },
 };
 
 const CONFIG_FILE = ".aidt/config.json";

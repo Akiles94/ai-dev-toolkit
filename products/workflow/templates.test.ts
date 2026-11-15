@@ -15,6 +15,8 @@ describe("workflow templates", () => {
   it("ships every template the design describes", () => {
     expect(readdirSync(DIR).sort()).toEqual([
       "plan.md",
+      "qa-project.md",
+      "qa-report.md",
       "review-index.md",
       "review-section.md",
       "spec.md",
@@ -58,7 +60,8 @@ describe("workflow templates", () => {
   });
 
   it("every template starts with instructions for the agent", () => {
-    for (const name of ["spec.md", "plan.md", "review-section.md", "review-index.md"]) {
+    const names = ["spec.md", "plan.md", "review-section.md", "review-index.md", "qa-report.md"];
+    for (const name of [...names, "qa-project.md"]) {
       expect(read(name).startsWith("<!--\n  Template:")).toBe(true);
     }
   });

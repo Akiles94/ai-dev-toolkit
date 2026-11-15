@@ -19,6 +19,7 @@ cd your-project
 
 npx @akiles94/ai-dev-toolkit add reviewer    # just the reviewer: review any branch against its ticket
 npx @akiles94/ai-dev-toolkit add walkthrough # walk a big PR from a teammate, 300 lines at a time
+npx @akiles94/ai-dev-toolkit add qa          # use the product as each person after every block
 npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → planner → builder → reviewer
 npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
 ```
@@ -29,6 +30,7 @@ Then, in your AI tool:
 |---|---|---|
 | Review a branch | Pick `reviewer` in the chat, paste the ticket | `/reviewer <ticket>` |
 | Walk a big PR | Pick `walkthrough`, give the PR number | `/walkthrough 123` |
+| QA a block | Pick `qa`, give the branch and its plan | `/qa feat/checkout` |
 | Start a task | Pick `refiner`, paste the ticket; each agent offers a button to the next | `/refiner <ticket>`, then `/planner`, `/builder`, `/reviewer` |
 | Organise the code | Pick `architect` | `/architect` |
 
@@ -46,6 +48,7 @@ Then, in your AI tool:
 | `workflow` | Four agents. The **refiner** turns a ticket into a spec (*what*), the **planner** into a plan of sections of ~300 lines (*how*), the **builder** writes one section at a time with explanatory comments, and the **reviewer** checks everything with a fresh eye and writes one review guide per PR. | [workflow](docs/workflow.md) |
 | `reviewer` alone | Reviews any branch against its ticket, no spec needed: hunts for real defects, verifies each one before reporting it, and writes a guide ready to paste as the PR description. | [reviewer](docs/reviewer.md) |
 | `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. | [walkthrough](docs/walkthrough.md) |
+| `qa` | Uses the product end to end as each person who will use it (a running app in a real browser, a clickable design or a written process), in the journeys a block changed and the older ones it touches: dead ends, bugs, contradictions, broken promises, blind spots. Asks for the scope and its budget first. | [qa](docs/qa.md) |
 | `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. | [refiner](docs/refiner.md) |
 | `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. | [structure](docs/structure.md) |
 | `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. | [cli](docs/cli.md) |
@@ -198,7 +201,7 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer`, `refiner`, `walkthrough` or `qa` into `.aidt/` and generate the agents |
 | `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
 | `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
 | `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |

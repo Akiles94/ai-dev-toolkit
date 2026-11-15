@@ -26,7 +26,7 @@ Every command that reads a diff takes the same source options. The default is
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, or one agent alone (`reviewer`, `refiner`, `walkthrough`, `qa`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
 | `aidt sync [--check]` | Render `.aidt/agents/*.md` for Copilot (`.github/agents/`) and Claude Code (`.claude/skills/`). `--check` fails when they are stale |
 | `aidt diff [--files] [--json]` | Diff stats with tests, config, noise (lockfiles, generated, snapshots) and formatting-only changes counted apart |
 | `aidt clean [paths…] [--check]` | Remove `@guide` comments from changed files; `--check` lists them and fails |

@@ -183,7 +183,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer, walkthrough.',
+      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer, walkthrough, qa.',
     );
   });
 });

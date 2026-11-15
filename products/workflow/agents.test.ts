@@ -23,8 +23,10 @@ function agent(name: string): Agent {
 }
 
 describe("canonical agents", () => {
-  it("has the four workflow agents and the walkthrough, all valid", () => {
-    expect(agents.map((a) => a.agent.name).sort()).toEqual([...WORKFLOW, "walkthrough"].sort());
+  it("has the four workflow agents, the walkthrough and the QA, all valid", () => {
+    expect(agents.map((a) => a.agent.name).sort()).toEqual(
+      [...WORKFLOW, "walkthrough", "qa"].sort(),
+    );
   });
 
   it("chains them in order: refiner → planner → builder → reviewer", () => {
@@ -180,5 +182,28 @@ describe("walkthrough", () => {
 
   it("keeps each finding's line in the PR, not in the commented copy", () => {
     expect(walkthrough.instructions).toContain("**in the PR**, not in the commented copy");
+  });
+});
+
+describe("qa", () => {
+  const qa = agent("qa");
+
+  it("cannot edit code and only writes its reports and the project's QA file", () => {
+    expect(qa.capabilities.includes("edit")).toBe(false);
+    expect(qa.writes).toEqual([".aidt/tasks/*/qa/*.md", ".aidt/qa.md"]);
+  });
+
+  it("asks for the scope and its budget before walking", () => {
+    expect(qa.instructions).toContain("## 1. Scope and budget first");
+    expect(qa.instructions).toContain("«scope approved»");
+  });
+
+  it("walks the older journeys a block touches, not only the ones it changes", () => {
+    expect(qa.instructions).toContain("**Journeys touched:**");
+  });
+
+  it("never drops an unconfirmed finding and fails on unowned warnings", () => {
+    expect(qa.instructions).toContain("never drop it");
+    expect(qa.instructions).toContain("neither fixed nor written down as");
   });
 });

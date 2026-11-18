@@ -46,9 +46,9 @@ describe("chooseVoice", () => {
 describe("setup", () => {
   it("prints the commands to install the voice, never downloads it", () => {
     const commands = setupCommands(demo, { model: "es_MX-claude-high" });
-    expect(commands[0]).toContain("pip install piper-tts");
+    expect(commands[0]).toContain("pipx install piper-tts");
     expect(commands[2]).toBe(
-      "curl -L -o ~/.cache/aidt/voices/es_MX-claude-high.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high/es_MX-claude-high.onnx",
+      'curl -L -o "$HOME/.cache/aidt/voices/es_MX-claude-high.onnx" https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high/es_MX-claude-high.onnx',
     );
   });
 
@@ -84,9 +84,17 @@ describe("mixArgs", () => {
     expect(args.endsWith("/out/d.mp4")).toBe(true);
   });
 
+  it("escapes a Windows path and a quote for the subtitles filter", () => {
+    const vtt = "C:\\Users\\o'brien\\AppData\\Local\\Temp\\aidt-demo-x\\subtitles.vtt";
+    const args = mixArgs(cues, { ...paths, vtt }, true).join(" ");
+    expect(args).toContain(
+      "subtitles=C\\\\:/Users/o\\\\\\'brien/AppData/Local/Temp/aidt-demo-x/subtitles.vtt:force_style",
+    );
+  });
+
   it("draws the subtitles into the picture when they are burned", () => {
     const args = mixArgs(cues, paths, true).join(" ");
-    expect(args).toContain("[0:v]subtitles='/w/s.vtt'");
+    expect(args).toContain("[0:v]subtitles=/w/s.vtt:force_style");
     expect(args).toContain("-map [vout]");
   });
 

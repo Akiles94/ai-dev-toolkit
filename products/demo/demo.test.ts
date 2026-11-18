@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseScript } from "../../src/demo/demo-script.ts";
@@ -23,8 +23,19 @@ describe("demo agent", () => {
 
   it("renders with the CLI, never installs, and hands over the PR text", () => {
     expect(agent?.commands).toContain("aidt demo render");
-    expect(agent?.commands.some((c) => /install|push|commit/.test(c))).toBe(false);
+    expect(agent?.commands.some((c) => /install|push|commit|curl|wget/.test(c))).toBe(false);
     expect(agent?.instructions).toContain(".aidt/demo/<slug>.md");
+  });
+});
+
+describe("only when asked", () => {
+  it("no agent hands off to the demo", () => {
+    const dir = join(import.meta.dirname, "..", "workflow", "agents");
+    const handoffs = readdirSync(dir)
+      .filter((f) => f.endsWith(".md") && f !== "README.md")
+      .map((f) => parseAgent(f, readFileSync(join(dir, f), "utf8")))
+      .map((a) => (a.ok ? a.value.handoff : undefined));
+    expect(handoffs).not.toContain("demo");
   });
 });
 

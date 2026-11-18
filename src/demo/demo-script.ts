@@ -35,10 +35,8 @@ interface Scene {
   readonly steps: readonly Step[];
 }
 
-/** How to bring the product up for the recording, and where to point the browser. */
+/** Where the browser points; the command that starts the product is `demo.start` in the config. */
 interface AppLaunch {
-  /** Shell command that starts it, stopped when the recording ends; none if it is already up. */
-  readonly start?: string;
   /** Base address every `go` path is relative to. */
   readonly url: string;
 }
@@ -118,7 +116,9 @@ export function parseScript(raw: unknown): Result<DemoScript, string[]> {
   const app = isObject(raw.app) ? raw.app : {};
   if (!isText(app.url) || !/^https?:\/\//.test(app.url))
     problems.push("`app.url` must be an http(s) address");
-  if (app.start !== undefined && !isText(app.start)) problems.push("`app.start` must be a command");
+  if (app.start !== undefined) {
+    problems.push("`app.start` is not read from a script: set `demo.start` in .aidt/config.json");
+  }
   const device = raw.device ?? "desktop";
   if (device !== "desktop" && device !== "phone") problems.push("`device` is `desktop` or `phone`");
   if (!Array.isArray(raw.scenes) || raw.scenes.length === 0)

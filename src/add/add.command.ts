@@ -54,9 +54,10 @@ const INSTALLABLES: Record<string, Installable> = {
     product: "demo",
     paths: ["agents", "templates"],
     next: [
-      "Next: add .aidt/demo/ to .gitignore (videos are not committed, their scripts are), then",
-      "ask for a demo with /demo (Claude Code) or the demo agent (Copilot). The first render",
-      "lists any tool to install: Playwright, ffmpeg and an offline voice (Piper).",
+      "Next: set demo.start in .aidt/config.json to the command that starts your app (it is",
+      "kept out of the scripts the agent writes), then ask for a demo with /demo (Claude Code)",
+      "or the demo agent (Copilot). The first render lists any tool to install: Playwright,",
+      "ffmpeg and an offline voice (Piper). Videos stay out of git; their scripts are committed.",
     ].join("\n"),
   },
 };

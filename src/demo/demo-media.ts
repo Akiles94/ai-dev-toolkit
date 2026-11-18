@@ -42,12 +42,12 @@ export function setupCommands(demo: DemoConfig, voice: Voice): string[] {
   const [lang = "", name = "", quality = ""] = voice.model.split("-");
   const family = lang.split("_")[0];
   const url = `https://huggingface.co/rhasspy/piper-voices/resolve/main/${family}/${lang}/${name}/${quality}/${voice.model}`;
-  const dir = demo.voices;
+  const dir = demo.voices.replace(/^~(?=$|\/)/, "$HOME");
   return [
-    "pip install piper-tts                       # or set demo.piper to its path",
-    `mkdir -p ${dir}`,
-    `curl -L -o ${dir}/${voice.model}.onnx ${url}.onnx`,
-    `curl -L -o ${dir}/${voice.model}.onnx.json ${url}.onnx.json`,
+    "pipx install piper-tts                      # or pip; or set demo.piper to its path",
+    `mkdir -p "${dir}"`,
+    `curl -L -o "${dir}/${voice.model}.onnx" ${url}.onnx`,
+    `curl -L -o "${dir}/${voice.model}.onnx.json" ${url}.onnx.json`,
   ];
 }
 
@@ -93,9 +93,12 @@ export function mixArgs(cues: readonly Cue[], paths: MixPaths, burn: boolean): s
     filters.push(...delayed, `${inputs}amix=inputs=${cues.length}:normalize=0[aout]`);
   }
   if (burn) {
-    const file = paths.vtt.replace(/\\/g, "/").replace(/:/g, "\\\\:").replace(/'/g, "\\\\'");
+    // Escaped once for the filter's option, then once for the filtergraph: a Windows `C:`
+    // or a `'` in the path would otherwise end the file name.
+    const option = paths.vtt.replace(/\\/g, "/").replace(/[\\':]/g, "\\$&");
+    const file = option.replace(/[\\'[\],;]/g, "\\$&");
     filters.push(
-      `[0:v]subtitles='${file}':force_style='FontSize=12,BorderStyle=3,Outline=6,Shadow=0,BackColour=&H40000000,OutlineColour=&H40000000,MarginV=18'[vout]`,
+      `[0:v]subtitles=${file}:force_style='FontSize=12,BorderStyle=3,Outline=6,Shadow=0,BackColour=&H40000000,OutlineColour=&H40000000,MarginV=18'[vout]`,
     );
   }
   if (filters.length > 0) args.push("-filter_complex", filters.join(";"));
@@ -129,7 +132,7 @@ export function prText(facts: RenderFacts): string {
     "",
     `<!-- Drag the video here: GitHub uploads it and plays it in the description. -->`,
     "",
-    `${minutes(facts.lengthMs)} · rendered at \`${facts.commit}\` · ${size} MB · recorded by \`aidt demo render\`, no tokens`,
+    `${minutes(facts.lengthMs)} · rendered at \`${facts.commit}\` · ${size} MB · recorded by \`aidt demo render\` in ${Math.round(facts.renderMs / 1000)} s, no tokens`,
     "",
     "<details><summary>What the voice says</summary>",
     "",

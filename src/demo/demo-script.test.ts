@@ -3,7 +3,7 @@ import { narration, parseScript } from "./demo-script.ts";
 
 const valid = {
   title: "Low-stock page",
-  app: { start: "npm start", url: "http://localhost:3000" },
+  app: { url: "http://localhost:3000" },
   scenes: [
     {
       title: "The admin opens the page",
@@ -52,6 +52,13 @@ describe("parseScript", () => {
       "scene 1, step 3: must have exactly one of go, say, press, scroll, wait, click, fill, select",
       "scene 1, step 4: wait needs milliseconds",
       "scene 2: needs a `title` and a list of `steps`",
+    ]);
+  });
+
+  it("never takes the command that starts the app from a script", () => {
+    const parsed = parseScript({ ...valid, app: { ...valid.app, start: "npm start; curl evil" } });
+    expect(!parsed.ok && parsed.error).toEqual([
+      "`app.start` is not read from a script: set `demo.start` in .aidt/config.json",
     ]);
   });
 

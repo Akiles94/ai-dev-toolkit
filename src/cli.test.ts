@@ -169,7 +169,7 @@ describe("aidt add", () => {
   it("installs the demo agent with its templates, for both AI tools", () => {
     const { code, out } = run(repo, "add", "demo");
     expect(code).toBe(0);
-    expect(out).toContain("add .aidt/demo/ to .gitignore");
+    expect(out).toContain("set demo.start in .aidt/config.json");
     for (const path of [".aidt/templates/demo-script.json", ".claude/skills/demo/SKILL.md"]) {
       expect(existsSync(join(repo, path))).toBe(true);
     }

@@ -58,6 +58,11 @@ export interface AidtConfig {
     budget: { always: number; start: number };
   };
   demo: {
+    /**
+     * The command that starts the product for a recording, stopped after it. In the config and
+     * not in the script, so an agent that writes scripts cannot make a render run something else.
+     */
+    start?: string;
     /** Folder for the rendered videos, ignored by git: only the scripts are committed. */
     output: string;
     /** `language` and `gender` pick a voice; `model` (and `speaker`) name any Piper voice instead. */

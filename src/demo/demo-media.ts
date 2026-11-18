@@ -9,8 +9,8 @@ export interface Voice {
 }
 
 /**
- * The voice for each language and gender, checked by ear and by pitch (women above 170 Hz, men
- * below 150 Hz). Any other Piper voice: `demo.voice.model`.
+ * The voice for each language and gender, checked by pitch on a sample sentence (women above
+ * 170 Hz, men below 150 Hz). Any other Piper voice: `demo.voice.model`.
  */
 const VOICES: Record<string, Record<"female" | "male", Voice>> = {
   "en-US": { female: { model: "en_US-lessac-high" }, male: { model: "en_US-ryan-high" } },

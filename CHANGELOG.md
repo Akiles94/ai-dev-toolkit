@@ -7,6 +7,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`demo` agent** (`aidt add demo`): a narrated video of what a task built, for the PR. Only when
+  asked; it proposes scenes, length and a token estimate first, writes a JSON script, renders a
+  first-scene sample the first time, then the video, and hands over a PR text. It writes only its
+  scripts and `.aidt/app.md` (how to run the product, shared with the future `qa`).
+- **`aidt demo render <script> [--sample]`**: records a script with no model, in a real browser
+  (Playwright from the project or installed globally) with an offline voice (Piper) mixed by
+  ffmpeg; a circle marks each tap. Steps: `go`, `say`, `click`, `fill`, `select`, `press`,
+  `scroll`, `wait`. The first failing step stops the render and is named. Writes the video,
+  WebVTT subtitles, the PR text and the facts (length, size, render time, commit) to
+  `demo.output`. Installs and downloads nothing: what is missing is printed as commands.
+- `demo` in `.aidt/config.json`: the voice by language (`en-US`, `en-GB`, `es-ES`, `es-419`) and
+  gender, or any Piper model; subtitles `file`, `burned` or `none`; the output folder.
+
 - **`context` product** (`aidt add context`): what every new AI session reads, in layers with a
   token budget. `aidt context check [--json]` measures the rules files the tools load by
   themselves (`CLAUDE.md` `@` imports followed) and the status every session reads first, fails

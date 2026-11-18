@@ -76,6 +76,29 @@ Tokens ≈ characters / 4. Layers and how to trim them: .aidt/practices/session-
 - `--json` for scripts. Put it in your quality commands and CI. The builder runs it when a section
   changes a rules file or the status, and the reviewer reports a breach as a finding.
 
+## Measured
+
+On [shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/context), with a
+status that had kept the story of six blocks (2,130 tokens). The agent closed the last block as the
+practice says, and the same session start was run three times on each side:
+
+| Step | Model | Turns | Agent time | Tokens in (cached) | Tokens out | Cost at API prices |
+|---|---|---|---|---|---|---|
+| Session start, status that kept every block (median of 3) | `claude-sonnet-5-5` | 4 | 8 s | 155k (140k) | 761 | $0.076 |
+| Close the block: 5 summaries, the index, the status rewritten | `claude-sonnet-5-5` | 15 | 1 min 5 s | 449k (419k) | 11k | $0.28 |
+| Session start, status rewritten, 423 tokens (median of 3) | `claude-sonnet-5-5` | 2 | 7 s | 76k (67k) | 628 | $0.051 |
+
+- **Before:** 2, 4 and 4 turns, $0.072 to $0.078. **After:** 2 turns every time, $0.050 to
+  $0.051, and the same answer: where the work stands, the next block, the files to read first.
+- **The saving grows with the status.** Here it was small, so a session start saves about $0.025.
+  On a real project after three weeks the check measured about 25,000 tokens read before every
+  session's first step.
+- **Closing a block is paid once per block** and keeps every later session short. This close wrote
+  five summaries at once, for the backlog; a usual close writes one.
+- Measured with Claude Code 2.1.327, headless (`claude -p`), on 2026-11-18. Most input tokens are
+  Claude Code's own instructions and tools, the same in every session, and cache reads, which cost
+  a tenth of fresh input.
+
 ## Keeping the always layer small
 
 - **Indexes:** one short line per entry; the detail lives in the file the line points to.

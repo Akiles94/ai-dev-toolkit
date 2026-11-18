@@ -26,13 +26,14 @@ Every command that reads a diff takes the same source options. The default is
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
 | `aidt sync [--check]` | Render `.aidt/agents/*.md` for Copilot (`.github/agents/`) and Claude Code (`.claude/skills/`). `--check` fails when they are stale |
 | `aidt diff [--files] [--json]` | Diff stats with tests, config, noise (lockfiles, generated, snapshots) and formatting-only changes counted apart |
 | `aidt clean [paths…] [--check]` | Remove `@guide` comments from changed files; `--check` lists them and fails |
 | `aidt check [--json]` | Task gates for the workflow: every section within the limit, every requirement referenced by a test |
 | `aidt stack prepare` / `submit [--dry-run]` | One branch per reviewed section, each based on the previous one / push them and open one draft PR each (`gh` or `glab`) |
 | `aidt structure audit [--json]` | Check the structure rules S1–S5; exceptions in `.aidt/structure.md` |
+| `aidt demo render <script> [--sample]` | Record a demo script as a narrated video, its subtitles and a PR text, with no model; `--sample` renders the first scene only ([demo](demo.md)) |
 | `aidt context check [--json]` | What every session loads (rules files, the status) against its token budget, and the status's «Read first» paths exist ([context](context.md)) |
 | `aidt walkthrough plan [--json]` | Split a change into sections of at most 300 lines, in reading order |
 | `aidt walkthrough start <ref> [name]` / `finish <name>` | Check a change out in an ignored local copy under `.aidt/walkthrough/` and plan it / remove it |
@@ -116,6 +117,9 @@ S2 · One module per resource (1)
 | `context.always` | `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` | Rules files the tools load by themselves; `CLAUDE.md` `@` imports are followed |
 | `context.start` | `[".aidt/status.md"]` | Files every session reads first |
 | `context.budget` | `{ "always": 3000, "start": 2500 }` | Estimated tokens each layer may take before `aidt context check` fails |
+| `demo.voice` | `{ "language": "en-US", "gender": "female" }` | The demo's voice: `en-US`, `en-GB`, `es-ES`, `es-419`, `female` or `male`; or `model` for any Piper voice |
+| `demo.subtitles` | `file` | `file` (a `.vtt`), `burned` (drawn into the video) or `none` |
+| `demo.output` | `.aidt/demo` | Where videos go; keep it out of git |
 
 ### Models
 

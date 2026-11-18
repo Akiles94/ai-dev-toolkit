@@ -58,6 +58,17 @@ describe("largestSections", () => {
     expect(largestSections(rules).map((s) => s.heading)).toEqual(["## Setup", "## Style", "(top)"]);
   });
 
+  it("follows CommonMark fences: ```code``` is text, and ```` holds a ``` block", () => {
+    const inline = ["## Commands", "```npm test``` runs it", "c".repeat(900)];
+    const nested = ["## Templates", "````md", "## Summary", "```bash", "# example", "```", "````"];
+    const rules = ["# Rules", ...inline, ...nested, "## Style", "t".repeat(400)].join("\n");
+    expect(largestSections(rules).map((s) => s.heading)).toEqual([
+      "## Commands",
+      "## Style",
+      "## Templates",
+    ]);
+  });
+
   it("does not go deeper when the heaviest part is the preamble", () => {
     const sections = largestSections(`${"p".repeat(1200)}\n## A\n${"a".repeat(600)}\n### A1\nx\n`);
     expect(sections.map((s) => s.heading)).toEqual(["(top)", "## A"]);
@@ -123,6 +134,13 @@ describe("readingList", () => {
   it("resolves links from the status file's folder, backticks from the repository root", () => {
     const list = "### Read first\n- [the plan](tasks/feat-x/plan.md) and `docs/a.md`\n";
     expect(readingList(list, ".aidt")).toEqual(["docs/a.md", ".aidt/tasks/feat-x/plan.md"]);
+  });
+
+  it("is not ended by a # inside fenced code", () => {
+    const list = ["### Read first", "```bash", "# not a heading", "```", "- `docs/a.md`"].join(
+      "\n",
+    );
+    expect(readingList(list)).toEqual(["docs/a.md"]);
   });
 
   it("is empty when the status has no such list", () => {

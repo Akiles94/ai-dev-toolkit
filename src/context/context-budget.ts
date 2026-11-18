@@ -50,16 +50,27 @@ const HEADING = /^(#{1,6})\s+(.*\S)\s*$/;
 const withoutCode = (markdown: string): string =>
   markdown.replace(/^(```|~~~)[\s\S]*?^\1/gm, "").replace(/`[^`\n]*`/g, "");
 
+/** A fence line: its marker (three or more backticks or tildes) and what follows it. */
+const FENCE = /^\s*(`{3,}|~{3,})(.*)$/;
+
 /**
  * The heading level of each line (0 when it is not one). Lines inside fenced code are never
- * headings: a `# install` comment in a shell example must not cut the file.
+ * headings: a `# install` comment in a shell example must not cut the file. As in CommonMark, a
+ * backtick fence has no backtick after it (```` ```npm test``` ```` is inline code), and only a
+ * bare marker of the same kind, at least as long, closes it.
  */
 function headingLevels(lines: readonly string[]): number[] {
-  let fence: string | undefined;
+  let fence = "";
   return lines.map((line) => {
-    const marker = /^\s*(```|~~~)/.exec(line)?.[1];
-    if (marker && (!fence || marker === fence)) {
-      fence = fence ? undefined : marker;
+    const [, marker = "", rest = ""] = FENCE.exec(line) ?? [];
+    const opens = !fence && marker !== "" && !(marker.startsWith("`") && rest.includes("`"));
+    const closes =
+      fence !== "" &&
+      marker.startsWith(fence.charAt(0)) &&
+      marker.length >= fence.length &&
+      !rest.trim();
+    if (opens || closes) {
+      fence = opens ? marker : "";
       return 0;
     }
     return fence ? 0 : (HEADING.exec(line)?.[1]?.length ?? 0);

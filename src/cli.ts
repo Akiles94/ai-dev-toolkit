@@ -5,6 +5,7 @@ import { addCommand } from "./add/add.command.ts";
 import { checkCommand } from "./check/check.command.ts";
 import { cleanCommand } from "./clean/clean.command.ts";
 import { contextCommand } from "./context/context.command.ts";
+import { demoCommand } from "./demo/demo.command.ts";
 import { diffCommand } from "./diff/diff.command.ts";
 import { type CliContext, print, UsageError } from "./shared/cli/cli-context.ts";
 import { loadConfig } from "./shared/config/config.ts";
@@ -21,7 +22,8 @@ const HELP = `aidt: AI Dev Toolkit
 
 Usage
   aidt add   <product|agent>               Copy into .aidt/ and sync: a product (workflow, structure,
-                                           context) or one agent alone (refiner, reviewer, walkthrough)
+                                           context) or one agent alone (refiner, reviewer, walkthrough,
+                                           demo)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
@@ -32,6 +34,8 @@ Usage
   aidt structure audit [--json]            Check the common structure rules (exit 1 if broken)
   aidt context check [--json]              What every session loads, against its token budget
                                            (exit 1 if over, or a «Read first» path is missing)
+  aidt demo render <script> [--sample]     Record a demo script as a narrated video, no model
+                                           (--sample: the first scene only, to check the format)
   aidt walkthrough plan [source] [--json]  Split a large change into sections to review in order
   aidt walkthrough start <ref> [name]      Check <ref> out in an ignored worktree and plan it
                        [--base <ref>]      (under .aidt/walkthrough/; nothing is committed)
@@ -69,6 +73,7 @@ function parseCli(argv: string[]) {
       check: { type: "boolean" },
       from: { type: "string" },
       "dry-run": { type: "boolean" },
+      sample: { type: "boolean" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },
@@ -98,6 +103,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "stack") return stackCommand(context, rest[0]);
   if (command === "structure") return structureCommand(context, rest[0]);
   if (command === "context") return contextCommand(context, rest[0]);
+  if (command === "demo") return demoCommand(context, rest);
   if (command === "walkthrough") return walkthroughCommand(context, rest);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }

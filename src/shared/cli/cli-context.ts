@@ -13,6 +13,7 @@ export interface Flags {
   check?: boolean | undefined;
   from?: string | undefined;
   "dry-run"?: boolean | undefined;
+  sample?: boolean | undefined;
 }
 
 /** What every command receives: where the repository is, its config and the options given. */

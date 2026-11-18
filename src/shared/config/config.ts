@@ -57,6 +57,18 @@ export interface AidtConfig {
     /** Estimated tokens each layer may take before `aidt context check` fails. */
     budget: { always: number; start: number };
   };
+  demo: {
+    /** Folder for the rendered videos, ignored by git: only the scripts are committed. */
+    output: string;
+    /** `language` and `gender` pick a voice; `model` (and `speaker`) name any Piper voice instead. */
+    voice: { language: string; gender: "female" | "male"; model?: string; speaker?: number };
+    /** Where the voice models are; `~` is the user's home. */
+    voices: string;
+    /** The Piper command. */
+    piper: string;
+    /** `file`: a .vtt next to the video · `burned`: drawn into it · `none`. */
+    subtitles: "file" | "burned" | "none";
+  };
 }
 
 export const DEFAULT_CONFIG: AidtConfig = {
@@ -146,6 +158,13 @@ export const DEFAULT_CONFIG: AidtConfig = {
     start: [".aidt/status.md"],
     budget: { always: 3000, start: 2500 },
   },
+  demo: {
+    output: ".aidt/demo",
+    voice: { language: "en-US", gender: "female" },
+    voices: "~/.cache/aidt/voices",
+    piper: "piper",
+    subtitles: "file",
+  },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");
@@ -184,6 +203,11 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
       ...DEFAULT_CONFIG.context,
       ...parsed.context,
       budget: { ...DEFAULT_CONFIG.context.budget, ...parsed.context?.budget },
+    },
+    demo: {
+      ...DEFAULT_CONFIG.demo,
+      ...parsed.demo,
+      voice: { ...DEFAULT_CONFIG.demo.voice, ...parsed.demo?.voice },
     },
   };
 }

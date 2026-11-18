@@ -145,6 +145,7 @@ A video that walks what a task built, screen by screen, with a voice that explai
 - **Changes after review:** fix the code and render again, with no tokens. When a flow or a label changed, the render stops at the step that broke and the agent fixes only those steps.
 - **Where the video goes:** the script is committed; the video goes to `.aidt/demo/`, ignored by git (`demo.output`). The CLI prints the PR text (what it shows, the commit it was rendered at, the length, the narration as a written walkthrough) and the user drags the video into the PR description: GitHub has no API to attach one.
 - **Format:** the device's full screen, no text over the app, a circle on each tap, the main path first and then «other paths», three to four minutes at most.
+- **Voice and subtitles, in the config** (`demo` in `.aidt/config.json`, §9): `voice.language` (a language and variant, e.g. `es-ES` for Spain, `es-419` for Latin America, `en-US`) and `voice.gender` (`female` or `male`), which the toolkit maps to an offline voice; `voice.model` names a specific one instead. `subtitles`: `file` (default: a `.vtt` next to the video, nothing over the app), `burned` (drawn into the video, so they show wherever it plays, a PR included) or `none`.
 - **Runs the product** with `.aidt/app.md` (§5.4c); its «Demo» part adds the example person and data, the voice and the format the user approved.
 - **Dependencies:** Playwright and ffmpeg from the project or the system (the CLI says what is missing); the voice model is downloaded once, with the user's yes. v1: web apps and clickable designs; terminal and native mobile later.
 
@@ -390,6 +391,11 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
     "always": ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"],
     "start": [".aidt/status.md"],
     "budget": { "always": 3000, "start": 2500 }
+  },
+  "demo": {
+    "output": ".aidt/demo",
+    "voice": { "language": "es-419", "gender": "female" },
+    "subtitles": "file"
   }
 }
 ```

@@ -26,13 +26,14 @@ Every command that reads a diff takes the same source options. The default is
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
 | `aidt sync [--check]` | Render `.aidt/agents/*.md` for Copilot (`.github/agents/`) and Claude Code (`.claude/skills/`). `--check` fails when they are stale |
 | `aidt diff [--files] [--json]` | Diff stats with tests, config, noise (lockfiles, generated, snapshots) and formatting-only changes counted apart |
 | `aidt clean [paths…] [--check]` | Remove `@guide` comments from changed files; `--check` lists them and fails |
 | `aidt check [--json]` | Task gates for the workflow: every section within the limit, every requirement referenced by a test |
 | `aidt stack prepare` / `submit [--dry-run]` | One branch per reviewed section, each based on the previous one / push them and open one draft PR each (`gh` or `glab`) |
 | `aidt structure audit [--json]` | Check the structure rules S1–S5; exceptions in `.aidt/structure.md` |
+| `aidt context check [--json]` | What every session loads (rules files, the status) against its token budget, and the status's «Read first» paths exist ([context](context.md)) |
 | `aidt walkthrough plan [--json]` | Split a change into sections of at most 300 lines, in reading order |
 | `aidt walkthrough start <ref> [name]` / `finish <name>` | Check a change out in an ignored local copy under `.aidt/walkthrough/` and plan it / remove it |
 
@@ -95,6 +96,7 @@ S2 · One module per resource (1)
 - run: npx @akiles94/ai-dev-toolkit sync --check     # generated agents up to date
 - run: npx @akiles94/ai-dev-toolkit clean --check    # no guide comments merged
 - run: npx @akiles94/ai-dev-toolkit structure audit  # when the project uses structure
+- run: npx @akiles94/ai-dev-toolkit context check    # when the project uses context
 ```
 
 ## Configuration
@@ -111,6 +113,9 @@ S2 · One module per resource (1)
 | `models.agents` | `{}` | An agent's tier, over the one in its file: `{ "reviewer": "max" }` |
 | `models.claude-code` | `haiku`, `sonnet`, `opus` | The model of each tier in Claude Code |
 | `models.copilot` | `{}` | The model of each tier in Copilot; a tier without one uses the chat's model |
+| `context.always` | `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` | Rules files the tools load by themselves; `CLAUDE.md` `@` imports are followed |
+| `context.start` | `[".aidt/status.md"]` | Files every session reads first |
+| `context.budget` | `{ "always": 3000, "start": 2500 }` | Estimated tokens each layer may take before `aidt context check` fails |
 
 ### Models
 

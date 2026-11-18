@@ -3,6 +3,20 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`context` product** (`aidt add context`): what every new AI session reads, in layers with a
+  token budget. `aidt context check [--json]` measures the rules files the tools load by
+  themselves (`CLAUDE.md` `@` imports followed) and the status every session reads first, fails
+  over budget with the heaviest sections to move, and checks that every path of the status's
+  «Read first» list exists. A practice (`session-context.md`) says how to close a block: the
+  block's story in its own `summary.md`, a row in the tasks index, the status rewritten with the
+  next session's reading list. Budgets and files: `context` in `.aidt/config.json`.
+- The builder runs `aidt context check` when a section changes a rules file or the status, and
+  the reviewer reports a breach as a finding, in projects that use `context`.
+
 ## [0.4.0] - 2026-11-07
 
 ### Added

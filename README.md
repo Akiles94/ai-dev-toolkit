@@ -21,6 +21,7 @@ npx @akiles94/ai-dev-toolkit add reviewer    # just the reviewer: review any bra
 npx @akiles94/ai-dev-toolkit add walkthrough # walk a big PR from a teammate, 300 lines at a time
 npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → planner → builder → reviewer
 npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
+npx @akiles94/ai-dev-toolkit add context     # keep what every new session reads short, and checked
 ```
 
 Then, in your AI tool:
@@ -48,6 +49,7 @@ Then, in your AI tool:
 | `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. | [walkthrough](docs/walkthrough.md) |
 | `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. | [refiner](docs/refiner.md) |
 | `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. | [structure](docs/structure.md) |
+| `context` | What every new AI session reads, kept in layers with a token budget a script checks: a short status rewritten when each block closes, the block's story in its own folder, and a reading list for the next session. | [context](docs/context.md) |
 | `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. | [cli](docs/cli.md) |
 
 Everything is copied into your repo as plain Markdown and becomes yours to edit. No runtime
@@ -198,13 +200,14 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
 | `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
 | `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
 | `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |
 | `aidt check` | Task gates: section sizes, every requirement has a test |
 | `aidt stack prepare` / `submit` | One branch and one draft PR per reviewed section (`gh` or `glab`) |
 | `aidt structure audit` | Check the structure rules; exceptions live in `.aidt/structure.md` |
+| `aidt context check` | What every session loads against its token budget; the next session's reading list exists |
 | `aidt walkthrough plan` | Split a change into sections of ≤300 lines, in reading order |
 | `aidt walkthrough start <ref> <name>` / `finish <name>` | Check a PR out in an ignored local copy and plan it / remove it with its comments |
 
@@ -221,8 +224,11 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - `init`: guided setup of your project's AI files (`AGENTS.md`, rules, structure).
 - `profile`: your personal coding preferences, applied on every project.
-- `docs` and `context`: living docs for people and lean context for agents, powered by
-  [living-docs](https://github.com/Akiles94/living-docs) and
+- `demo`: a narrated video of what a task built, recorded from a script with no tokens, for the
+  PR's reviewers.
+- `qa`: an agent that uses the product as each person who will use it, on demand.
+- `docs`, and code knowledge in `context`: living docs for people and cross-module flows for
+  agents, powered by [living-docs](https://github.com/Akiles94/living-docs) and
   [easy-repo-context](https://github.com/Akiles94/easy-repo-context).
 - More AI tools (Codex, Gemini CLI, Cursor) and published token measurements.
 

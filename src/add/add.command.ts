@@ -11,6 +11,8 @@ const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));
 interface Installable {
   readonly product: string;
   readonly paths: readonly string[];
+  /** What the user does next, when copying the files is not enough. */
+  readonly next?: string;
 }
 
 const AGENT_FORMAT = "agents/README.md";
@@ -20,6 +22,15 @@ const STATE_SCHEMA = "templates/state.schema.json";
 const INSTALLABLES: Record<string, Installable> = {
   workflow: { product: "workflow", paths: ["agents", "templates", "practices"] },
   structure: { product: "structure", paths: ["agents", "structure", "templates"] },
+  context: {
+    product: "context",
+    paths: ["practices", "templates"],
+    next: [
+      "Next: create .aidt/status.md from .aidt/templates/status.md, point your rules file",
+      "(AGENTS.md or CLAUDE.md) to it and to .aidt/practices/session-context.md, then run",
+      "aidt context check.",
+    ].join("\n"),
+  },
   refiner: {
     product: "workflow",
     paths: [AGENT_FORMAT, "agents/refiner.md", "templates/spec.md", STATE_SCHEMA],
@@ -38,6 +49,17 @@ const INSTALLABLES: Record<string, Installable> = {
   walkthrough: {
     product: "workflow",
     paths: [AGENT_FORMAT, "agents/walkthrough.md", "practices"],
+  },
+  demo: {
+    product: "demo",
+    paths: ["agents", "templates"],
+    next: [
+      "Next: set demo.start in .aidt/config.json to the command that starts your app in the",
+      "foreground or with & (it is kept out of the scripts the agent writes; one that hands the",
+      "app to a daemon leaves it running), then ask for a demo with /demo (Claude Code)",
+      "or the demo agent (Copilot). The first render lists any tool to install: Playwright,",
+      "ffmpeg and an offline voice (Piper). Videos stay out of git; their scripts are committed.",
+    ].join("\n"),
   },
 };
 
@@ -67,6 +89,7 @@ interface Copy {
 
 interface AddPlan {
   readonly copies: readonly Copy[];
+  readonly next?: string | undefined;
   /** Files the project already has: they belong to the project now and are never overwritten. */
   readonly kept: readonly string[];
   readonly createConfig: boolean;
@@ -106,7 +129,8 @@ async function planAdd(root: string, name: string): Promise<Result<AddPlan, stri
       else copies.push({ source: join(productDir, file), target });
     }
   }
-  return ok({ copies, kept, createConfig: !(await exists(join(root, CONFIG_FILE))) });
+  const createConfig = !(await exists(join(root, CONFIG_FILE)));
+  return ok({ copies, kept, createConfig, next: installable.next });
 }
 
 /** Copies the missing files and creates the config when the project has none. */
@@ -127,6 +151,7 @@ function formatAdd(plan: AddPlan): string {
       ...plan.kept.map((p) => `    ${p}`),
     );
   }
+  if (plan.next) lines.push(plan.next);
   return lines.join("\n");
 }
 

@@ -13,7 +13,8 @@ npm run verify   # typecheck, Biome (cognitive complexity ≤ 15), knip, jscpd, 
 npm run dev -- --help
 ```
 
-CI runs the same `verify` on Linux, the tests on Windows and macOS, plus Semgrep and `npm audit`.
+CI runs the same `verify` on Linux, the tests on Windows and macOS, plus Semgrep and `npm audit` of
+the published dependencies (development tools are left to Dependabot).
 Findings appear as annotations on the PR.
 
 ## How the code is organised

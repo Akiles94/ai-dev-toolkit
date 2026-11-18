@@ -14,7 +14,7 @@ Status: draft v0.1 · 2026-10-29
 
 ## 2. Products
 
-Each product is independent and installable alone. The `refiner`, the `reviewer` and the `walkthrough` are also installable alone (`aidt add refiner`, `aidt add reviewer`, `aidt add walkthrough`): the refiner then ends at the approved spec, the reviewer reviews a branch against its ticket when there is no spec (§5.4), and the walkthrough guides a developer through someone else's large PR (§5.4b).
+Each product is independent and installable alone. The `refiner`, the `reviewer` and the `walkthrough` are also installable alone (`aidt add refiner`, `aidt add reviewer`, `aidt add walkthrough`): the refiner then ends at the approved spec, the reviewer reviews a branch against its ticket when there is no spec (§5.4), and the walkthrough guides a developer through someone else's large PR (§5.4b). The `qa` and the `demo` are installed only alone (`aidt add qa`, `aidt add demo`) and run only when asked (§5.4c, §5.4d); both read the same notes on how to run and use the product, `.aidt/app.md`.
 
 | Product | Contents | Depends on |
 |---|---|---|
@@ -23,11 +23,11 @@ Each product is independent and installable alone. The `refiner`, the `reviewer`
 | `init` | Guided creation of project AI files | — |
 | `profile` | Guided creation of the developer profile | — |
 | `docs` | Living docs for people (business flows + reference), checked in CI | [`living-docs`](https://github.com/Akiles94/living-docs) (npm, TS only) |
-| `context` | Lean context for agents (cross-module flows, invariants/gotchas), checked on every commit | [`easy-repo-context`](https://github.com/Akiles94/easy-repo-context) (npm, TS/JS, Python, Go) |
+| `context` | What every new session reads, in layers with a budget checked by `aidt context check`; the status as a snapshot and how a block closes (§6d). Code knowledge for agents (cross-module flows, invariants/gotchas) from easy-repo-context when present (§5.5) | — (optional: [`easy-repo-context`](https://github.com/Akiles94/easy-repo-context), npm, TS/JS, Python, Go) |
 
-`docs` and `context` remain independent packages. The toolkit installs/configures them and plugs them into the workflow (§5.5). They do not replace each other: `docs` is for people, `context` is for agents.
+`living-docs` and `easy-repo-context` remain independent packages. The toolkit installs/configures them and plugs them into the workflow (§5.5). They do not replace each other: `docs` is for people, `context` is for agents. The state of the work (status, closing a block, the budget) is the toolkit's own; what is known about the code is easy-repo-context's.
 
-v0 scope: **`workflow`** and **`structure`**. `review`, `init` and `profile` follow.
+v0 scope: **`workflow`** and **`structure`**. Next: **`context`** (§6d), then the **`demo`** agent (§5.4d), then the **`qa`** agent (§5.4c). `review`, `init` and `profile` follow.
 
 ## 3. Layout
 
@@ -38,16 +38,24 @@ AGENTS.md                      ← project rules (source of truth, open standard
 ├── config.json                ← toolkit config for this project (committed)
 ├── agents/                    ← canonical agent definitions (editable)
 ├── templates/                 ← spec, plan, review templates (editable)
-├── practices/                 ← sustainable code, static analysis
+├── practices/                 ← sustainable code, static analysis, session context
 ├── structure.md               ← this project's structure (`structure` product)
 ├── structure/                 ← common rules, levels, stack presets
+├── status.md                  ← where the work stands now (`context` product, §6d)
+├── app.md                     ← how to run and use this product (`qa` and `demo` agents)
 └── tasks/
+    ├── README.md              ← index of every task: one row each, where its record lives
     └── <branch-name>/
         ├── spec.md            ← refiner output
         ├── plan.md            ← planner output
         ├── review/
         │   ├── index.md       ← stack overview in reading order
         │   └── s01-<slug>.md  ← one guide per section / PR
+        ├── qa/
+        │   └── <mode>-<slug>.md ← one report per QA pass
+        ├── demo/
+        │   └── <slug>.json    ← the demo's script (the video itself is not committed)
+        ├── summary.md         ← the block's record when it closes (§6d)
         └── state.json         ← progress (resumable)
 ```
 Harness-specific files (`.github/agents/…`, `.claude/agents/…`, `CLAUDE.md` importing `AGENTS.md`) are **generated** from `.aidt/agents/` by `aidt sync`. They are outputs, never edited by hand. `sync` removes the generated files of agents that no longer exist (recognised by the banner right after their frontmatter, and only those rendered from the agents folder being synced, so `--from` never removes the others) and drops a `handoff` whose target agent is not installed.
@@ -110,6 +118,36 @@ The reviewer is fast and verdict-oriented. The walkthrough is for keeping contro
 - **One section at a time:** the agent writes guide comments in that copy (a header per file, one per changed function, findings `🔴 🟡 ❓` at the line), presents the section in chat and waits for the developer's answer before the next one.
 - **Notes** in `.aidt/walkthrough/<name>.md`: progress, derived requirements, findings with their line in the PR (not in the commented copy). A later session resumes from them.
 - **Close:** coverage, remaining findings written as review comments to paste, and `aidt walkthrough finish <name>`, which removes the copy and every comment in it. It never commits, pushes or comments on the PR.
+
+### 5.4c QA (the product in use, on demand)
+The reviewer reads the code against the plan. The QA **uses the product** as the people who will use it, and judges it against what they need and what the product promises them. A reviewer's PASS and green tests prove nothing to it: they cover the paths someone already thought of. Its findings are of another kind, mostly at the seams between flows that no diff shows: a group where there used to be one person, the staff side of a new state, an email that promises what the screen does not do.
+
+- **Only when asked:** `/qa` in Claude Code, picking `qa` in Copilot. No agent hands off to it and no mode runs it on its own. On a real project one pass spent about 850 000 tokens and the whole QA of one block about 1.3 M, so it always starts with a scope and an estimate.
+- **Installed alone:** `aidt add qa` copies the agent, the project template `app.md` (unless the `demo` already brought it) and the report template `qa-report.md`.
+- **Generic agent + project notes.** The agent is the same everywhere; `.aidt/app.md` is this product, shared with the `demo`: how to start and stop it and read its logs, what is faked locally, how to give each person a client of its own, the end-to-end helpers that reach a state fast, how to simulate time passing. Its «QA» part adds the people and their devices, where the flows and promises are written, and what is already known or accepted. On the first run without it, the agent drafts it from the repository (compose files, end-to-end config and helpers, scripts) and stops for approval.
+- **Modes:** `block` (the journeys a change changes and the ones it touches), `flow` (one whole flow, every person, every state), `audit` (every flow, before a launch).
+- **1. Scope and budget**, and nothing else, unless the call says the scope is approved: the journeys changed (from the plan if there is one, the changed files and `erctx context` when available), the journeys touched (older ones whose assumptions no longer hold), the promises that describe them (pages, emails, terms), and what is not built yet on purpose. It proposes the people, the states to try, the walkers (one per person when they share no state), the tier and a token estimate. Called again with "scope approved", it walks. In Claude Code the caller can start one walker per person in parallel.
+- **2. Walk** each journey from its real start (a link, an email, the landing page) to its real end, as each person plus someone with bad intentions: a real browser (phone or desktop), each person in a browser context of its own; back, reload, leaving halfway, the same link with no session or in another person's, a double tap, odd values, expired sessions and links, failed or slow calls, every email the step sends and where its links land. Clickable designs and written processes are walked the same way.
+- **3. Findings:** dead end, bug, contradiction, broken promise, confusing, blind spot. Code style and structure are the reviewer's.
+- **4. Confirm:** each finding reproduced a second time from a known state; what could not be is kept under "Unconfirmed", never dropped.
+- **5. Verdict**, bound to the commit walked: `FAIL` with a confirmed 🔴, or with a 🟡 neither fixed nor written down as accepted by the user (unowned 🟡 are how a hundred of them pile up). Report from `qa-report.md` in `.aidt/tasks/<task-id>/qa/<mode>-<slug>.md`.
+- **Second pass**, in a fresh context with the first report: only what it lists as not covered, plus the fixes.
+- **End-to-end tests:** the QA explores once and expensively; the suite guards cheaply from then on. Every confirmed finding that is fixed leaves an end-to-end test that reproduces its steps, written with the fix. The QA reuses the suite's helpers to reach a state fast, then explores by hand.
+- **Limits:** never edits code, designs or documents, never commits, pushes or comments; its reports are the only files it writes. It starts and stops only what it started, and changes data only to simulate time, saying so each time.
+
+### 5.4d Demo (a narrated video of what was just built, on demand)
+A video that walks what a task built, screen by screen, with a voice that explains each step: for whoever reviews the PR, and for whoever asked for the change, with a ticket or without one.
+
+- **Only when asked:** `/demo`, after the reviewer's PASS (a demo of something about to fail is wasted). No agent hands off to it.
+- **Tokens for the script, none for the video.** The agent writes a script, `.aidt/tasks/<task-id>/demo/<slug>.json` (JSON, so the toolkit stays without runtime dependencies): scenes, each with where to go, what to tap or type and what the voice says (numbers and dates written as spoken). `aidt demo render <script>` turns it into the video with no model: a real browser recorded (Playwright), an offline voice (Piper by default, free), both mixed with ffmpeg, plus subtitles (`.vtt`) from the same lines.
+- **Scope and cost first:** from the spec and plan if there are any, otherwise the branch and one sentence from the user on what to show. It proposes the scenes, the length and a token estimate, and writes nothing before a yes. A new format starts with its first scene alone (`--sample`), not a whole video.
+- **Cost after:** render time, length and size from `aidt demo render` (in its output and the PR text), and the tokens the agent used where the tool shows them. A paid voice is optional and shows its price before it is used.
+- **Changes after review:** fix the code and render again, with no tokens. When a flow or a label changed, the render stops at the step that broke and the agent fixes only those steps.
+- **Where the video goes:** the script is committed; the video goes to `.aidt/demo/` (`demo.output`), which the render creates with a `.gitignore`. The command that starts the app is `demo.start` in the config, never in a script: an agent writes scripts and must not choose what a render runs. The CLI prints the PR text (what it shows, the commit it was rendered at, the length, the narration as a written walkthrough) and the user drags the video into the PR description: GitHub has no API to attach one.
+- **Format:** the device's full screen, no text over the app, a circle on each tap, the main path first and then «other paths», three to four minutes at most.
+- **Voice and subtitles, in the config** (`demo` in `.aidt/config.json`, §9): `voice.language` (a language and variant, e.g. `es-ES` for Spain, `es-419` for Latin America, `en-US`) and `voice.gender` (`female` or `male`), which the toolkit maps to an offline voice; `voice.model` names a specific one instead. `subtitles`: `file` (default: a `.vtt` next to the video, nothing over the app), `burned` (drawn into the video, so they show wherever it plays, a PR included) or `none`.
+- **Runs the product** with `.aidt/app.md` (§5.4c); its «Demo» part adds the example person and data, the voice and the format the user approved.
+- **Dependencies:** Playwright and ffmpeg from the project or the system (the CLI says what is missing); the voice model is downloaded once, with the user's yes. v1: web apps and clickable designs; terminal and native mobile later.
 
 ### 5.5 Integrations with `docs` and `context`
 
@@ -212,6 +250,38 @@ written, checked organisation, sized to what the team wants.
     **architecture**. Writes the decision, then hands the migration to the `refiner` as a normal task.
 - **Migration rules:** never automatic; new code follows the target from day one; old code moves in
   reviewed sections; pure moves and renames are separate commits from logic changes.
+
+## 6d. Session context
+
+Every new session knows only what is in the repository, so it starts by reading. As a project grows, that reading grows with it, and nothing stops it: rules files and status documents are only ever appended to. A real project after three weeks: a 21 KB `AGENTS.md`, and a status document read first in every session that went from 22 KB to 80 KB in five days, three quarters of it the history of finished blocks. About 25 000 tokens before the first useful step, more with every block. `context` treats context like code: in layers, with limits a script checks.
+
+| Layer | What | When it is read | Budget (default) |
+|---|---|---|---|
+| Always | The rules files the tool loads by itself (`AGENTS.md`, `CLAUDE.md` with its `@` imports, `.github/copilot-instructions.md`): what the project is, its commands, how to work, one-line indexes that point to the rest | automatically | 3 000 tokens |
+| Start | The status (`.aidt/status.md`): where the work stands and what the next session does first | first, every session | 2 500 tokens |
+| Task | The plan; the flows and invariants of the files being touched (`erctx context <file>`, §5.5) | while working | — |
+| On demand | History, audits, deferred work, strategy documents | only when the task needs them, preferably through a subagent that returns conclusions instead of whole files | — |
+
+**The status is a snapshot, not a log.** Template `templates/status.md`: *Now* (what is in progress, on which branch), *Next* (the next block: goal, first steps, a **Read first** list of paths and a **Not needed** list of what looks relevant but is not), *Open decisions* (for the user, one line each), *Recent* (the last three closed blocks, one line each, and a link to `.aidt/tasks/README.md`). It is rewritten when a block closes, never appended to. Git and the task folders are the log.
+
+**Closing a block.** The session that closes a block knows what the next one needs, so it writes it down:
+1. `.aidt/tasks/<task-id>/summary.md` (template `templates/summary.md`): what was done, the user's decisions with their date, deviations from the plan, what was left and where it is written, verdicts with their commits, the merge commit. For a workflow task, mostly links: its spec, plan and review index already are the record.
+2. Its row in `.aidt/tasks/README.md`.
+3. The status rewritten, with the next session's reading list.
+4. `aidt context check` green, then commit.
+
+The steps live in `.aidt/practices/session-context.md`; the project's rules file points to it in one line, and to the status as the first thing to read.
+
+**Keeping the always layer small.**
+- Indexes keep one short line per entry; the detail lives in the file the line points to.
+- Rules that apply to one folder go in that folder's scoped rules (a `CLAUDE.md` in the folder for Claude Code, `.github/instructions/<name>.instructions.md` with `applyTo` for Copilot), loaded only when working there.
+- No history, decision logs or plans in it.
+
+**`aidt context check`** (no model, no network):
+- Measures the *always* set (the configured files that exist, `CLAUDE.md` `@` imports followed, each file counted once) and the *start* set against `context.budget`. Tokens are estimated as characters / 4: an approximation, the same on every machine, enough to see growth and stop it.
+- Over budget: exit 1, with the largest sections (by heading) of each file over budget, so it is clear what to move and where.
+- The status's **Read first** list: every path must exist, since a stale pointer sends the next session the wrong way. Its total is reported, not budgeted.
+- Text or `--json`. Part of the project's quality commands and CI; the builder runs it before committing a change to these files, and the reviewer reports a breach as a finding.
 
 ## 7. Delivery: stacked PRs by default
 
@@ -316,7 +386,17 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
     "builder": "balanced",
     "reviewer": "balanced"
   },
-  "artifacts": { "path": ".aidt/tasks", "commit": true }
+  "artifacts": { "path": ".aidt/tasks", "commit": true },
+  "context": {
+    "always": ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"],
+    "start": [".aidt/status.md"],
+    "budget": { "always": 3000, "start": 2500 }
+  },
+  "demo": {
+    "output": ".aidt/demo",
+    "voice": { "language": "es-419", "gender": "female" },
+    "subtitles": "file"
+  }
 }
 ```
 
@@ -347,6 +427,8 @@ TypeScript, Node 24, minimal dependencies.
 | `aidt stack <prepare\|submit>` | Build / publish the stack via the detected delivery adapter |
 | `aidt structure audit` | Check the common structure rules; exceptions from `.aidt/structure.md` |
 | `aidt walkthrough <plan\|start\|finish>` | Split a change into ordered sections; check a PR out in an ignored worktree and remove it (§5.4b) |
+| `aidt context check [--json]` | What every session loads, against `context.budget`; the status's reading list exists (§6d) |
+| `aidt demo render <script>` | Record a demo script as a narrated video with subtitles, no model (§5.4d) |
 | `aidt customize <agent>` | Optional guided customization |
 
 Agents call these scripts instead of doing mechanical work with tokens. Adapters also allow each `aidt` command as `npx @akiles94/ai-dev-toolkit …`, so agents work without a global install.
@@ -361,10 +443,11 @@ Agents call these scripts instead of doing mechanical work with tokens. Adapters
 ## 13. Roadmap
 
 - **v0:** `workflow` (four agents, templates, `clean`, `check`, `diff`, `stack`), `structure` (rules, levels, nine presets, `audit`, `architect`), adapters for Copilot and Claude Code.
-- **v1:** `review` (external PRs), `init`, `profile`, `docs` and `context` integrations, more adapters, measured token benchmarks.
+- **v1:** `context` (§6d: layers, `aidt context check`, status and closing, easy-repo-context integration), the `demo` agent (§5.4d), the `qa` agent (§5.4c), `review` (external PRs), `init`, `profile`, the `docs` integration, more adapters, measured token benchmarks.
 - **v2:** VS Code extension (panel, per-section diff, progress) on the same core.
 
 ## 14. Open questions
 
 1. Canonical agent format: custom frontmatter, or reuse an existing one (e.g. Claude subagent format) as the base?
 2. Monorepo layout for the CLI: single package for v0, split later?
+3. Token estimate for `aidt context check`: characters / 4 is an approximation; a real tokenizer would add a dependency per model. Revisit if the estimate misleads.

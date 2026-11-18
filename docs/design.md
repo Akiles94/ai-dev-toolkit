@@ -253,7 +253,7 @@ written, checked organisation, sized to what the team wants.
 
 ## 6d. Session context
 
-Every new session knows only what is in the repository, so it starts by reading. As a project grows, that reading grows with it, and nothing stops it: rules files and status documents are only ever appended to. A real project after three weeks: a 21 KB `AGENTS.md`, and a status document read first in every session that went from 22 KB to 80 KB in five days, three quarters of it the history of finished blocks. About 30 000 tokens before the first useful step, more with every block. `context` treats context like code: in layers, with limits a script checks.
+Every new session knows only what is in the repository, so it starts by reading. As a project grows, that reading grows with it, and nothing stops it: rules files and status documents are only ever appended to. A real project after three weeks: a 21 KB `AGENTS.md`, and a status document read first in every session that went from 22 KB to 80 KB in five days, three quarters of it the history of finished blocks. About 25 000 tokens before the first useful step, more with every block. `context` treats context like code: in layers, with limits a script checks.
 
 | Layer | What | When it is read | Budget (default) |
 |---|---|---|---|

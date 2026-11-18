@@ -4,7 +4,8 @@
   - A snapshot of now, never a log: rewrite it, do not append. Each closed block's story goes to
     its `.aidt/tasks/<task-id>/summary.md`.
   - Within `context.budget.start` (default 2 500 tokens): `aidt context check` fails otherwise.
-  - Paths in «Read first» are from the repository root, in backticks; every one must exist.
+  - Paths in «Read first» go before the «: why», in backticks from the repository root (or as
+    links relative to this file); every one must exist.
   - Plans for later blocks live in their own files, linked from «Next».
   Delete these comments when filling the template.
 -->

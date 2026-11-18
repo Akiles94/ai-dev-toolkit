@@ -183,7 +183,7 @@ someone else will have to approve.
 5. **Same checks, fewer gates:** the defect search of section 2, the quality rating of section 3,
    the quality commands, `aidt diff --json`, `aidt clean --check`,
    `aidt structure audit` when `.aidt/structure.md` exists, and `aidt context check` when
-   `.aidt/practices/session-context.md` exists. Skip `aidt check` and `aidt stack`:
+   `.aidt/practices/session-context.md` exists (a breach is a finding). Skip `aidt check` and `aidt stack`:
    they need a workflow task. Do not create `state.json`.
 6. **Report:** the verdict, requirement coverage, the findings that matter and the quality
    ratings with their suggestions, with the path of the guides so the user can paste them as the

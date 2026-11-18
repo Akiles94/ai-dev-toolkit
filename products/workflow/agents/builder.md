@@ -77,7 +77,8 @@ temporary: they are removed when the section is approved and never reach a commi
 3. Run `aidt check`: every requirement this section covers must be referenced by one of its tests.
 4. If the section changes a rules file or the status and the project has
    `.aidt/practices/session-context.md`, run `aidt context check`: what every session loads must
-   stay within its budget.
+   stay within its budget, and every «Read first» path must exist. On a failure, move the
+   heaviest sections as the practice says, or fix the paths, before showing the section.
 
 ## 5. Approval
 

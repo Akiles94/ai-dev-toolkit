@@ -67,7 +67,8 @@ Tokens ≈ characters / 4. Layers and how to trim them: .aidt/practices/session-
 - **Over budget:** the heaviest sections of each file, cut at `##` and one level deeper while a
   single section still holds more than half the file. Those are what to move.
 - **Read first:** every path must exist, since a stale pointer sends the next session the wrong
-  way. Their total is reported, not budgeted.
+  way. Paths go before the «: why» of each line, in backticks from the repository root or as links
+  relative to the status file. Their total is reported, not budgeted.
 - **Tokens** are estimated as characters / 4: not any model's tokenizer, the same on every machine,
   enough to see a file grow and stop it.
 - `--json` for scripts. Put it in your quality commands and CI. The builder runs it when a section

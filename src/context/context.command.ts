@@ -1,5 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, posix, relative, sep } from "node:path";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import {
   type ContextFile,
@@ -17,12 +17,17 @@ const MAX_IMPORT_DEPTH = 5;
 const toRepoPath = (root: string, full: string): string =>
   relative(root, full).split(sep).join("/");
 
-/** The text of a file in the repository, or `undefined` when it is missing or a folder. */
-async function readText(root: string, path: string): Promise<string | undefined> {
+/** Whether a path exists in the repository, and its text when it is a file. */
+async function readEntry(root: string, path: string) {
   const full = join(root, path);
   const info = await stat(full).catch(() => undefined);
-  return info?.isFile() ? readFile(full, "utf8") : undefined;
+  const text = info?.isFile() ? await readFile(full, "utf8") : undefined;
+  return { exists: info !== undefined, text };
 }
+
+/** The text of a file in the repository, or `undefined` when it is missing or a folder. */
+const readText = async (root: string, path: string): Promise<string | undefined> =>
+  (await readEntry(root, path)).text;
 
 /** Each configured file that exists, once. */
 async function readConfigured(root: string, paths: readonly string[]): Promise<ContextFile[]> {
@@ -34,18 +39,30 @@ async function readConfigured(root: string, paths: readonly string[]): Promise<C
   return files;
 }
 
-/** The files a `CLAUDE.md` brings in with `@` imports, and theirs, inside the repository. */
-async function followImports(root: string, from: ContextFile, seen: Set<string>, depth = 1) {
+/** Which files are already in the layer, and which have had their own imports read. */
+interface ImportWalk {
+  readonly counted: Set<string>;
+  readonly expanded: Set<string>;
+}
+
+/**
+ * The files a `CLAUDE.md` brings in with `@` imports, and theirs, inside the repository. A file
+ * already counted (configured, or imported twice) is not counted again, but its own imports are
+ * still read: `CLAUDE.md` → `@AGENTS.md` → `@docs/rules.md` loads all three.
+ */
+async function followImports(root: string, from: ContextFile, walk: ImportWalk, depth = 1) {
   const found: ContextFile[] = [];
-  if (depth > MAX_IMPORT_DEPTH) return found;
+  if (depth > MAX_IMPORT_DEPTH || walk.expanded.has(from.path)) return found;
+  walk.expanded.add(from.path);
   for (const target of importsOf(from.text)) {
     const path = toRepoPath(root, join(root, dirname(from.path), target));
-    if (path.startsWith("..") || isAbsolute(path) || seen.has(path)) continue;
+    if (path.startsWith("..") || isAbsolute(path)) continue;
     const text = await readText(root, path);
     if (text === undefined) continue;
-    seen.add(path);
     const file = { path, text, importedBy: from.path };
-    found.push(file, ...(await followImports(root, file, seen, depth + 1)));
+    if (!walk.counted.has(path)) found.push(file);
+    walk.counted.add(path);
+    found.push(...(await followImports(root, file, walk, depth + 1)));
   }
   return found;
 }
@@ -53,10 +70,13 @@ async function followImports(root: string, from: ContextFile, seen: Set<string>,
 /** The always layer: the configured rules files, plus what each `CLAUDE.md` imports. */
 async function readAlways(root: string, paths: readonly string[]): Promise<ContextFile[]> {
   const configured = await readConfigured(root, paths);
-  const seen = new Set(configured.map((file) => file.path));
+  const walk = {
+    counted: new Set(configured.map((file) => file.path)),
+    expanded: new Set<string>(),
+  };
   const imported: ContextFile[] = [];
   for (const file of configured.filter((f) => basename(f.path) === "CLAUDE.md")) {
-    imported.push(...(await followImports(root, file, seen)));
+    imported.push(...(await followImports(root, file, walk)));
   }
   return [...configured, ...imported];
 }
@@ -64,9 +84,9 @@ async function readAlways(root: string, paths: readonly string[]): Promise<Conte
 /** Every path in the «Read first» lists of the start files, with what reading it costs. */
 async function readReadingList(root: string, start: readonly ContextFile[]) {
   const items: ReadingItem[] = [];
-  for (const path of new Set(start.flatMap((file) => readingList(file.text)))) {
-    const exists = (await stat(join(root, path)).catch(() => undefined)) !== undefined;
-    const text = exists ? await readText(root, path) : undefined;
+  const paths = start.flatMap((file) => readingList(file.text, posix.dirname(file.path)));
+  for (const path of new Set(paths)) {
+    const { exists, text } = await readEntry(root, path);
     items.push({ path, exists, tokens: text === undefined ? 0 : estimateTokens(text) });
   }
   return items;

@@ -39,7 +39,8 @@ Run it on the branch to review. It compares it with the default branch, or with 
    in mind. The ticket becomes numbered requirements (`R1`, `R2`…).
 2. **Gathers the facts with scripts, not by eye:** `aidt diff --json` (reviewable lines without
    lockfiles, generated files or formatting), the project's tests and checks,
-   `aidt clean --check`, and `aidt structure audit` when the project uses it.
+   `aidt clean --check`, and `aidt structure audit` and `aidt context check` when the project
+   uses them.
 3. **Looks for defects where the risk is:** skips what cannot break, reads each changed function
    with its callers, callees and tests, and goes through a fixed list: logic, edge inputs,
    errors and partial state, security, async, performance, compatibility and test quality.

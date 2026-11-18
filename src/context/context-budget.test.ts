@@ -40,6 +40,17 @@ describe("largestSections", () => {
     expect(sections.map((s) => s.heading)).toEqual(["### F1", "### F2", "## Now"]);
   });
 
+  it("cuts at # when a file has several top headings", () => {
+    const rules = ["# Commands", "c".repeat(300), "# Architecture", "a".repeat(600)].join("\n");
+    expect(largestSections(rules).map((s) => s.heading)).toEqual(["# Architecture", "# Commands"]);
+  });
+
+  it("does not go deeper when the heaviest part is the preamble", () => {
+    const sections = largestSections(`${"p".repeat(1200)}\n## A\n${"a".repeat(600)}\n### A1\nx\n`);
+    expect(sections.map((s) => s.heading)).toEqual(["(top)", "## A"]);
+    expect(sections[1]?.tokens).toBe(154);
+  });
+
   it("keeps a file without subheadings in one piece", () => {
     expect(largestSections("# Title\nbody\n")).toEqual([{ heading: "(top)", tokens: 4 }]);
   });
@@ -80,6 +91,20 @@ describe("readingList", () => {
       "src/export/export.ts",
       ".aidt/tasks/feat-x/plan.md",
     ]);
+  });
+
+  it("reads paths before the «: why» part, never the code or links quoted in it", () => {
+    const list = [
+      "### Read first",
+      "- `src/money/money.ts`: how `Money.fromCents` rejects `0.5`",
+      "- `https://example.com/api`: the provider's docs",
+    ].join("\n");
+    expect(readingList(list)).toEqual(["src/money/money.ts"]);
+  });
+
+  it("resolves links from the status file's folder, backticks from the repository root", () => {
+    const list = "### Read first\n- [the plan](tasks/feat-x/plan.md) and `docs/a.md`\n";
+    expect(readingList(list, ".aidt")).toEqual(["docs/a.md", ".aidt/tasks/feat-x/plan.md"]);
   });
 
   it("is empty when the status has no such list", () => {

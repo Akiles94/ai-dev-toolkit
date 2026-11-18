@@ -1,3 +1,5 @@
+import { posix } from "node:path";
+
 /** A file a session reads, as the check sees it: where it is and what it says. */
 export interface ContextFile {
   readonly path: string;
@@ -48,12 +50,12 @@ const HEADING = /^(#{1,6})\s+(.*\S)\s*$/;
 const withoutCode = (markdown: string): string =>
   markdown.replace(/^(```|~~~)[\s\S]*?^\1/gm, "").replace(/`[^`\n]*`/g, "");
 
-/** The file cut at every heading from `##` down to `deepest`; what precedes the first is `(top)`. */
-function splitAt(lines: readonly string[], deepest: number): Section[] {
+/** The file cut at every heading from `shallowest` down to `deepest`; before the first: `(top)`. */
+function splitAt(lines: readonly string[], shallowest: number, deepest: number): Section[] {
   const sections: { heading: string; text: string }[] = [{ heading: "(top)", text: "" }];
   for (const line of lines) {
     const level = HEADING.exec(line)?.[1]?.length ?? 0;
-    if (level > 1 && level <= deepest) sections.push({ heading: line.trim(), text: "" });
+    if (level >= shallowest && level <= deepest) sections.push({ heading: line.trim(), text: "" });
     const current = sections.at(-1) as { text: string };
     current.text += `${line}\n`;
   }
@@ -64,20 +66,22 @@ function splitAt(lines: readonly string[], deepest: number): Section[] {
 }
 
 /**
- * The largest parts of a Markdown file, heaviest first. It cuts at `##`, and one level deeper
- * while a single part still holds more than half the file, so a status whose history sits under
- * one heading points at the blocks inside it.
+ * The largest parts of a Markdown file, heaviest first. It cuts below the title (at `##`, or at
+ * `#` when the file has several), and one level deeper while a single heading still holds more
+ * than half the file, so a status whose history sits under one heading points at the blocks inside
+ * it. A heavy preamble (`(top)`) stops the descent: cutting deeper would not split it.
  */
 export function largestSections(markdown: string, count = 3): Section[] {
   const lines = markdown.split("\n");
-  const levels = [...new Set(lines.map((line) => HEADING.exec(line)?.[1]?.length ?? 0))]
-    .filter((level) => level > 1)
-    .sort();
+  const found = lines.map((line) => HEADING.exec(line)?.[1]?.length ?? 0).filter((l) => l > 0);
+  const shallowest = found.filter((level) => level === 1).length > 1 ? 1 : 2;
+  const levels = [...new Set(found)].filter((l) => l >= shallowest).sort((a, b) => a - b);
   const half = estimateTokens(markdown) / 2;
-  let sections = splitAt(lines, 1);
+  let sections = splitAt(lines, shallowest, 0);
   for (const level of levels) {
-    sections = splitAt(lines, level);
-    if ((sections[0]?.tokens ?? 0) <= half) break;
+    sections = splitAt(lines, shallowest, level);
+    const heaviest = sections[0];
+    if (!heaviest || heaviest.tokens <= half || heaviest.heading === "(top)") break;
   }
   return sections.slice(0, count);
 }
@@ -100,21 +104,32 @@ export function importsOf(markdown: string): string[] {
 /** `src/a.ts:12` or `docs/x.md#part` → the file alone. */
 const fileOnly = (path: string): string => path.replace(/#.*$/, "").replace(/:\d+(-\d+)?$/, "");
 
-/** Paths named in one list item: in backticks or as the target of a relative link. */
-function pathsInItem(item: string): string[] {
-  const quoted = [...item.matchAll(/`([^`\s]+)`/g)].map((m) => m[1] ?? "");
-  const linked = [...item.matchAll(/\]\(([^)\s]+)\)/g)]
+/** `https://…`, `mailto:…`: not a path in the repository. */
+const hasScheme = (path: string): boolean => /^[a-z][a-z0-9+.-]*:/i.test(path);
+
+const looksLikePath = (path: string): boolean =>
+  !hasScheme(path) && (path.includes("/") || path.includes("."));
+
+/**
+ * Paths named in one list item, before its «: why» part (which may quote code): in backticks,
+ * from the repository root, or as the target of a link, from the status file's `folder`.
+ */
+function pathsInItem(item: string, folder: string): string[] {
+  const head = item.split(/(?<=[`)]):\s/)[0] ?? item;
+  const quoted = [...head.matchAll(/`([^`\s]+)`/g)].map((m) => m[1] ?? "");
+  const linked = [...head.matchAll(/\]\(([^)\s]+)\)/g)]
     .map((m) => m[1] ?? "")
-    .filter((target) => !/^[a-z]+:/i.test(target));
-  return [...quoted, ...linked].filter((p) => p.includes("/") || p.includes(".")).map(fileOnly);
+    .filter(looksLikePath)
+    .map((target) => posix.join(folder, target));
+  return [...quoted.filter(looksLikePath), ...linked].map(fileOnly);
 }
 
 /**
  * The paths of the «Read first» list in a status file: the list items under a heading named
  * «Read first», up to the next heading of the same or a higher level. HTML comments (a template's
- * instructions) are skipped.
+ * instructions) are skipped. `folder` is where the status file is, for its relative links.
  */
-export function readingList(markdown: string): string[] {
+export function readingList(markdown: string, folder = ""): string[] {
   const paths: string[] = [];
   let level = 0;
   for (const line of markdown.replace(/<!--[\s\S]*?-->/g, "").split("\n")) {
@@ -125,7 +140,7 @@ export function readingList(markdown: string): string[] {
       if (/^read first\b/i.test(heading[2] ?? "")) level = depth;
       continue;
     }
-    if (level > 0 && /^\s*([-*+]|\d+\.)\s/.test(line)) paths.push(...pathsInItem(line));
+    if (level > 0 && /^\s*([-*+]|\d+\.)\s/.test(line)) paths.push(...pathsInItem(line, folder));
   }
   return [...new Set(paths)];
 }

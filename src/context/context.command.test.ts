@@ -41,6 +41,28 @@ describe("aidt context check", () => {
     expect(out).toContain("Read first (next session): 1 path(s), 100 tokens");
   });
 
+  it("counts what AGENTS.md imports when CLAUDE.md imports AGENTS.md", async () => {
+    const repo = projectRepo(STATUS);
+    write(repo, { "AGENTS.md": "# Rules\n@docs/flow.md\n" });
+    const { out } = await check(repo);
+    expect(out).toContain("docs/flow.md  100  (imported by AGENTS.md)");
+  });
+
+  it("follows imports inside the repository only, each file once, at most five hops", async () => {
+    const repo = projectRepo(STATUS);
+    mkdirSync(join(repo, "chain"));
+    write(repo, {
+      "CLAUDE.md": "@../outside.md @docs/rules.md @chain/1.md\n",
+      "docs/rules.md": "@../CLAUDE.md @rules.md\n",
+      ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((i) => [`chain/${i}.md`, `@${i + 1}.md\n`])),
+    });
+    const { out } = await check(repo);
+    expect(out).not.toContain("outside.md");
+    expect(out.match(/docs\/rules\.md {2}/g)).toHaveLength(1);
+    expect(out).toContain("chain/5.md");
+    expect(out).not.toContain("chain/6.md");
+  });
+
   it("fails over budget and names the sections to move", async () => {
     const repo = projectRepo(`# Status\n## Now\nwork\n## Done\n${"d".repeat(12_000)}\n`);
     const { code, out } = await check(repo);

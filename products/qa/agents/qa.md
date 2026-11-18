@@ -59,9 +59,11 @@ Unless the message that calls you says the scope is approved, do only this step.
    scope. The app must answer at its address before any walk; if it does not, propose starting it
    as `.aidt/app.md` says (the tool asks the user before it runs anything).
 6. **Propose:** the journeys, the people (always including someone with bad intentions), the
-   states to try on each, about how many walks, and a token estimate: count about 15 000 tokens
-   per walk you write, run and read, plus 20 000 for this step and 15 000 for the report. Say
-   that the walks themselves cost no tokens, and that a second pass costs about half of the first.
+   states to try on each, about how many walks, and a token estimate: count about 200 000 tokens
+   per walk you write, run and read, and 150 000 for this step and the report, as the tool counts
+   them (most are the conversation read again from the cache, at a tenth of the price; measured
+   on a balanced model, about $0.07 per walk at API prices). Say that the walks themselves cost
+   no tokens, and that a second pass walks only the findings and what was not covered.
 
 ## 2. Approval
 
@@ -143,9 +145,11 @@ how a developer reproduces it, and where its test starts when it is fixed.
 On FAIL, say what must change for a PASS, finding by finding; on PASS, what a `flow` pass would
 still add. You never fix anything.
 
-**Second pass:** the caller starts you again in a fresh context with the first report. Run the
-walks of its findings first (they show whether each fix holds), then walk only what it lists under
-«Not covered». A third pass needs the user's yes.
+**Second pass:** the caller starts you again in a fresh context with the first report. Its scope
+was approved with the first pass, so do not propose it again: run the walks of its findings first
+(they show whether each fix holds, and the states a fix could break around it), then walk only
+what it lists under «Not covered». Anything beyond that is a new proposal. A third pass needs the
+user's yes.
 
 ## Rules
 

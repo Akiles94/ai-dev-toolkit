@@ -24,6 +24,16 @@ beforeEach(() => {
   commitAll(repo, "feature");
 });
 
+describe("output cut short", () => {
+  it.skipIf(process.platform === "win32")("stops quietly when its reader closes the pipe", () => {
+    // add prints, copies and renders the agents, then prints again: by then head has gone.
+    const command = `"${process.execPath}" "${CLI}" add workflow | head -1`;
+    const result = spawnSync("sh", ["-c", command], { cwd: repo, encoding: "utf8" });
+    expect(result.stdout).toBe("Added 14 file(s) to .aidt/\n");
+    expect(result.stderr).toBe("");
+  });
+});
+
 describe("aidt diff", () => {
   it("compares the branch with the default branch and filters noise", () => {
     const { code, out } = run(repo, "diff", "--json");

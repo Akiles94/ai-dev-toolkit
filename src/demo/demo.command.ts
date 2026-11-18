@@ -1,11 +1,12 @@
-import { type ChildProcess, execFile, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { type ChildProcess, execFile } from "node:child_process";
+import { existsSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import { git } from "../shared/git/git.ts";
+import { startApp, stopApp } from "./demo-app.ts";
 import {
   chooseVoice,
   mixArgs,
@@ -23,6 +24,11 @@ import { type DemoScript, narration, parseScript } from "./demo-script.ts";
 
 const exec = promisify(execFile);
 
+/** A recorded video shorter than the recording by more than this lost its start: record again. */
+const DRIFT_MS = 1000;
+
+const SUBTITLES = ["file", "burned", "none"];
+
 /** Whether a command runs at all: the tools a render needs are checked before anything starts. */
 const runs = (command: string, args: string[]): Promise<boolean> =>
   exec(command, args).then(
@@ -30,19 +36,21 @@ const runs = (command: string, args: string[]): Promise<boolean> =>
     () => false,
   );
 
+/** The length of a media file in milliseconds, as ffprobe reads it. */
+async function lengthOf(file: string): Promise<number> {
+  const probe = ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file];
+  const { stdout } = await exec("ffprobe", probe);
+  return Math.round(Number.parseFloat(stdout) * 1000);
+}
+
 /**
  * What is missing to render, as the commands that install it; empty when everything is there.
  * A demo with nothing to say needs no voice.
  */
-async function missingTools(
-  root: string,
-  context: CliContext,
-  voice: Voice,
-  speaks: boolean,
-): Promise<string[]> {
+async function missingTools(context: CliContext, voice: Voice, speaks: boolean): Promise<string[]> {
   const { demo } = context.config;
   const missing: string[] = [];
-  if (!loadPlaywright(root))
+  if (!loadPlaywright(context.root))
     missing.push("npm install -D playwright && npx playwright install chromium");
   if (!(await runs("ffmpeg", ["-version"])))
     missing.push("install ffmpeg (https://ffmpeg.org/download.html)");
@@ -53,75 +61,113 @@ async function missingTools(
 }
 
 /** Turns every line into speech before recording, so the video never waits on the voice. */
-async function speak(
-  context: CliContext,
-  voice: Voice,
-  lines: string[],
-  workDir: string,
-): Promise<Speech[]> {
+async function speak(context: CliContext, voice: Voice, lines: string[], workDir: string) {
   const { demo } = context.config;
   const model = join(voicesDir(demo), `${voice.model}.onnx`);
+  const speaker = voice.speaker === undefined ? [] : ["-s", String(voice.speaker)];
   const speeches: Speech[] = [];
   for (const [i, text] of lines.entries()) {
     const audio = join(workDir, `line-${i}.wav`);
-    const speaker = voice.speaker === undefined ? [] : ["-s", String(voice.speaker)];
     await runWithInput(demo.piper, ["-m", model, ...speaker, "-f", audio], text);
-    const { stdout } = await exec("ffprobe", [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "csv=p=0",
-      audio,
-    ]);
-    speeches.push({ text, audio, durationMs: Math.round(Number.parseFloat(stdout) * 1000) });
+    speeches.push({ text, audio, durationMs: await lengthOf(audio) });
   }
   return speeches;
 }
 
-/** Starts the product as the script says and waits until its address answers (60 s at most). */
-async function startApp(root: string, script: DemoScript): Promise<ChildProcess | undefined> {
-  const up = () =>
-    fetch(script.app.url).then(
-      () => true,
-      () => false,
-    );
-  if (!script.app.start || (await up())) return undefined;
-  const child = spawn(script.app.start, {
-    cwd: root,
-    shell: true,
-    stdio: "ignore",
-    detached: process.platform !== "win32",
-  });
-  for (let waited = 0; waited < 60_000; waited += 500) {
-    if (await up()) return child;
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  stopApp(child);
-  throw new UsageError(
-    `${script.app.url} did not answer within 60 s after \`${script.app.start}\`.`,
-  );
-}
-
-function stopApp(child: ChildProcess | undefined): void {
-  if (!child?.pid) return;
-  try {
-    if (process.platform === "win32") child.kill();
-    else process.kill(-child.pid);
-  } catch {
-    // Already gone.
-  }
-}
-
 async function readScript(root: string, path: string): Promise<DemoScript> {
-  const raw = await readFile(join(root, path), "utf8").catch(() => {
+  const raw = await readFile(resolve(root, path), "utf8").catch(() => {
     throw new UsageError(`No demo script at ${path}.`);
   });
-  const parsed = parseScript(JSON.parse(raw));
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch (error) {
+    throw new UsageError(`${path} is not valid JSON: ${(error as Error).message}`);
+  }
+  const parsed = parseScript(json);
   if (!parsed.ok)
     throw new UsageError(`${path} is not a valid demo script:\n  ${parsed.error.join("\n  ")}`);
   return parsed.value;
+}
+
+/**
+ * Records the script, and records it once more when the video lost its start (it came out shorter
+ * than the time recorded, so the voice would drift from the picture).
+ */
+async function recordInSync(
+  context: CliContext,
+  script: DemoScript,
+  speeches: Speech[],
+  workDir: string,
+) {
+  const playwright = loadPlaywright(context.root);
+  if (!playwright) throw new UsageError("Playwright is not installed.");
+  for (let attempt = 1; ; attempt++) {
+    const recorded = await record(playwright, script, speeches, workDir);
+    if (!recorded.ok) return recorded;
+    const short = recorded.value.lengthMs - (await lengthOf(recorded.value.video));
+    if (short <= DRIFT_MS) return recorded;
+    if (attempt === 2) {
+      return { ok: false as const, error: `the recording lost ${short} ms at its start twice` };
+    }
+  }
+}
+
+/** While a render runs, Ctrl+C or a kill still stops the product and removes the work folder. */
+function onInterrupt(cleanUp: () => void): () => void {
+  const handler = () => {
+    cleanUp();
+    process.exit(130);
+  };
+  process.once("SIGINT", handler);
+  process.once("SIGTERM", handler);
+  return () => {
+    process.off("SIGINT", handler);
+    process.off("SIGTERM", handler);
+  };
+}
+
+/** The output folder, created with a `.gitignore` so the videos stay out of git. */
+async function prepareOutput(root: string, folder: string): Promise<void> {
+  const full = join(root, folder);
+  await mkdir(full, { recursive: true });
+  const ignore = join(full, ".gitignore");
+  if (!existsSync(ignore))
+    await writeFile(ignore, "# Demo videos: rendered from their scripts, not committed.\n*\n");
+}
+
+/** Mixes the recording with its voice into the final files, and returns what the render left. */
+async function finish(
+  context: CliContext,
+  script: DemoScript,
+  scriptPath: string,
+  began: number,
+  recorded: { video: string; cues: Parameters<typeof toVtt>[0]; pageErrors: readonly string[] },
+  workDir: string,
+) {
+  const { root, config, flags } = context;
+  const slug = slugOf(scriptPath) + (flags.sample ? "-sample" : "");
+  const out = outputPaths(root, config.demo, slug);
+  await prepareOutput(root, config.demo.output);
+  const vtt = config.demo.subtitles === "file" ? out.vtt : join(workDir, "subtitles.vtt");
+  await writeFile(vtt, toVtt(recorded.cues));
+  const burn = config.demo.subtitles === "burned";
+  await exec("ffmpeg", mixArgs(recorded.cues, { video: recorded.video, vtt, mp4: out.mp4 }, burn));
+  const facts: RenderFacts = {
+    title: script.title,
+    commit: (await git(root, ["rev-parse", "--short", "HEAD"])).trim(),
+    lengthMs: await lengthOf(out.mp4),
+    bytes: (await stat(out.mp4)).size,
+    renderMs: Date.now() - began,
+    scenes: script.scenes.map((s) => ({
+      title: s.title,
+      lines: s.steps.flatMap((st) => ("say" in st ? [st.say] : [])),
+    })),
+  };
+  await writeFile(out.md, prText(facts));
+  const json = { ...facts, pageErrors: recorded.pageErrors };
+  await writeFile(out.json, `${JSON.stringify(json, null, 2)}\n`);
+  return print(formatRender(root, facts, out, recorded.pageErrors, config.demo.subtitles));
 }
 
 /** `aidt demo render <script> [--sample]`: the script as a narrated video, with no model. */
@@ -129,73 +175,57 @@ async function render(context: CliContext, scriptPath: string | undefined): Prom
   const { root, config, flags } = context;
   if (!scriptPath)
     throw new UsageError("Name the script: aidt demo render .aidt/tasks/<task>/demo/<name>.json");
+  if (!SUBTITLES.includes(config.demo.subtitles))
+    throw new UsageError(`demo.subtitles is "${config.demo.subtitles}": use file, burned or none.`);
   const began = Date.now();
   const full = await readScript(root, scriptPath);
   const script = flags.sample ? { ...full, scenes: full.scenes.slice(0, 1) } : full;
   const voice = chooseVoice(config.demo);
   if (typeof voice === "string") throw new UsageError(voice);
-  const missing = await missingTools(root, context, voice, narration(script).length > 0);
+  const missing = await missingTools(context, voice, narration(script).length > 0);
   if (missing.length > 0) {
     print(["Missing to render a demo. Run:", ...missing.map((m) => `  ${m}`)].join("\n"));
     return 2;
   }
-  const playwright = loadPlaywright(root);
-  if (!playwright) return 2;
   const workDir = await mkdtemp(join(tmpdir(), "aidt-demo-"));
+  let app: ChildProcess | undefined;
+  const release = onInterrupt(() => {
+    stopApp(app);
+    rmSync(workDir, { recursive: true, force: true });
+  });
   try {
     const speeches = await speak(context, voice, narration(script), workDir);
-    const app = await startApp(root, script);
-    const recorded = await record(playwright, script, speeches, workDir).finally(() =>
+    const started = await startApp(root, config.demo.start, script.app.url);
+    if (!started.ok) throw new UsageError(started.error);
+    app = started.value;
+    const recorded = await recordInSync(context, script, speeches, workDir).finally(() =>
       stopApp(app),
     );
     if (!recorded.ok) {
       print(`Stopped at ${recorded.error}\nFix that step in ${scriptPath} and render again.`);
       return 1;
     }
-    const slug = slugOf(scriptPath) + (flags.sample ? "-sample" : "");
-    const out = outputPaths(root, config.demo, slug);
-    await mkdir(join(root, config.demo.output), { recursive: true });
-    const vtt = config.demo.subtitles === "file" ? out.vtt : join(workDir, "subtitles.vtt");
-    await writeFile(vtt, toVtt(recorded.value.cues));
-    const burn = config.demo.subtitles === "burned";
-    await exec(
-      "ffmpeg",
-      mixArgs(recorded.value.cues, { video: recorded.value.video, vtt, mp4: out.mp4 }, burn),
-    );
-    const facts: RenderFacts = {
-      title: script.title,
-      commit: (await git(root, ["rev-parse", "--short", "HEAD"])).trim(),
-      lengthMs: recorded.value.lengthMs,
-      bytes: (await stat(out.mp4)).size,
-      renderMs: Date.now() - began,
-      scenes: script.scenes.map((s) => ({
-        title: s.title,
-        lines: s.steps.flatMap((st) => ("say" in st ? [st.say] : [])),
-      })),
-    };
-    await writeFile(out.md, prText(facts));
-    await writeFile(
-      out.json,
-      `${JSON.stringify({ ...facts, pageErrors: recorded.value.pageErrors }, null, 2)}\n`,
-    );
-    return print(formatRender(facts, out, recorded.value.pageErrors, config.demo.subtitles));
+    return await finish(context, script, scriptPath, began, recorded.value, workDir);
   } finally {
+    release();
     await rm(workDir, { recursive: true, force: true });
   }
 }
 
 function formatRender(
+  root: string,
   facts: RenderFacts,
   out: ReturnType<typeof outputPaths>,
   pageErrors: readonly string[],
   subtitles: string,
 ): string {
   const seconds = (ms: number) => `${Math.round(ms / 1000)} s`;
+  const shown = (path: string) => relative(root, path);
   return [
-    `Demo: ${out.mp4}`,
+    `Demo: ${shown(out.mp4)}`,
     `    ${seconds(facts.lengthMs)} long · ${(facts.bytes / 1_048_576).toFixed(1)} MB · rendered in ${seconds(facts.renderMs)} · no tokens`,
-    ...(subtitles === "file" ? [`    subtitles: ${out.vtt}`] : []),
-    `    PR text: ${out.md} (paste it, then drag the video into the description)`,
+    ...(subtitles === "file" ? [`    subtitles: ${shown(out.vtt)}`] : []),
+    `    PR text: ${shown(out.md)} (paste it, then drag the video into the description)`,
     ...(pageErrors.length > 0
       ? [`    page errors while recording: ${pageErrors.join(" | ")}`]
       : []),

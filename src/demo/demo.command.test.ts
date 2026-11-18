@@ -86,6 +86,13 @@ describe("aidt demo render", () => {
     expect(readFileSync(join(repo, ".aidt/demo/restock.md"), "utf8")).toContain(
       "### Demo · Restock",
     );
+    expect(readFileSync(join(repo, ".aidt/demo/.gitignore"), "utf8")).toContain("*");
+    const facts = JSON.parse(readFileSync(join(repo, ".aidt/demo/restock.json"), "utf8"));
+    const mp4 = execFileSync("ffprobe", [
+      ...["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0"],
+      join(repo, ".aidt/demo/restock.mp4"),
+    ]);
+    expect(facts.lengthMs).toBe(Math.round(Number.parseFloat(mp4.toString()) * 1000));
   });
 
   it.skipIf(!canRecord)("stops at the step that breaks and says which", async () => {

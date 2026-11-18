@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fail, ok, type Result } from "../shared/result/result.ts";
@@ -62,10 +62,23 @@ interface Playwright {
 
 /** Playwright from the project, or installed globally; the toolkit does not ship it. */
 export function loadPlaywright(root: string): Playwright | undefined {
+  const from = (folder: string): Playwright | undefined => {
+    try {
+      return createRequire(join(folder, "package.json"))("playwright") as Playwright;
+    } catch {
+      return undefined;
+    }
+  };
+  return from(root) ?? from(globalModules());
+}
+
+/** npm's global folder (`npm root -g`), where a global `playwright` is; empty when npm is not there. */
+function globalModules(): string {
   try {
-    return createRequire(join(root, "package.json"))("playwright") as Playwright;
+    const shell = process.platform === "win32";
+    return execFileSync("npm", ["root", "-g"], { encoding: "utf8", shell }).trim();
   } catch {
-    return undefined;
+    return "";
   }
 }
 
@@ -160,31 +173,15 @@ const describeStep = (step: Step): string => {
   return `${kind} ${JSON.stringify(value)}`;
 };
 
-/**
- * Records the script in a real browser: every step on screen, every line at its moment. Stops at
- * the first step that fails, saying which, so only that part of the script needs fixing.
- */
-export async function record(
-  playwright: Playwright,
+/** Plays every step on the page, timing each line from `startedAt`; says where it stopped, if it did. */
+async function perform(
+  page: Page,
   script: DemoScript,
   speeches: readonly Speech[],
-  workDir: string,
-): Promise<Result<Recording, string>> {
-  const browser = await playwright.chromium.launch();
-  const device = DEVICES[script.device];
-  const context = await browser.newContext({
-    ...device,
-    recordVideo: { ...device.recordVideo, dir: workDir },
-  });
-  await context.addInitScript(TAP_STYLE);
-  const page = await context.newPage();
-  page.setDefaultTimeout(8000);
-  const pageErrors: string[] = [];
-  page.on("pageerror", (e) => pageErrors.push(e.message));
-  const startedAt = Date.now();
+  startedAt: number,
+) {
   const cues: Cue[] = [];
-  let failure: string | undefined;
-  scenes: for (const [s, scene] of script.scenes.entries()) {
+  for (const [s, scene] of script.scenes.entries()) {
     for (const [i, step] of scene.steps.entries()) {
       const speak = async () => {
         const speech = speeches[cues.length] as Speech;
@@ -201,18 +198,48 @@ export async function record(
         await run(page, step, script.app.url, speak);
       } catch (error) {
         const reason = (error as Error).message.split("\n")[0];
-        failure = `scene ${s + 1} «${scene.title}», step ${i + 1} (${describeStep(step)}): ${reason}`;
-        break scenes;
+        const failure = `scene ${s + 1} «${scene.title}», step ${i + 1} (${describeStep(step)}): ${reason}`;
+        return { cues, failure };
       }
     }
   }
-  await page.waitForTimeout(600);
-  const lengthMs = Date.now() - startedAt;
-  const video = page.video();
-  await context.close();
-  await browser.close();
-  if (failure) return fail(failure);
-  return ok({ video: video ? await video.path() : "", cues, lengthMs, pageErrors });
+  return { cues, failure: undefined };
+}
+
+/**
+ * Records the script in a real browser: every step on screen, every line at its moment. Stops at
+ * the first step that fails, saying which, so only that part of the script needs fixing. The
+ * browser is closed whatever happens.
+ */
+export async function record(
+  playwright: Playwright,
+  script: DemoScript,
+  speeches: readonly Speech[],
+  workDir: string,
+): Promise<Result<Recording, string>> {
+  const browser = await playwright.chromium.launch();
+  try {
+    const device = DEVICES[script.device];
+    const context = await browser.newContext({
+      ...device,
+      recordVideo: { ...device.recordVideo, dir: workDir },
+    });
+    await context.addInitScript(TAP_STYLE);
+    const page = await context.newPage();
+    page.setDefaultTimeout(8000);
+    const pageErrors: string[] = [];
+    page.on("pageerror", (e) => pageErrors.push(e.message));
+    const startedAt = Date.now();
+    const { cues, failure } = await perform(page, script, speeches, startedAt);
+    await page.waitForTimeout(600);
+    const lengthMs = Date.now() - startedAt;
+    const video = page.video();
+    await context.close();
+    if (failure) return fail(failure);
+    return ok({ video: video ? await video.path() : "", cues, lengthMs, pageErrors });
+  } finally {
+    await browser.close();
+  }
 }
 
 /** Runs a command with `input` on its standard input; rejects with its error output. */

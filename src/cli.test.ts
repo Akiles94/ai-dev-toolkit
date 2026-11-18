@@ -177,6 +177,27 @@ describe("aidt add", () => {
     }
   });
 
+  it("installs the qa agent with its templates and the app notes it shares", () => {
+    const { code, out } = run(repo, "add", "qa");
+    expect(code).toBe(0);
+    expect(out).toContain("ask for a QA pass with /qa");
+    for (const path of [
+      ".aidt/templates/qa-walk.json",
+      ".aidt/templates/qa-report.md",
+      ".aidt/templates/app.md",
+      ".claude/skills/qa/SKILL.md",
+      ".github/agents/qa.agent.md",
+    ]) {
+      expect(existsSync(join(repo, path))).toBe(true);
+    }
+  });
+
+  it("keeps the app notes the demo already brought, when the qa comes after it", () => {
+    expect(run(repo, "add", "demo").code).toBe(0);
+    const { out } = run(repo, "add", "qa");
+    expect(out).toContain("Kept 1 existing file(s) unchanged:\n    .aidt/templates/app.md");
+  });
+
   it("installs one workflow agent alone, with only the files it reads", () => {
     const { code } = run(repo, "add", "reviewer");
     expect(code).toBe(0);
@@ -211,7 +232,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough, demo.',
+      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough, demo, qa.',
     );
   });
 });

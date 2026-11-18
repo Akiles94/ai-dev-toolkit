@@ -11,6 +11,8 @@ const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));
 interface Installable {
   readonly product: string;
   readonly paths: readonly string[];
+  /** Files it shares with another product, taken from there so they exist once. */
+  readonly shared?: readonly { readonly product: string; readonly path: string }[];
   /** What the user does next, when copying the files is not enough. */
   readonly next?: string;
 }
@@ -59,6 +61,17 @@ const INSTALLABLES: Record<string, Installable> = {
       "app to a daemon leaves it running), then ask for a demo with /demo (Claude Code)",
       "or the demo agent (Copilot). The first render lists any tool to install: Playwright,",
       "ffmpeg and an offline voice (Piper). Videos stay out of git; their scripts are committed.",
+    ].join("\n"),
+  },
+  qa: {
+    product: "qa",
+    paths: ["agents", "templates"],
+    shared: [{ product: "demo", path: "templates/app.md" }],
+    next: [
+      "Next: ask for a QA pass with /qa (Claude Code) or the qa agent (Copilot), naming the mode",
+      "(block, flow or audit) and the branch. It proposes the scope and its cost first, and drafts",
+      ".aidt/app.md if the project has none. Walks need Playwright (the first one says how to",
+      "install it) and the app running; screenshots stay out of git, walks are committed.",
     ].join("\n"),
   },
 };
@@ -119,10 +132,14 @@ async function planAdd(root: string, name: string): Promise<Result<AddPlan, stri
     const available = Object.keys(INSTALLABLES).join(", ");
     return fail(`Unknown product or agent "${name}". Available: ${available}.`);
   }
-  const productDir = join(PRODUCTS_DIR, installable.product);
+  const sources = [
+    ...installable.paths.map((path) => ({ product: installable.product, path })),
+    ...(installable.shared ?? []),
+  ];
   const copies: Copy[] = [];
   const kept: string[] = [];
-  for (const path of installable.paths) {
+  for (const { product, path } of sources) {
+    const productDir = join(PRODUCTS_DIR, product);
     for (const file of await filesAt(productDir, path)) {
       const target = `.aidt/${file}`;
       if (await exists(join(root, target))) kept.push(target);

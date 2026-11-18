@@ -27,7 +27,7 @@ Each product is independent and installable alone. The `refiner`, the `reviewer`
 
 `living-docs` and `easy-repo-context` remain independent packages. The toolkit installs/configures them and plugs them into the workflow (§5.5). They do not replace each other: `docs` is for people, `context` is for agents. The state of the work (status, closing a block, the budget) is the toolkit's own; what is known about the code is easy-repo-context's.
 
-v0 scope: **`workflow`** and **`structure`**. Next: **`context`** (§6d), then the **`demo`** agent (§5.4d), then the **`qa`** agent (§5.4c). `review`, `init` and `profile` follow.
+v0 scope: **`workflow`** and **`structure`**. Then **`context`** (§6d) and the **`demo`** agent (§5.4d) in 0.5.0, and the **`qa`** agent (§5.4c) in 0.6.0. `review`, `init` and `profile` follow.
 
 ## 3. Layout
 
@@ -38,7 +38,7 @@ AGENTS.md                      ← project rules (source of truth, open standard
 ├── config.json                ← toolkit config for this project (committed)
 ├── agents/                    ← canonical agent definitions (editable)
 ├── templates/                 ← spec, plan, review templates (editable)
-├── practices/                 ← sustainable code, static analysis, session context
+├── practices/                 ← sustainable code, static analysis, session context, plan check
 ├── structure.md               ← this project's structure (`structure` product)
 ├── structure/                 ← common rules, levels, stack presets
 ├── status.md                  ← where the work stands now (`context` product, §6d)
@@ -52,7 +52,8 @@ AGENTS.md                      ← project rules (source of truth, open standard
         │   ├── index.md       ← stack overview in reading order
         │   └── s01-<slug>.md  ← one guide per section / PR
         ├── qa/
-        │   └── <mode>-<slug>.md ← one report per QA pass
+        │   ├── <mode>-<slug>.md ← one report per QA pass
+        │   └── walks/<slug>.json ← the steps `aidt qa walk` plays (screenshots are not committed)
         ├── demo/
         │   └── <slug>.json    ← the demo's script (the video itself is not committed)
         ├── summary.md         ← the block's record when it closes (§6d)
@@ -123,17 +124,18 @@ The reviewer is fast and verdict-oriented. The walkthrough is for keeping contro
 The reviewer reads the code against the plan. The QA **uses the product** as the people who will use it, and judges it against what they need and what the product promises them. A reviewer's PASS and green tests prove nothing to it: they cover the paths someone already thought of. Its findings are of another kind, mostly at the seams between flows that no diff shows: a group where there used to be one person, the staff side of a new state, an email that promises what the screen does not do.
 
 - **Only when asked:** `/qa` in Claude Code, picking `qa` in Copilot. No agent hands off to it and no mode runs it on its own. On a real project one pass spent about 850 000 tokens and the whole QA of one block about 1.3 M, so it always starts with a scope and an estimate.
-- **Installed alone:** `aidt add qa` copies the agent, the project template `app.md` (unless the `demo` already brought it) and the report template `qa-report.md`.
-- **Generic agent + project notes.** The agent is the same everywhere; `.aidt/app.md` is this product, shared with the `demo`: how to start and stop it and read its logs, what is faked locally, how to give each person a client of its own, the end-to-end helpers that reach a state fast, how to simulate time passing. Its «QA» part adds the people and their devices, where the flows and promises are written, and what is already known or accepted. On the first run without it, the agent drafts it from the repository (compose files, end-to-end config and helpers, scripts) and stops for approval.
+- **Installed alone:** `aidt add qa` copies the agent, the project template `app.md` (unless the `demo` already brought it), the report template `qa-report.md`, the walk template `qa-walk.json` and the practice `plan-check.md`.
+- **Generic agent + project notes.** The agent is the same everywhere; `.aidt/app.md` is this product, shared with the `demo`: how to start and stop it and read its logs, what is faked locally, how to give each person a client of its own, the end-to-end helpers that reach a state fast, how to simulate time passing. Its «QA» part adds where the flows and promises are written, what is already known or accepted, and what someone with bad intentions could try. On the first run without it, the agent drafts it from the repository (compose files, end-to-end config and helpers, scripts) and the user approves it with the first scope.
 - **Modes:** `block` (the journeys a change changes and the ones it touches), `flow` (one whole flow, every person, every state), `audit` (every flow, before a launch).
-- **1. Scope and budget**, and nothing else, unless the call says the scope is approved: the journeys changed (from the plan if there is one, the changed files and `erctx context` when available), the journeys touched (older ones whose assumptions no longer hold), the promises that describe them (pages, emails, terms), and what is not built yet on purpose. It proposes the people, the states to try, the walkers (one per person when they share no state), the tier and a token estimate. Called again with "scope approved", it walks. In Claude Code the caller can start one walker per person in parallel.
-- **2. Walk** each journey from its real start (a link, an email, the landing page) to its real end, as each person plus someone with bad intentions: a real browser (phone or desktop), each person in a browser context of its own; back, reload, leaving halfway, the same link with no session or in another person's, a double tap, odd values, expired sessions and links, failed or slow calls, every email the step sends and where its links land. Clickable designs and written processes are walked the same way.
+- **1. Scope and budget**, and nothing else, unless the call says the scope is approved: the journeys changed (from the plan if there is one, the changed files and `erctx context` when available), the journeys touched (older ones whose assumptions no longer hold), the promises that describe them (pages, emails, terms), and what is not built yet on purpose. It proposes the people, the states to try, the tier and a token estimate. Called again with "scope approved", it walks.
+- **2. Walk** each journey from its real start (a link, an email, the landing page) to its real end, as each person plus someone with bad intentions. Running apps are walked with **`aidt qa walk <file>`**, the same way the demo is rendered: the agent writes the steps as JSON (`.aidt/tasks/<task-id>/qa/walks/<slug>.json`) and the CLI plays them in a real browser, with no model and no code of the agent's own. Each person has a browser context of its own (cookies, storage, device: `phone` or `desktop`); a step may switch person (`as`). Steps: the demo's (`go`, `click`, `fill`, `select`, `press`, `wait`), plus `click` with `times` (a double tap), `back`, `reload`, `look` (a screenshot and the page's text), `keep` (a value from the page, such as an id, reused as `{name}` in later steps: another person's link or cart), `request` (a call to the app with the person's cookies: what a client that skips the page can do), `offline` (failed calls) and `clear` (cookies or storage: an expired session). For every step the CLI prints what the app answered: the page's status, the calls it made with their status, console and page errors, and calls that failed. A step that cannot be done stops the walk with a screenshot of what the screen showed instead. The app must already be running (started as `.aidt/app.md` says); the walk never starts anything. Screenshots and logs go to `qa.output` (`.aidt/qa/`, ignored by git); the walk files are committed with the report. Walks are independent files, so several can run at once. Clickable designs and written processes are walked by reading them, the same way.
 - **3. Findings:** dead end, bug, contradiction, broken promise, confusing, blind spot. Code style and structure are the reviewer's.
-- **4. Confirm:** each finding reproduced a second time from a known state; what could not be is kept under "Unconfirmed", never dropped.
-- **5. Verdict**, bound to the commit walked: `FAIL` with a confirmed 🔴, or with a 🟡 neither fixed nor written down as accepted by the user (unowned 🟡 are how a hundred of them pile up). Report from `qa-report.md` in `.aidt/tasks/<task-id>/qa/<mode>-<slug>.md`.
-- **Second pass**, in a fresh context with the first report: only what it lists as not covered, plus the fixes.
-- **End-to-end tests:** the QA explores once and expensively; the suite guards cheaply from then on. Every confirmed finding that is fixed leaves an end-to-end test that reproduces its steps, written with the fix. The QA reuses the suite's helpers to reach a state fast, then explores by hand.
-- **Limits:** never edits code, designs or documents, never commits, pushes or comments; its reports are the only files it writes. It starts and stops only what it started, and changes data only to simulate time, saying so each time.
+- **4. Confirm:** each finding reproduced a second time from a known state, by running its walk file again; what could not be is kept under "Unconfirmed", never dropped.
+- **5. Verdict**, bound to the commit walked: `FAIL` with a confirmed 🔴, or with a 🟡 neither fixed nor written down as accepted by the user (unowned 🟡 are how a hundred of them pile up). Report from `qa-report.md` in `.aidt/tasks/<task-id>/qa/<mode>-<slug>.md`, each finding with the walk file that reproduces it.
+- **Second pass**, in a fresh context with the first report: only what it lists as not covered, plus the fixes (their walk files run again first).
+- **End-to-end tests:** the QA explores once and expensively; the suite guards cheaply from then on. Every confirmed finding that is fixed leaves a test that reproduces its steps (end to end when the project has a suite), written with the fix from the finding's walk file. The QA reuses the suite's helpers to reach a state fast, then explores.
+- **Before building:** `plan-check.md`, installed with the QA, is the list a block's plan goes through (people, states, seams, contradictions, official data, business, promises, what is left out). The planner goes through it only in projects that have it: a gap found in the plan costs a line, found by the QA it costs a fix.
+- **Limits:** never edits code, designs or documents, never commits, pushes or comments; its reports, walk files and the «QA» part of `.aidt/app.md` are the only files it writes. It starts and stops only what it started, and changes data only to simulate time, saying so each time. v1 walks web apps; slow calls, terminal and native mobile apps later.
 
 ### 5.4d Demo (a narrated video of what was just built, on demand)
 A video that walks what a task built, screen by screen, with a voice that explains each step: for whoever reviews the PR, and for whoever asked for the change, with a ticket or without one.
@@ -396,7 +398,8 @@ Sections (each enabled/disabled or extended via `templates/review-section.md`):
     "output": ".aidt/demo",
     "voice": { "language": "es-419", "gender": "female" },
     "subtitles": "file"
-  }
+  },
+  "qa": { "output": ".aidt/qa" }
 }
 ```
 
@@ -429,6 +432,7 @@ TypeScript, Node 24, minimal dependencies.
 | `aidt walkthrough <plan\|start\|finish>` | Split a change into ordered sections; check a PR out in an ignored worktree and remove it (§5.4b) |
 | `aidt context check [--json]` | What every session loads, against `context.budget`; the status's reading list exists (§6d) |
 | `aidt demo render <script>` | Record a demo script as a narrated video with subtitles, no model (§5.4d) |
+| `aidt qa walk <file>` | Play a QA walk in a real browser, one context per person, and print what the app answered at each step, no model (§5.4c) |
 | `aidt customize <agent>` | Optional guided customization |
 
 Agents call these scripts instead of doing mechanical work with tokens. Adapters also allow each `aidt` command as `npx @akiles94/ai-dev-toolkit …`, so agents work without a global install.

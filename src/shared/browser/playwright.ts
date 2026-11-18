@@ -123,3 +123,5 @@ export const SCREENS = {
     hasTouch: true,
   },
 } as const;
+
+export type Device = keyof typeof SCREENS;

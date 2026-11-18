@@ -36,7 +36,7 @@ describe("demo templates", () => {
       s.steps.map((st) => Object.keys(st)[0]),
     );
     expect(new Set(kinds)).toEqual(
-      new Set(["go", "say", "fill", "click", "scroll", "press", "wait"]),
+      new Set(["go", "say", "fill", "select", "click", "scroll", "press", "wait"]),
     );
   });
 

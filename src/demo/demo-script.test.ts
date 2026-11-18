@@ -13,6 +13,7 @@ const valid = {
         { click: "Restock" },
         { click: { selector: "#qty", nth: 1 } },
         { fill: { label: "Quantity", value: "12" } },
+        { select: { label: "Category", option: "Books" } },
         { press: "Enter" },
         { scroll: "Alerts" },
         { wait: 500 },
@@ -48,7 +49,7 @@ describe("parseScript", () => {
       "`device` is `desktop` or `phone`",
       "scene 1, step 1: say needs a text",
       "scene 1, step 2: click needs a text, or an object with `text` or `selector`",
-      "scene 1, step 3: must have exactly one of go, say, press, scroll, wait, click, fill",
+      "scene 1, step 3: must have exactly one of go, say, press, scroll, wait, click, fill, select",
       "scene 1, step 4: wait needs milliseconds",
       "scene 2: needs a `title` and a list of `steps`",
     ]);

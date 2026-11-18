@@ -32,6 +32,7 @@ interface Locator {
   click(): Promise<void>;
   pressSequentially(text: string, o: { delay: number }): Promise<void>;
   fill(text: string): Promise<void>;
+  selectOption(option: { label: string }): Promise<unknown>;
 }
 interface Page {
   goto(url: string): Promise<unknown>;
@@ -108,6 +109,32 @@ async function tap(page: Page, locator: Locator): Promise<void> {
   await page.waitForTimeout(350);
 }
 
+/** A form field by its label, or by a selector when no label tells it apart. */
+const field = (page: Page, where: { label?: string; selector?: string }): Locator =>
+  where.label ? page.getByLabel(where.label).first() : page.locator(where.selector ?? "").first();
+
+/** The steps that change a page: tapping, typing and choosing, each shown with a circle. */
+async function act(page: Page, step: Step): Promise<void> {
+  if ("click" in step) {
+    const target =
+      typeof step.click === "string" ? locate(page, step.click).first() : locate(page, step.click);
+    await tap(page, target);
+    await target.click();
+    await page.waitForLoadState("load");
+    await page.waitForTimeout(400);
+  } else if ("fill" in step) {
+    const input = field(page, step.fill);
+    await tap(page, input);
+    await input.fill("");
+    await input.pressSequentially(step.fill.value, { delay: 60 });
+  } else if ("select" in step) {
+    const dropdown = field(page, step.select);
+    await tap(page, dropdown);
+    await dropdown.selectOption({ label: step.select.option });
+    await page.waitForTimeout(500);
+  }
+}
+
 /** Runs one step on the page; a `say` waits while its line is spoken. */
 async function run(
   page: Page,
@@ -124,20 +151,7 @@ async function run(
     if (!box) throw new Error(`no visible text «${step.scroll}»`);
     await page.evaluate(`window.scrollBy({ top: ${Math.round(box.y - 160)}, behavior: "smooth" })`);
     await page.waitForTimeout(1000);
-  } else if ("click" in step) {
-    const target =
-      typeof step.click === "string" ? locate(page, step.click).first() : locate(page, step.click);
-    await tap(page, target);
-    await target.click();
-    await page.waitForLoadState("load");
-    await page.waitForTimeout(400);
-  } else if ("fill" in step) {
-    const { label, selector, value } = step.fill;
-    const field = label ? page.getByLabel(label).first() : page.locator(selector ?? "").first();
-    await tap(page, field);
-    await field.fill("");
-    await field.pressSequentially(value, { delay: 60 });
-  }
+  } else await act(page, step);
 }
 
 /** One step in words, for the message that says where a render stopped. */

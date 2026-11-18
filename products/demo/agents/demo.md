@@ -51,7 +51,8 @@ Fill `.aidt/templates/demo-script.json` into `.aidt/tasks/<task-id>/demo/<slug>.
 
 - `app.start` and `app.url` from `.aidt/app.md`; every `go` is a path on that address.
 - Read each screen before writing its steps: the exact texts of its buttons and labels, so
-  `click` and `fill` find them. Use a `selector` only when no visible text tells two apart.
+  `click`, `fill` and `select` find them. Use a `selector` only when no visible text tells two
+  apart. A dropdown is a `select` step: the browser's option list never shows in the video.
 - **Voice:** one idea per `say`, said before or while it happens on screen. Short sentences in
   the voice's language (`demo.voice.language` in `.aidt/config.json`), numbers and dates written
   as they are spoken, no jargon from the code. Never read the screen aloud word by word.

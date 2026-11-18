@@ -25,6 +25,7 @@ const canRecord = Boolean(loadPlaywright(process.cwd())) && has("ffmpeg", ["-ver
 const canSpeak = canRecord && existsSync(PIPER) && existsSync(VOICE);
 
 const PAGE = `<!doctype html><title>Stock</title><h1>Low stock</h1><p id="msg">Two products are low.</p>
+<label>Category <select><option>All</option><option>Books</option></select></label>
 <label>Quantity <input id="qty"></label><button onclick="msg.textContent='Restocked'">Restock</button>`;
 
 let server: Server;
@@ -67,6 +68,7 @@ describe("aidt demo render", () => {
     const repo = repoWith([
       { go: "/" },
       { say: "Two products are low." },
+      { select: { label: "Category", option: "Books" } },
       { fill: { label: "Quantity", value: "12" } },
       { click: "Restock" },
     ]);

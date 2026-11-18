@@ -17,6 +17,14 @@ export type Step =
         readonly value: string;
       };
     }
+  | {
+      /** A dropdown: the browser's own option list is not recorded, so the choice is set directly. */
+      readonly select: {
+        readonly label?: string;
+        readonly selector?: string;
+        readonly option: string;
+      };
+    }
   | { readonly press: string }
   | { readonly scroll: string }
   | { readonly wait: number };
@@ -72,6 +80,13 @@ const STEP_CHECKS: Record<string, (value: unknown) => string | undefined> = {
     return where && typeof fill.value === "string"
       ? undefined
       : "fill needs `label` or `selector`, and `value`";
+  },
+  select: (value) => {
+    const select = isObject(value) ? value : {};
+    const where = isText(select.label) || isText(select.selector);
+    return where && isText(select.option)
+      ? undefined
+      : "select needs `label` or `selector`, and the `option` to choose";
   },
 };
 

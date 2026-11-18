@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { type Locator, type Page, type Playwright, SCREENS } from "../shared/browser/playwright.ts";
+import { field, locate } from "../shared/browser/steps.ts";
 import { fail, ok, type Result } from "../shared/result/result.ts";
 import type { Cue } from "./demo-media.ts";
-import type { DemoScript, Step, Target } from "./demo-script.ts";
+import type { DemoScript, Step } from "./demo-script.ts";
 
 /** A line already turned into speech, waiting for its moment in the recording. */
 export interface Speech {
@@ -31,16 +32,6 @@ const DEVICES = {
   phone: { ...SCREENS.phone, recordVideo: { size: { width: 780, height: 1688 } } },
 };
 
-function locate(page: Page, target: Target): Locator {
-  if (typeof target === "string") {
-    return page
-      .locator("a, button, [role=button], label, summary, input[type=submit]")
-      .filter({ hasText: target });
-  }
-  if (target.selector) return page.locator(target.selector).nth(target.nth ?? 0);
-  return page.getByText(target.text ?? "").nth(target.nth ?? 0);
-}
-
 async function tap(page: Page, locator: Locator): Promise<void> {
   await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
@@ -52,15 +43,10 @@ async function tap(page: Page, locator: Locator): Promise<void> {
   await page.waitForTimeout(350);
 }
 
-/** A form field by its label, or by a selector when no label tells it apart. */
-const field = (page: Page, where: { label?: string; selector?: string }): Locator =>
-  where.label ? page.getByLabel(where.label).first() : page.locator(where.selector ?? "").first();
-
 /** The steps that change a page: tapping, typing and choosing, each shown with a circle. */
 async function act(page: Page, step: Step): Promise<void> {
   if ("click" in step) {
-    const target =
-      typeof step.click === "string" ? locate(page, step.click).first() : locate(page, step.click);
+    const target = locate(page, step.click);
     await tap(page, target);
     await target.click();
     await page.waitForLoadState("load");

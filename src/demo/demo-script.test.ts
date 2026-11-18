@@ -37,7 +37,13 @@ describe("parseScript", () => {
       scenes: [
         {
           title: "One",
-          steps: [{ say: "" }, { click: {} }, { go: "/", say: "two kinds" }, { wait: 0 }],
+          steps: [
+            { say: "" },
+            { click: {} },
+            { go: "/", say: "two kinds" },
+            { wait: 0 },
+            { go: "/", as: "someone" },
+          ],
         },
         { steps: [] },
       ],
@@ -49,8 +55,9 @@ describe("parseScript", () => {
       "`device` is `desktop` or `phone`",
       "scene 1, step 1: say needs a text",
       "scene 1, step 2: click needs a text, or an object with `text` or `selector`",
-      "scene 1, step 3: must have exactly one of go, say, press, scroll, wait, click, fill, select",
+      "scene 1, step 3: must have exactly one of go, press, wait, click, fill, select, say, scroll",
       "scene 1, step 4: wait needs milliseconds",
+      "scene 1, step 5: unknown key `as`",
       "scene 2: needs a `title` and a list of `steps`",
     ]);
   });

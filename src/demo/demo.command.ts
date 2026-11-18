@@ -1,9 +1,10 @@
 import { type ChildProcess, execFile } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { join, relative } from "node:path";
 import { promisify } from "node:util";
+import { prepareIgnoredFolder, readJsonFile } from "../shared/browser/files.ts";
 import { INSTALL_PLAYWRIGHT, loadPlaywright } from "../shared/browser/playwright.ts";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import { git } from "../shared/git/git.ts";
@@ -74,22 +75,6 @@ async function speak(context: CliContext, voice: Voice, lines: string[], workDir
   return speeches;
 }
 
-async function readScript(root: string, path: string): Promise<DemoScript> {
-  const raw = await readFile(resolve(root, path), "utf8").catch(() => {
-    throw new UsageError(`No demo script at ${path}.`);
-  });
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch (error) {
-    throw new UsageError(`${path} is not valid JSON: ${(error as Error).message}`);
-  }
-  const parsed = parseScript(json);
-  if (!parsed.ok)
-    throw new UsageError(`${path} is not a valid demo script:\n  ${parsed.error.join("\n  ")}`);
-  return parsed.value;
-}
-
 /**
  * Records the script, and records it once more when the video lost its start (it came out shorter
  * than the time recorded, so the voice would drift from the picture).
@@ -129,20 +114,6 @@ function onInterrupt(cleanUp: () => void): () => void {
   };
 }
 
-/**
- * The output folder. When the render creates it, it gets a `.gitignore` so the videos stay out of
- * git; a folder that already existed is left as it is (it may hold files that are committed).
- */
-async function prepareOutput(root: string, folder: string): Promise<void> {
-  const full = join(root, folder);
-  const created = await mkdir(full, { recursive: true });
-  if (created !== undefined)
-    await writeFile(
-      join(full, ".gitignore"),
-      "# Demo videos: rendered from their scripts, not committed.\n*\n",
-    );
-}
-
 /** Mixes the recording with its voice into the final files, and returns what the render left. */
 async function finish(
   context: CliContext,
@@ -155,7 +126,11 @@ async function finish(
   const { root, config, flags } = context;
   const slug = slugOf(scriptPath) + (flags.sample ? "-sample" : "");
   const out = outputPaths(root, config.demo, slug);
-  await prepareOutput(root, config.demo.output);
+  await prepareIgnoredFolder(
+    root,
+    config.demo.output,
+    "Demo videos: rendered from their scripts, not committed.",
+  );
   const vtt = config.demo.subtitles === "file" ? out.vtt : join(workDir, "subtitles.vtt");
   await writeFile(vtt, toVtt(recorded.cues));
   const burn = config.demo.subtitles === "burned";
@@ -185,7 +160,7 @@ async function render(context: CliContext, scriptPath: string | undefined): Prom
   if (!SUBTITLES.includes(config.demo.subtitles))
     throw new UsageError(`demo.subtitles is "${config.demo.subtitles}": use file, burned or none.`);
   const began = Date.now();
-  const full = await readScript(root, scriptPath);
+  const full = await readJsonFile(root, scriptPath, "demo script", parseScript);
   const script = flags.sample ? { ...full, scenes: full.scenes.slice(0, 1) } : full;
   const voice = chooseVoice(config.demo);
   if (typeof voice === "string") throw new UsageError(voice);

@@ -65,13 +65,14 @@ const INSTALLABLES: Record<string, Installable> = {
   },
   qa: {
     product: "qa",
-    paths: ["agents", "templates"],
+    paths: ["agents", "templates", "practices"],
     shared: [{ product: "demo", path: "templates/app.md" }],
     next: [
       "Next: ask for a QA pass with /qa (Claude Code) or the qa agent (Copilot), naming the mode",
       "(block, flow or audit) and the branch. It proposes the scope and its cost first, and drafts",
       ".aidt/app.md if the project has none. Walks need Playwright (the first one says how to",
-      "install it) and the app running; screenshots stay out of git, walks are committed.",
+      "install it) and the app running; screenshots stay out of git, walks are committed. The",
+      "planner goes through .aidt/practices/plan-check.md from now on.",
     ].join("\n"),
   },
 };

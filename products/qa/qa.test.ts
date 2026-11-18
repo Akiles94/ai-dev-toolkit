@@ -80,4 +80,10 @@ describe("qa templates", () => {
     for (const part of ["## Scope", "## Findings", "## Unconfirmed", "## Not covered", "## Cost"])
       expect(report).toContain(part);
   });
+
+  it("the planner goes through the plan check only where the qa brought it", () => {
+    const planner = read("../workflow/agents/planner.md");
+    expect(planner).toContain("only in projects that have `.aidt/practices/plan-check.md`");
+    expect(read("practices/plan-check.md")).toContain("Name them in the plan: the QA walks them.");
+  });
 });

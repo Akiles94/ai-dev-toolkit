@@ -177,7 +177,7 @@ describe("aidt add", () => {
     }
   });
 
-  it("installs the qa agent with its templates and the app notes it shares", () => {
+  it("installs the qa agent with its templates, the plan check and the app notes it shares", () => {
     const { code, out } = run(repo, "add", "qa");
     expect(code).toBe(0);
     expect(out).toContain("ask for a QA pass with /qa");
@@ -185,6 +185,7 @@ describe("aidt add", () => {
       ".aidt/templates/qa-walk.json",
       ".aidt/templates/qa-report.md",
       ".aidt/templates/app.md",
+      ".aidt/practices/plan-check.md",
       ".claude/skills/qa/SKILL.md",
       ".github/agents/qa.agent.md",
     ]) {

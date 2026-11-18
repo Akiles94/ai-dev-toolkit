@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { addCommand } from "./add/add.command.ts";
 import { checkCommand } from "./check/check.command.ts";
 import { cleanCommand } from "./clean/clean.command.ts";
+import { contextCommand } from "./context/context.command.ts";
 import { diffCommand } from "./diff/diff.command.ts";
 import { type CliContext, print, UsageError } from "./shared/cli/cli-context.ts";
 import { loadConfig } from "./shared/config/config.ts";
@@ -19,8 +20,8 @@ import { walkthroughCommand } from "./walkthrough/walkthrough.command.ts";
 const HELP = `aidt: AI Dev Toolkit
 
 Usage
-  aidt add   <product|agent>               Copy into .aidt/ and sync: a product (workflow, structure)
-                                           or one agent alone (refiner, reviewer, walkthrough)
+  aidt add   <product|agent>               Copy into .aidt/ and sync: a product (workflow, structure,
+                                           context) or one agent alone (refiner, reviewer, walkthrough)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
@@ -29,6 +30,8 @@ Usage
   aidt stack prepare [--base <trunk>]      One local branch per reviewed section (pushes nothing)
   aidt stack submit  [--dry-run]           Push them and open one draft PR per section (gh, glab)
   aidt structure audit [--json]            Check the common structure rules (exit 1 if broken)
+  aidt context check [--json]              What every session loads, against its token budget
+                                           (exit 1 if over, or a «Read first» path is missing)
   aidt walkthrough plan [source] [--json]  Split a large change into sections to review in order
   aidt walkthrough start <ref> [name]      Check <ref> out in an ignored worktree and plan it
                        [--base <ref>]      (under .aidt/walkthrough/; nothing is committed)
@@ -44,7 +47,8 @@ Other
   -h, --help      Show this help
   -v, --version   Show the version
 
-Exit codes: 0 ok · 1 findings (--check, invalid agents, stack not ready) · 2 usage or git error`;
+Exit codes: 0 ok · 1 findings (--check, invalid agents, stack not ready, context over budget)
+            2 usage or git error`;
 
 function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -93,6 +97,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "add") return addThenSync(context, rest[0]);
   if (command === "stack") return stackCommand(context, rest[0]);
   if (command === "structure") return structureCommand(context, rest[0]);
+  if (command === "context") return contextCommand(context, rest[0]);
   if (command === "walkthrough") return walkthroughCommand(context, rest);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }

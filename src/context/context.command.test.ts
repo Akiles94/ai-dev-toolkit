@@ -1,0 +1,73 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { loadConfig } from "../shared/config/config.ts";
+import { featureRepo, write } from "../shared/testing/temp-repo.ts";
+import { contextCommand } from "./context.command.ts";
+
+async function check(repo: string, flags = {}) {
+  const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  const code = await contextCommand({ root: repo, config: await loadConfig(repo), flags }, "check");
+  const printed = out.mock.calls.map((c) => String(c[0])).filter((s) => !s.includes("\u0000"));
+  return { code, out: printed.join("") };
+}
+
+/** A repo whose CLAUDE.md imports AGENTS.md and a rules file, with a status in `.aidt/`. */
+function projectRepo(status: string): string {
+  const repo = featureRepo();
+  mkdirSync(join(repo, ".aidt"));
+  mkdirSync(join(repo, "docs"));
+  write(repo, {
+    "AGENTS.md": "# Rules\nRun npm test.\n",
+    "CLAUDE.md": "@AGENTS.md\n@docs/rules.md\n",
+    "docs/rules.md": "Names in English.\n",
+    "docs/flow.md": "x".repeat(400),
+    ".aidt/status.md": status,
+  });
+  return repo;
+}
+
+const STATUS = "# Status\n## Next\n### Read first\n- `docs/flow.md`\n";
+
+describe("aidt context check", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("measures what loads by itself, each file once, and the reading list", async () => {
+    const { code, out } = await check(projectRepo(STATUS));
+    expect(code).toBe(0);
+    expect(out).toContain("Always (loaded by the tool): 18 / 3,000 tokens · ok");
+    expect(out).toContain("docs/rules.md  5  (imported by CLAUDE.md)");
+    expect(out.match(/AGENTS\.md {2}/g)).toHaveLength(1);
+    expect(out).toContain("Read first (next session): 1 path(s), 100 tokens");
+  });
+
+  it("fails over budget and names the sections to move", async () => {
+    const repo = projectRepo(`# Status\n## Now\nwork\n## Done\n${"d".repeat(12_000)}\n`);
+    const { code, out } = await check(repo);
+    expect(code).toBe(1);
+    expect(out).toContain("Start (read first, every session): 3,008 / 2,500 tokens · over by 508");
+    expect(out).toContain("  3,003  ## Done");
+  });
+
+  it("fails when a path the next session must read does not exist", async () => {
+    const repo = projectRepo(`${STATUS}- \`docs/gone.md\`\n`);
+    const { code, out } = await check(repo);
+    expect(code).toBe(1);
+    expect(out).toContain("missing: docs/gone.md");
+  });
+
+  it("reads the files and budgets of the config, and prints JSON with --json", async () => {
+    const repo = projectRepo(STATUS);
+    write(repo, {
+      ".aidt/config.json": JSON.stringify({
+        context: { start: ["docs/flow.md"], budget: { start: 50 } },
+      }),
+    });
+    const { code, out } = await check(repo, { json: true });
+    const report = JSON.parse(out);
+    expect(code).toBe(1);
+    expect(report.layers[1]).toMatchObject({ name: "start", budget: 50, tokens: 100, over: true });
+    expect(report.layers[0].budget).toBe(3000);
+    expect(report.reading).toEqual([]);
+  });
+});

@@ -50,11 +50,32 @@ const HEADING = /^(#{1,6})\s+(.*\S)\s*$/;
 const withoutCode = (markdown: string): string =>
   markdown.replace(/^(```|~~~)[\s\S]*?^\1/gm, "").replace(/`[^`\n]*`/g, "");
 
+/**
+ * The heading level of each line (0 when it is not one). Lines inside fenced code are never
+ * headings: a `# install` comment in a shell example must not cut the file.
+ */
+function headingLevels(lines: readonly string[]): number[] {
+  let fence: string | undefined;
+  return lines.map((line) => {
+    const marker = /^\s*(```|~~~)/.exec(line)?.[1];
+    if (marker && (!fence || marker === fence)) {
+      fence = fence ? undefined : marker;
+      return 0;
+    }
+    return fence ? 0 : (HEADING.exec(line)?.[1]?.length ?? 0);
+  });
+}
+
 /** The file cut at every heading from `shallowest` down to `deepest`; before the first: `(top)`. */
-function splitAt(lines: readonly string[], shallowest: number, deepest: number): Section[] {
+function splitAt(
+  lines: readonly string[],
+  levels: readonly number[],
+  shallowest: number,
+  deepest: number,
+): Section[] {
   const sections: { heading: string; text: string }[] = [{ heading: "(top)", text: "" }];
-  for (const line of lines) {
-    const level = HEADING.exec(line)?.[1]?.length ?? 0;
+  for (const [i, line] of lines.entries()) {
+    const level = levels[i] ?? 0;
     if (level >= shallowest && level <= deepest) sections.push({ heading: line.trim(), text: "" });
     const current = sections.at(-1) as { text: string };
     current.text += `${line}\n`;
@@ -73,13 +94,14 @@ function splitAt(lines: readonly string[], shallowest: number, deepest: number):
  */
 export function largestSections(markdown: string, count = 3): Section[] {
   const lines = markdown.split("\n");
-  const found = lines.map((line) => HEADING.exec(line)?.[1]?.length ?? 0).filter((l) => l > 0);
+  const perLine = headingLevels(lines);
+  const found = perLine.filter((l) => l > 0);
   const shallowest = found.filter((level) => level === 1).length > 1 ? 1 : 2;
   const levels = [...new Set(found)].filter((l) => l >= shallowest).sort((a, b) => a - b);
   const half = estimateTokens(markdown) / 2;
-  let sections = splitAt(lines, shallowest, 0);
+  let sections = splitAt(lines, perLine, shallowest, 0);
   for (const level of levels) {
-    sections = splitAt(lines, shallowest, level);
+    sections = splitAt(lines, perLine, shallowest, level);
     const heaviest = sections[0];
     if (!heaviest || heaviest.tokens <= half || heaviest.heading === "(top)") break;
   }
@@ -107,12 +129,16 @@ const fileOnly = (path: string): string => path.replace(/#.*$/, "").replace(/:\d
 /** `https://…`, `mailto:…`: not a path in the repository. */
 const hasScheme = (path: string): boolean => /^[a-z][a-z0-9+.-]*:/i.test(path);
 
-const looksLikePath = (path: string): boolean =>
-  !hasScheme(path) && (path.includes("/") || path.includes("."));
+/** Judged without its line number: `CONTRIBUTING.md:31` is a file, `https://…` is not. */
+const looksLikePath = (path: string): boolean => {
+  const file = fileOnly(path);
+  return !hasScheme(file) && (file.includes("/") || file.includes("."));
+};
 
 /**
  * Paths named in one list item, before its «: why» part (which may quote code): in backticks,
- * from the repository root, or as the target of a link, from the status file's `folder`.
+ * from the repository root, or as the target of a link, from the status file's `folder` (or from
+ * the root when it starts with `/`).
  */
 function pathsInItem(item: string, folder: string): string[] {
   const head = item.split(/(?<=[`)]):\s/)[0] ?? item;
@@ -120,7 +146,7 @@ function pathsInItem(item: string, folder: string): string[] {
   const linked = [...head.matchAll(/\]\(([^)\s]+)\)/g)]
     .map((m) => m[1] ?? "")
     .filter(looksLikePath)
-    .map((target) => posix.join(folder, target));
+    .map((target) => (target.startsWith("/") ? target.slice(1) : posix.join(folder, target)));
   return [...quoted.filter(looksLikePath), ...linked].map(fileOnly);
 }
 
@@ -132,12 +158,13 @@ function pathsInItem(item: string, folder: string): string[] {
 export function readingList(markdown: string, folder = ""): string[] {
   const paths: string[] = [];
   let level = 0;
-  for (const line of markdown.replace(/<!--[\s\S]*?-->/g, "").split("\n")) {
-    const heading = HEADING.exec(line);
-    if (heading) {
-      const depth = heading[1]?.length ?? 0;
+  const lines = markdown.replace(/<!--[\s\S]*?-->/g, "").split("\n");
+  const levels = headingLevels(lines);
+  for (const [i, line] of lines.entries()) {
+    const depth = levels[i] ?? 0;
+    if (depth > 0) {
       if (level > 0 && depth <= level) level = 0;
-      if (/^read first\b/i.test(heading[2] ?? "")) level = depth;
+      if (/^read first\b/i.test(HEADING.exec(line)?.[2] ?? "")) level = depth;
       continue;
     }
     if (level > 0 && /^\s*([-*+]|\d+\.)\s/.test(line)) paths.push(...pathsInItem(line, folder));

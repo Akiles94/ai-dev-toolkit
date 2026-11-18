@@ -64,8 +64,10 @@ Tokens ≈ characters / 4. Layers and how to trim them: .aidt/practices/session-
 
 - **What it measures:** the configured files that exist, with `CLAUDE.md` `@` imports followed
   (up to five hops, inside the repository) and each file counted once.
-- **Over budget:** the heaviest sections of each file, cut at `##` and one level deeper while a
-  single section still holds more than half the file. Those are what to move.
+- **Over budget:** the heaviest sections of each file, cut below the title (at `##`, or at `#`
+  when the file has several), and one level deeper while a single section still holds more than
+  half the file; a heavy preamble stops the descent, and a `#` inside fenced code never cuts.
+  Those are what to move.
 - **Read first:** every path must exist, since a stale pointer sends the next session the wrong
   way. Paths go before the «: why» of each line, in backticks from the repository root or as links
   relative to the status file. Their total is reported, not budgeted.

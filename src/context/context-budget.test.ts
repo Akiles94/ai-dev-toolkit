@@ -45,6 +45,19 @@ describe("largestSections", () => {
     expect(largestSections(rules).map((s) => s.heading)).toEqual(["# Architecture", "# Commands"]);
   });
 
+  it("never cuts at a # inside fenced code, such as a shell comment", () => {
+    const setup = [
+      "## Setup",
+      "```bash",
+      "# install the dependencies",
+      "npm ci",
+      "```",
+      "s".repeat(900),
+    ];
+    const rules = ["# Rules", ...setup, "## Style", "t".repeat(400)].join("\n");
+    expect(largestSections(rules).map((s) => s.heading)).toEqual(["## Setup", "## Style", "(top)"]);
+  });
+
   it("does not go deeper when the heaviest part is the preamble", () => {
     const sections = largestSections(`${"p".repeat(1200)}\n## A\n${"a".repeat(600)}\n### A1\nx\n`);
     expect(sections.map((s) => s.heading)).toEqual(["(top)", "## A"]);
@@ -100,6 +113,11 @@ describe("readingList", () => {
       "- `https://example.com/api`: the provider's docs",
     ].join("\n");
     expect(readingList(list)).toEqual(["src/money/money.ts"]);
+  });
+
+  it("keeps a path with a line number, and reads a link from / at the repository root", () => {
+    const list = "### Read first\n- `CONTRIBUTING.md:31`: the size rule\n- [flow](/docs/flow.md)\n";
+    expect(readingList(list, ".aidt")).toEqual(["CONTRIBUTING.md", "docs/flow.md"]);
   });
 
   it("resolves links from the status file's folder, backticks from the repository root", () => {

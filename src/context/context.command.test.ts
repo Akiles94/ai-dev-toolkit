@@ -1,5 +1,5 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../shared/config/config.ts";
 import { featureRepo, write } from "../shared/testing/temp-repo.ts";
@@ -50,14 +50,17 @@ describe("aidt context check", () => {
 
   it("follows imports inside the repository only, each file once, at most five hops", async () => {
     const repo = projectRepo(STATUS);
+    const outside = `${basename(repo)}-outside.md`;
+    writeFileSync(join(repo, "..", outside), "o".repeat(4000));
     mkdirSync(join(repo, "chain"));
     write(repo, {
-      "CLAUDE.md": "@../outside.md @docs/rules.md @chain/1.md\n",
+      "CLAUDE.md": `@../${outside} @docs/rules.md @chain/1.md\n`,
       "docs/rules.md": "@../CLAUDE.md @rules.md\n",
       ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((i) => [`chain/${i}.md`, `@${i + 1}.md\n`])),
     });
     const { out } = await check(repo);
-    expect(out).not.toContain("outside.md");
+    rmSync(join(repo, "..", outside));
+    expect(out).not.toContain(outside);
     expect(out.match(/docs\/rules\.md {2}/g)).toHaveLength(1);
     expect(out).toContain("chain/5.md");
     expect(out).not.toContain("chain/6.md");
@@ -69,6 +72,15 @@ describe("aidt context check", () => {
     expect(code).toBe(1);
     expect(out).toContain("Start (read first, every session): 3,008 / 2,500 tokens · over by 508");
     expect(out).toContain("  3,003  ## Done");
+  });
+
+  it("resolves the status's links from its own folder", async () => {
+    const repo = projectRepo("## Next\n### Read first\n- [the plan](tasks/feat-x/plan.md)\n");
+    mkdirSync(join(repo, ".aidt", "tasks", "feat-x"), { recursive: true });
+    write(repo, { ".aidt/tasks/feat-x/plan.md": "# Plan\n" });
+    const { code, out } = await check(repo);
+    expect(code).toBe(0);
+    expect(out).not.toContain("missing");
   });
 
   it("fails when a path the next session must read does not exist", async () => {

@@ -21,6 +21,8 @@ npx @akiles94/ai-dev-toolkit add reviewer    # just the reviewer: review any bra
 npx @akiles94/ai-dev-toolkit add walkthrough # walk a big PR from a teammate, 300 lines at a time
 npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → planner → builder → reviewer
 npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
+npx @akiles94/ai-dev-toolkit add context     # keep what every new session reads short, and checked
+npx @akiles94/ai-dev-toolkit add demo        # a narrated video of what a task built, for its PR
 ```
 
 Then, in your AI tool:
@@ -48,6 +50,8 @@ Then, in your AI tool:
 | `walkthrough` | Walks you through someone else's large PR, one section of ≤300 lines at a time, in reading order, with explanatory comments written into a local copy of the code. You stay in control of what you approve. | [walkthrough](docs/walkthrough.md) |
 | `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. | [refiner](docs/refiner.md) |
 | `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. | [structure](docs/structure.md) |
+| `demo` | A narrated video of what a task built, screen by screen, for whoever reviews the PR. The agent writes a short script; `aidt demo render` records it with a real browser and an offline voice, so rendering it again after a fix costs no tokens. Voice by language (Spain or Latin American Spanish, English) and gender, subtitles optional. | [demo](docs/demo.md) |
+| `context` | What every new AI session reads, kept in layers with a token budget a script checks: a short status rewritten when each block closes, the block's story in its own folder, and a reading list for the next session. | [context](docs/context.md) |
 | `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. | [cli](docs/cli.md) |
 
 Everything is copied into your repo as plain Markdown and becomes yours to edit. No runtime
@@ -64,11 +68,14 @@ is kept in full, so you can see the results before installing anything. Measured
 | [Refiner](docs/refiner.md#cost-and-model), one-line ticket to spec | Sonnet | 1 min 40 s | $0.25 |
 | [Architect](docs/structure.md#cost-and-model), audit and proposal | Sonnet | 34 s | $0.15 |
 | [Full workflow](docs/workflow.md#cost-and-model), ticket to 2 stacked PRs | Sonnet | 7 min 36 s | $1.43 |
+| [Full workflow](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/storefront), ticket to a web page in 3 reviewed sections | Sonnet | 6 min 40 s | $1.65 |
+| [Demo](docs/demo.md#cost-and-model), that page as a 1 min 20 s narrated video | Sonnet | 4 min 40 s | $0.28 |
+| [Context](docs/context.md#measured), closing a block: a status 80 % shorter, 5 summaries | Sonnet | 1 min 5 s | $0.28 |
 
 ### How these numbers were measured
 
-- **Tool:** Claude Code 2.1.319, run headless (`claude -p`), with approvals and answers typed by
-  hand at every gate, as a user would.
+- **Tool:** Claude Code 2.1.319 (the first five runs) and 2.1.327 (the last three), run headless
+  (`claude -p`), with approvals and answers typed by hand at every gate, as a user would.
 - **Configuration:** the defaults, with no `models` block in `.aidt/config.json`. Every agent
   is tier `balanced`, so all runs used `claude-sonnet-5-5`.
 - **Cost:** what Claude Code reports at API list prices, cache reads included (most input tokens
@@ -76,6 +83,8 @@ is kept in full, so you can see the results before installing anything. Measured
   toward usage limits instead.
 - **One run each**, on a small demo repository. Three reviewer runs on the same branch cost
   between $0.22 and $0.29: expect that kind of spread from run to run.
+- **Rendering a demo costs no tokens:** the $0.28 is the agent writing the script; rendering it
+  again later took 1 min 50 s and nothing else.
 - **Not measured:** GitHub Copilot, which bills by premium requests of your plan and uses the model
   selected in the chat or [configured per tier](docs/cli.md#models).
 
@@ -172,6 +181,17 @@ open(): Result<VaultSession, DomainError> {
 At the end: requirement coverage, 3 🔴 and 9 🟡 findings written as review comments ready to
 paste, and the local copy removed with every comment in it. Your branch is never touched.
 
+## The demo, on a real page
+
+The storefront page of [shop-api](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/storefront), built with the full workflow, then shown by the
+`demo` agent: it proposed the scenes and a cost, wrote a script, and `aidt demo render` recorded
+it with an offline voice.
+
+[![The storefront demo](docs/media/demo-storefront.gif)](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4)
+
+*Silent here; [the video](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4) is 1 min 20 s with its voice. Its
+script, subtitles and PR text: [examples/demo](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/demo).*
+
 ## The full workflow, on a real task
 
 A trial on [Valija](https://github.com/Akiles94/valija), a TypeScript CLI and desktop app, for
@@ -198,13 +218,15 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
 | `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
 | `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
 | `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |
 | `aidt check` | Task gates: section sizes, every requirement has a test |
 | `aidt stack prepare` / `submit` | One branch and one draft PR per reviewed section (`gh` or `glab`) |
 | `aidt structure audit` | Check the structure rules; exceptions live in `.aidt/structure.md` |
+| `aidt context check` | What every session loads against its token budget; the next session's reading list exists |
+| `aidt demo render <script>` | Record a demo script as a narrated video with subtitles and a PR text, no tokens |
 | `aidt walkthrough plan` | Split a change into sections of ≤300 lines, in reading order |
 | `aidt walkthrough start <ref> <name>` / `finish <name>` | Check a PR out in an ignored local copy and plan it / remove it with its comments |
 
@@ -221,8 +243,9 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - `init`: guided setup of your project's AI files (`AGENTS.md`, rules, structure).
 - `profile`: your personal coding preferences, applied on every project.
-- `docs` and `context`: living docs for people and lean context for agents, powered by
-  [living-docs](https://github.com/Akiles94/living-docs) and
+- `qa`: an agent that uses the product as each person who will use it, on demand.
+- `docs`, and code knowledge in `context`: living docs for people and cross-module flows for
+  agents, powered by [living-docs](https://github.com/Akiles94/living-docs) and
   [easy-repo-context](https://github.com/Akiles94/easy-repo-context).
 - More AI tools (Codex, Gemini CLI, Cursor) and published token measurements.
 

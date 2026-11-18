@@ -1,4 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "project": ["src/**/*.ts", "products/**/*.ts"]
+  "project": ["src/**/*.ts", "products/**/*.ts"],
+  "ignoreBinaries": ["ffprobe"]
 }

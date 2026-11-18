@@ -49,6 +49,31 @@ export interface AidtConfig {
     /** File names that may sit among folders as entry points (`index`, `main`). */
     entryNames: string[];
   };
+  context: {
+    /** Rules files the AI tools load by themselves; `CLAUDE.md` `@` imports are followed. */
+    always: string[];
+    /** Files every session is told to read first (the status). */
+    start: string[];
+    /** Estimated tokens each layer may take before `aidt context check` fails. */
+    budget: { always: number; start: number };
+  };
+  demo: {
+    /**
+     * The command that starts the product for a recording, stopped after it. In the config and
+     * not in the script, so an agent that writes scripts cannot make a render run something else.
+     */
+    start?: string;
+    /** Folder for the rendered videos, ignored by git: only the scripts are committed. */
+    output: string;
+    /** `language` and `gender` pick a voice; `model` (and `speaker`) name any Piper voice instead. */
+    voice: { language: string; gender: "female" | "male"; model?: string; speaker?: number };
+    /** Where the voice models are; `~` is the user's home. */
+    voices: string;
+    /** The Piper command. */
+    piper: string;
+    /** `file`: a .vtt next to the video · `burned`: drawn into it · `none`. */
+    subtitles: "file" | "burned" | "none";
+  };
 }
 
 export const DEFAULT_CONFIG: AidtConfig = {
@@ -133,6 +158,18 @@ export const DEFAULT_CONFIG: AidtConfig = {
     globalNames: ["api", "types", "constants", "store", "services", "endpoints", "interfaces"],
     entryNames: ["index", "main", "app", "server", "program", "cli", "mod", "lib", "startup"],
   },
+  context: {
+    always: ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"],
+    start: [".aidt/status.md"],
+    budget: { always: 3000, start: 2500 },
+  },
+  demo: {
+    output: ".aidt/demo",
+    voice: { language: "en-US", gender: "female" },
+    voices: "~/.cache/aidt/voices",
+    piper: "piper",
+    subtitles: "file",
+  },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");
@@ -167,5 +204,15 @@ export async function loadConfig(repoRoot: string): Promise<AidtConfig> {
     sync: { ...DEFAULT_CONFIG.sync, ...parsed.sync },
     models: mergeModels(parsed.models),
     structure: { ...DEFAULT_CONFIG.structure, ...parsed.structure },
+    context: {
+      ...DEFAULT_CONFIG.context,
+      ...parsed.context,
+      budget: { ...DEFAULT_CONFIG.context.budget, ...parsed.context?.budget },
+    },
+    demo: {
+      ...DEFAULT_CONFIG.demo,
+      ...parsed.demo,
+      voice: { ...DEFAULT_CONFIG.demo.voice, ...parsed.demo?.voice },
+    },
   };
 }

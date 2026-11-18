@@ -3,6 +3,39 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-11-18
+
+### Added
+
+- **`demo` agent** (`aidt add demo`): a narrated video of what a task built, for the PR. Only when
+  asked; it proposes scenes, length and a token estimate first, writes a JSON script, renders a
+  first-scene sample the first time, then the video, and hands over a PR text. It writes only its
+  scripts and `.aidt/app.md` (how to run the product, shared with the future `qa`).
+- **`aidt demo render <script> [--sample]`**: records a script with no model, in a real browser
+  (Playwright from the project or installed globally) with an offline voice (Piper) mixed by
+  ffmpeg; a circle marks each tap. Steps: `go`, `say`, `click`, `fill`, `select`, `press`,
+  `scroll`, `wait`. The first failing step stops the render and is named. Writes the video,
+  WebVTT subtitles, the PR text and the facts (the video's length, size, render time, commit) to
+  `demo.output` (a `.gitignore` when the render creates the folder).
+- The render starts the app with `demo.start` from the config (never from a script), also one
+  that puts it in the background with `&`, and stops its process group after, also on Ctrl+C. A
+  start that fails (an error or a signal) ends the render at once, shows its error output and
+  stops anything it had already left in the background. A video that loses its start is
+  recorded once more. Nothing is installed or downloaded: what is missing is printed as commands.
+- `demo` in `.aidt/config.json`: `start`; the voice by language (`en-US`, `en-GB`, `es-ES`,
+  `es-419`) and gender, or any Piper model; subtitles `file`, `burned` or `none`; the output
+  folder.
+
+- **`context` product** (`aidt add context`): what every new AI session reads, in layers with a
+  token budget. `aidt context check [--json]` measures the rules files the tools load by
+  themselves (`CLAUDE.md` `@` imports followed) and the status every session reads first, fails
+  over budget with the heaviest sections to move, and checks that every path of the status's
+  «Read first» list exists. A practice (`session-context.md`) says how to close a block: the
+  block's story in its own `summary.md`, a row in the tasks index, the status rewritten with the
+  next session's reading list. Budgets and files: `context` in `.aidt/config.json`.
+- The builder runs `aidt context check` when a section changes a rules file or the status, and
+  the reviewer reports a breach as a finding, in projects that use `context`.
+
 ## [0.4.0] - 2026-11-07
 
 ### Added

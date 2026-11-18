@@ -116,6 +116,13 @@ describe("quality commands", () => {
       }
     }
   });
+
+  it("the builder and the reviewer keep what every session loads within its budget", () => {
+    for (const name of ["builder", "reviewer"]) {
+      expect(agent(name).commands).toContain("aidt context check");
+      expect(agent(name).instructions).toContain("session-context.md");
+    }
+  });
 });
 
 describe("refiner alone", () => {

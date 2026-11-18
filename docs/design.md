@@ -54,7 +54,7 @@ AGENTS.md                      ← project rules (source of truth, open standard
         ├── qa/
         │   └── <mode>-<slug>.md ← one report per QA pass
         ├── demo/
-        │   └── <slug>.yaml    ← the demo's script (the video itself is not committed)
+        │   └── <slug>.json    ← the demo's script (the video itself is not committed)
         ├── summary.md         ← the block's record when it closes (§6d)
         └── state.json         ← progress (resumable)
 ```
@@ -139,9 +139,9 @@ The reviewer reads the code against the plan. The QA **uses the product** as the
 A video that walks what a task built, screen by screen, with a voice that explains each step: for whoever reviews the PR, and for whoever asked for the change, with a ticket or without one.
 
 - **Only when asked:** `/demo`, after the reviewer's PASS (a demo of something about to fail is wasted). No agent hands off to it.
-- **Tokens for the script, none for the video.** The agent writes a script, `.aidt/tasks/<task-id>/demo/<slug>.yaml`: scenes, each with where to go, what to tap or type and what the voice says (numbers and dates written as spoken). `aidt demo render <script>` turns it into the video with no model: a real browser recorded (Playwright), an offline voice (Piper by default, free), both mixed with ffmpeg, plus subtitles (`.vtt`) from the same lines.
+- **Tokens for the script, none for the video.** The agent writes a script, `.aidt/tasks/<task-id>/demo/<slug>.json` (JSON, so the toolkit stays without runtime dependencies): scenes, each with where to go, what to tap or type and what the voice says (numbers and dates written as spoken). `aidt demo render <script>` turns it into the video with no model: a real browser recorded (Playwright), an offline voice (Piper by default, free), both mixed with ffmpeg, plus subtitles (`.vtt`) from the same lines.
 - **Scope and cost first:** from the spec and plan if there are any, otherwise the branch and one sentence from the user on what to show. It proposes the scenes, the length and a token estimate, and writes nothing before a yes. A new format starts with a 30-second sample, not a whole video.
-- **Cost after:** tokens spent, render time, length and size, in its last message and in the PR text. A paid voice is optional and shows its price before it is used.
+- **Cost after:** render time, length and size from `aidt demo render` (in its output and the PR text), and the tokens the agent used where the tool shows them. A paid voice is optional and shows its price before it is used.
 - **Changes after review:** fix the code and render again, with no tokens. When a flow or a label changed, the render stops at the step that broke and the agent fixes only those steps.
 - **Where the video goes:** the script is committed; the video goes to `.aidt/demo/`, ignored by git (`demo.output`). The CLI prints the PR text (what it shows, the commit it was rendered at, the length, the narration as a written walkthrough) and the user drags the video into the PR description: GitHub has no API to attach one.
 - **Format:** the device's full screen, no text over the app, a circle on each tap, the main path first and then «other paths», three to four minutes at most.

@@ -166,6 +166,15 @@ describe("aidt add", () => {
     expect(out).toContain("Start (read first, every session): 2,501 / 2,500 tokens · over by 1");
   });
 
+  it("installs the demo agent with its templates, for both AI tools", () => {
+    const { code, out } = run(repo, "add", "demo");
+    expect(code).toBe(0);
+    expect(out).toContain("add .aidt/demo/ to .gitignore");
+    for (const path of [".aidt/templates/demo-script.json", ".claude/skills/demo/SKILL.md"]) {
+      expect(existsSync(join(repo, path))).toBe(true);
+    }
+  });
+
   it("installs one workflow agent alone, with only the files it reads", () => {
     const { code } = run(repo, "add", "reviewer");
     expect(code).toBe(0);
@@ -200,7 +209,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough.',
+      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough, demo.',
     );
   });
 });

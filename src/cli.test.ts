@@ -149,6 +149,23 @@ describe("aidt add", () => {
     expect(existsSync(join(repo, ".aidt/templates/structure.md"))).toBe(true);
   });
 
+  it("adds the context product's practice and templates, and says what to do next", () => {
+    const { code, out } = run(repo, "add", "context");
+    expect(code).toBe(0);
+    expect(out).toContain("Next: create .aidt/status.md");
+    for (const path of ["practices/session-context.md", "templates/status.md"]) {
+      expect(existsSync(join(repo, ".aidt", path))).toBe(true);
+    }
+  });
+
+  it("checks what every session loads, failing when the status is over budget", () => {
+    mkdirSync(join(repo, ".aidt"), { recursive: true });
+    write(repo, { "AGENTS.md": "# Rules\n", ".aidt/status.md": "x".repeat(10_004) });
+    const { code, out } = run(repo, "context", "check");
+    expect(code).toBe(1);
+    expect(out).toContain("Start (read first, every session): 2,501 / 2,500 tokens · over by 1");
+  });
+
   it("installs one workflow agent alone, with only the files it reads", () => {
     const { code } = run(repo, "add", "reviewer");
     expect(code).toBe(0);
@@ -183,7 +200,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, refiner, reviewer, walkthrough.',
+      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough.',
     );
   });
 });

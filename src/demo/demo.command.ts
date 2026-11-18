@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
+import { INSTALL_PLAYWRIGHT, loadPlaywright } from "../shared/browser/playwright.ts";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import { git } from "../shared/git/git.ts";
 import { startApp, stopApp } from "./demo-app.ts";
@@ -19,7 +20,7 @@ import {
   type Voice,
   voicesDir,
 } from "./demo-media.ts";
-import { loadPlaywright, record, runWithInput, type Speech } from "./demo-recorder.ts";
+import { record, runWithInput, type Speech } from "./demo-recorder.ts";
 import { type DemoScript, narration, parseScript } from "./demo-script.ts";
 
 const exec = promisify(execFile);
@@ -50,8 +51,7 @@ async function lengthOf(file: string): Promise<number> {
 async function missingTools(context: CliContext, voice: Voice, speaks: boolean): Promise<string[]> {
   const { demo } = context.config;
   const missing: string[] = [];
-  if (!loadPlaywright(context.root))
-    missing.push("npm install -D playwright && npx playwright install chromium");
+  if (!loadPlaywright(context.root)) missing.push(INSTALL_PLAYWRIGHT);
   if (!(await runs("ffmpeg", ["-version"])))
     missing.push("install ffmpeg (https://ffmpeg.org/download.html)");
   const model = join(voicesDir(demo), `${voice.model}.onnx`);

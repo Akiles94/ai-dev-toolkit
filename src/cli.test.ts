@@ -153,6 +153,8 @@ describe("aidt add", () => {
     const { code, out } = run(repo, "add", "context");
     expect(code).toBe(0);
     expect(out).toContain("Next: create .aidt/status.md");
+    expect(out).toContain("No agents installed: nothing to generate.");
+    expect(out).not.toContain("Generated 0 file(s)");
     for (const path of ["practices/session-context.md", "templates/status.md"]) {
       expect(existsSync(join(repo, ".aidt", path))).toBe(true);
     }

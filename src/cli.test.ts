@@ -136,7 +136,9 @@ describe("aidt add", () => {
     const { code, out } = run(repo, "add", "workflow");
     expect(code).toBe(0);
     expect(out).toContain("Added 0 file(s)");
-    expect(out).toContain(".aidt/practices/sustainable-code.md");
+    expect(out).toContain(".aidt/practices/sustainable-code.md  (differs from this version's)");
+    expect(out).toContain("1 of them differ from this version's: an older copy, or your changes.");
+    expect(out).not.toContain(".aidt/practices/static-analysis.md  (differs");
     expect(readFileSync(practices, "utf8")).toBe("# Our own rules\n");
   });
 
@@ -196,7 +198,7 @@ describe("aidt add", () => {
   it("keeps the app notes the demo already brought, when the qa comes after it", () => {
     expect(run(repo, "add", "demo").code).toBe(0);
     const { out } = run(repo, "add", "qa");
-    expect(out).toContain("Kept 1 existing file(s) unchanged:\n    .aidt/templates/app.md");
+    expect(out).toContain("Kept 1 existing file(s) unchanged:\n    .aidt/templates/app.md\n");
   });
 
   it("installs one workflow agent alone, with only the files it reads", () => {

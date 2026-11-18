@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
@@ -106,8 +106,13 @@ interface AddPlan {
   readonly next?: string | undefined;
   /** Files the project already has: they belong to the project now and are never overwritten. */
   readonly kept: readonly string[];
+  /** Of those, the ones that differ from this version's: older copies, or the project's changes. */
+  readonly differ: readonly string[];
   readonly createConfig: boolean;
 }
+
+const sameContent = async (a: string, b: string): Promise<boolean> =>
+  (await readFile(a)).equals(await readFile(b));
 
 const exists = (path: string): Promise<boolean> =>
   stat(path).then(
@@ -139,16 +144,21 @@ async function planAdd(root: string, name: string): Promise<Result<AddPlan, stri
   ];
   const copies: Copy[] = [];
   const kept: string[] = [];
+  const differ: string[] = [];
   for (const { product, path } of sources) {
     const productDir = join(PRODUCTS_DIR, product);
     for (const file of await filesAt(productDir, path)) {
       const target = `.aidt/${file}`;
-      if (await exists(join(root, target))) kept.push(target);
-      else copies.push({ source: join(productDir, file), target });
+      const source = join(productDir, file);
+      if (!(await exists(join(root, target)))) copies.push({ source, target });
+      else {
+        kept.push(target);
+        if (!(await sameContent(source, join(root, target)))) differ.push(target);
+      }
     }
   }
   const createConfig = !(await exists(join(root, CONFIG_FILE)));
-  return ok({ copies, kept, createConfig, next: installable.next });
+  return ok({ copies, kept, differ, createConfig, next: installable.next });
 }
 
 /** Copies the missing files and creates the config when the project has none. */
@@ -164,9 +174,16 @@ function formatAdd(plan: AddPlan): string {
   const lines = [`Added ${plan.copies.length} file(s) to .aidt/`];
   if (plan.createConfig) lines.push(`Created ${CONFIG_FILE}`);
   if (plan.kept.length > 0) {
+    const differs = new Set(plan.differ);
     lines.push(
       `Kept ${plan.kept.length} existing file(s) unchanged:`,
-      ...plan.kept.map((p) => `    ${p}`),
+      ...plan.kept.map((p) => `    ${p}${differs.has(p) ? "  (differs from this version's)" : ""}`),
+    );
+  }
+  if (plan.differ.length > 0) {
+    lines.push(
+      `${plan.differ.length} of them differ from this version's: an older copy, or your changes.`,
+      "To take this version's, compare them with it, or delete the file and run aidt add again.",
     );
   }
   if (plan.next) lines.push(plan.next);

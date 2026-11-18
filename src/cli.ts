@@ -52,7 +52,7 @@ Other
   -v, --version   Show the version
 
 Exit codes: 0 ok · 1 findings (--check, invalid agents, stack not ready, context over budget,
-            a demo stopped at a step) · 2 usage or git error, or a tool to install`;
+            a demo stopped at a step or by its recording) · 2 usage or git error, or a tool to install`;
 
 function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));

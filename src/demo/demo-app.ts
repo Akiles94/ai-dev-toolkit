@@ -15,9 +15,11 @@ const tail = (text: string): string => text.trim().split("\n").slice(-20).join("
  * Starts the product with `command` (from `demo.start` in the config, which an agent cannot
  * change) and waits until `url` answers, 60 s at most. Nothing is started when it already answers.
  *
- * - A command that fails (exits with an error) fails at once, with its error output.
- * - A command that exits cleanly may have left the app in the background (`docker compose up -d`,
- *   `node server.js &`): the wait goes on, and the app is still stopped with its process group.
+ * - A command that fails (exits with an error or a signal) fails at once, with its error output,
+ *   and whatever it left in the background is stopped.
+ * - A command that exits cleanly may have left the app in the background (`node server.js &`):
+ *   the wait goes on, and the app is stopped with its process group. A command that detaches it
+ *   from that group (`docker compose up -d`, `pm2 start`) leaves it running: use a foreground one.
  * - `onSpawn` receives the process as soon as it exists, so an interrupted wait can stop it too.
  */
 export async function startApp(
@@ -38,12 +40,15 @@ export async function startApp(
   child.stderr?.on("data", (chunk) => {
     stderr = (stderr + String(chunk)).slice(-8000);
   });
-  let failedWith: number | undefined;
-  child.on("exit", (code) => {
-    if (code) failedWith = code;
+  let failedWith: number | string | undefined;
+  child.on("exit", (code, signal) => {
+    if (code || signal) failedWith = code || signal || undefined;
   });
   for (let waited = 0; waited < 60_000; waited += 250) {
     if (failedWith !== undefined) {
+      // What it left in the background goes too, and with it the pipe that would hold the CLI open.
+      stopApp(child);
+      child.stderr?.destroy();
       return fail(`\`${command}\` exited (${failedWith}) before ${url} answered:\n${tail(stderr)}`);
     }
     if (await answers(url)) {
@@ -55,6 +60,7 @@ export async function startApp(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   stopApp(child);
+  child.stderr?.destroy();
   return fail(`${url} did not answer within 60 s after \`${command}\`:\n${tail(stderr)}`);
 }
 

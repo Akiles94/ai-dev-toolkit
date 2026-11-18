@@ -95,6 +95,23 @@ describe("aidt demo render", () => {
     expect(facts.lengthMs).toBe(Math.round(Number.parseFloat(mp4.toString()) * 1000));
   });
 
+  it.skipIf(!canRecord)(
+    "leaves a .gitignore out of an output folder that already exists",
+    async () => {
+      const repo = repoWith([{ go: "/" }]);
+      mkdirSync(join(repo, "docs", "media"), { recursive: true });
+      write(repo, {
+        "docs/media/logo.svg": "<svg/>",
+        ".aidt/config.json": JSON.stringify({ demo: { output: "docs/media" } }),
+      });
+      commitAll(repo, "media");
+      const { code } = await render(repo);
+      expect(code).toBe(0);
+      expect(existsSync(join(repo, "docs/media/restock.mp4"))).toBe(true);
+      expect(existsSync(join(repo, "docs/media/.gitignore"))).toBe(false);
+    },
+  );
+
   it.skipIf(!canRecord)("stops at the step that breaks and says which", async () => {
     const { code, out } = await render(repoWith([{ go: "/" }, { click: "Delete everything" }]));
     expect(code).toBe(1);

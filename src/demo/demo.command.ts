@@ -104,13 +104,14 @@ async function recordInSync(
   if (!playwright) throw new UsageError("Playwright is not installed.");
   for (let attempt = 1; ; attempt++) {
     const recorded = await record(playwright, script, speeches, workDir);
-    if (!recorded.ok) return recorded;
+    if (!recorded.ok) return { ...recorded, atStep: true };
     const short = recorded.value.lengthMs - (await lengthOf(recorded.value.video));
-    if (short <= DRIFT_MS) return recorded;
+    if (short <= DRIFT_MS) return { ...recorded, atStep: false };
     if (attempt === 2) {
       const error = `the recording lost ${short} ms at its start twice. Render again; if it keeps happening, the machine is too busy to record smoothly.`;
       return { ok: false as const, error, atStep: false };
     }
+    print(`The video lost its first ${short} ms; recording again.`);
   }
 }
 
@@ -209,9 +210,8 @@ async function render(context: CliContext, scriptPath: string | undefined): Prom
       stopApp(app),
     );
     if (!recorded.ok) {
-      const atStep = !("atStep" in recorded) || recorded.atStep;
       print(
-        atStep
+        recorded.atStep
           ? `Stopped at ${recorded.error}\nFix that step in ${scriptPath} and render again.`
           : `Stopped: ${recorded.error}`,
       );

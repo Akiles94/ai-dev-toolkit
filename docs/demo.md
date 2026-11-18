@@ -29,7 +29,9 @@ hands off to it.
 3. **The render.** `aidt demo render <script>` records it with no model: a real browser
    (Playwright), an offline voice (Piper), both mixed with ffmpeg. A circle marks each tap. The
    first time, the agent renders the first scene alone (`--sample`) to check the format. It
-   starts the app with `demo.start` and stops it after, also on Ctrl+C.
+   starts the app with `demo.start` and stops it after, also on Ctrl+C or when the start fails.
+   Use a command that keeps the app in the foreground, or puts it in the background with `&`:
+   one that hands it to a daemon (`docker compose up -d`, `pm2 start`) leaves it running.
 4. **The PR.** The render writes the video, its subtitles and a PR text: what it shows, the commit
    it was rendered at, its length and the narration as a written walkthrough. Paste the text and
    drag the video into the PR description; GitHub has no API to attach one.

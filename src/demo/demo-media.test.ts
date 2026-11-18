@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../shared/config/config.ts";
 import {
@@ -123,6 +124,8 @@ describe("what a render leaves", () => {
 
   it("names every file after the script, in the output folder", () => {
     expect(slugOf(".aidt/tasks/feat-x/demo/low-stock.json")).toBe("low-stock");
-    expect(outputPaths("/repo", demo, "low-stock").mp4).toBe("/repo/.aidt/demo/low-stock.mp4");
+    expect(outputPaths("/repo", demo, "low-stock").mp4).toBe(
+      join("/repo", ".aidt", "demo", "low-stock.mp4"),
+    );
   });
 });

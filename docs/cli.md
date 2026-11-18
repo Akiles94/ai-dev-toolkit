@@ -9,8 +9,9 @@ npm install -g @akiles94/ai-dev-toolkit    # then: aidt <command>
 ```
 
 Requires Node 24 and git. No network calls, no telemetry. Exit codes: `0` ok · `1` findings
-(`--check`, a broken rule, a stack not ready, a context over budget, a demo stopped at a step or by its recording) ·
-`2` usage or git error, or a tool a demo needs that is not installed.
+(`--check`, a broken rule, a stack not ready, a context over budget, a demo stopped at a step or
+by its recording) · `2` usage or git error, a tool a demo needs that is not installed, or an app
+that did not start.
 
 ## Which changes
 

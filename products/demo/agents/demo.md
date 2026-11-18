@@ -37,7 +37,9 @@ Unless the message that calls you says the scope is approved, do only this step.
    include it in your proposal: the user approves it with the scope.
 3. **How to start it:** the command is `demo.start` in `.aidt/config.json`, never in a script,
    and you cannot write that file. If it is missing, put the command from `.aidt/app.md` in your
-   proposal for the user to add.
+   proposal for the user to add: one that keeps the app in the foreground (`npm start`) or puts
+   it in the background with `&`. One that hands it to a daemon (`docker compose up -d`,
+   `pm2 start`) leaves it running after the render: say so if that is the only way.
 4. **Propose:** the scenes (the main path first, then «other paths» if the change has them), the
    length (three or four minutes at most at normal speed), the device (`desktop` or `phone`), and
    a token estimate for writing the script. Say that rendering costs no tokens.

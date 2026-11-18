@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { startApp, stopApp } from "./demo-app.ts";
 
@@ -72,17 +74,36 @@ describe("startApp", () => {
 
   it.skipIf(!POSIX)("fails at once when the start is killed by a signal", async () => {
     const began = Date.now();
-    const command = `exec ${node("process.abort()")}`;
+    const command = `exec ${node("process.kill(process.pid, 'SIGKILL')")}`;
     const started = await startApp(tmpdir(), command, "http://127.0.0.1:9");
-    expect(!started.ok && started.error).toContain("exited (SIGABRT)");
+    expect(!started.ok && started.error).toContain("exited (SIGKILL)");
     expect(Date.now() - began).toBeLessThan(10_000);
   });
 
   it.skipIf(!POSIX)("never keeps the CLI alive, whether the start works or fails", async () => {
-    const [port, other] = [await freePort(), await freePort()];
+    const ports = await Promise.all([1, 2, 3, 4, 5, 6].map(() => freePort()));
+    const [bg, bgFailing, bgWanted, detached, detachedFailing, detachedWanted] = ports as [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+    ];
     const app = new URL("./demo-app.ts", import.meta.url).href;
-    const run = (command: string, wanted = port) =>
-      spawnSync(
+    // An app handed to a new session keeps the error pipe: only unref and destroy free the CLI.
+    const spawner = join(mkdtempSync(join(tmpdir(), "aidt-detach-")), "detach.cjs");
+    writeFileSync(
+      spawner,
+      `const [port, code] = process.argv.slice(2);
+       require("child_process").spawn(process.execPath, ["-e",
+         "require('http').createServer((q, s) => s.end('ok')).listen(" + port + "); setTimeout(() => process.exit(), 5000)"],
+         { detached: true, stdio: ["ignore", "ignore", "inherit"] }).unref();
+       if (code) setTimeout(() => process.exit(Number(code)), 300);`,
+    );
+    const run = (command: string, wanted: number) => {
+      const began = Date.now();
+      const { status } = spawnSync(
         process.execPath,
         [
           "--input-type=module",
@@ -93,9 +114,17 @@ describe("startApp", () => {
         ],
         { cwd: tmpdir(), timeout: 15_000 },
       );
-    const background = `${node(serverOn(port))} &`;
-    expect(run(background).status).toBe(0);
-    expect(run(`${node(serverOn(other))} & sleep 1; exit 1`).status).toBe(0);
+      return { status, ms: Date.now() - began };
+    };
+    const spawn = (port = 0, code = "") => `"${process.execPath}" "${spawner}" ${port} ${code}`;
+    expect(run(`${node(serverOn(bg))} &`, bg).status).toBe(0);
+    expect(run(`${node(serverOn(bgFailing))} & sleep 1; exit 1`, bgWanted).status).toBe(0);
+    const works = run(spawn(detached), detached);
+    expect(works.status).toBe(0);
+    expect(works.ms).toBeLessThan(4000);
+    const fails = run(spawn(detachedFailing, "1"), detachedWanted);
+    expect(fails.status).toBe(0);
+    expect(fails.ms).toBeLessThan(4000);
   });
 
   it("hands out the process as soon as it exists, so an interrupted wait can stop it", async () => {

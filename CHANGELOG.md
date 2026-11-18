@@ -16,13 +16,15 @@ versions follow [Semantic Versioning](https://semver.org/).
   ffmpeg; a circle marks each tap. Steps: `go`, `say`, `click`, `fill`, `select`, `press`,
   `scroll`, `wait`. The first failing step stops the render and is named. Writes the video,
   WebVTT subtitles, the PR text and the facts (the video's length, size, render time, commit) to
-  `demo.output` (a `.gitignore` when the render creates the folder). Starts the app with
-  `demo.start` from the config (never from a script), also one that puts the app in the
-  background with `&`, and stops its process group after, also on Ctrl+C; a start command that
-  fails (an error or a signal) stops at once with its error output and what it left running. Records once more when the video loses its start. Installs and
-  downloads nothing: what is missing is printed as commands.
-- `demo` in `.aidt/config.json`: `start`, the voice by language (`en-US`, `en-GB`, `es-ES`, `es-419`) and
-  gender, or any Piper model; subtitles `file`, `burned` or `none`; the output folder.
+  `demo.output` (a `.gitignore` when the render creates the folder).
+- The render starts the app with `demo.start` from the config (never from a script), also one
+  that puts it in the background with `&`, and stops its process group after, also on Ctrl+C. A
+  start that fails (an error or a signal) ends the render at once, shows its error output and
+  stops anything it had already left in the background. A video that loses its start is
+  recorded once more. Nothing is installed or downloaded: what is missing is printed as commands.
+- `demo` in `.aidt/config.json`: `start`; the voice by language (`en-US`, `en-GB`, `es-ES`,
+  `es-419`) and gender, or any Piper model; subtitles `file`, `burned` or `none`; the output
+  folder.
 
 - **`context` product** (`aidt add context`): what every new AI session reads, in layers with a
   token budget. `aidt context check [--json]` measures the rules files the tools load by

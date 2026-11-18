@@ -12,9 +12,16 @@ npx @akiles94/ai-dev-toolkit add qa
 Then `/qa block` in Claude Code, or the `qa` agent in Copilot, naming the branch. It runs only
 when you ask: no agent hands off to it.
 
+[![QA-03 before and after its fix, and QA-05, which the fix brought](media/qa-storefront.png)](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa)
+
+*On the [storefront example](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa),
+a page the reviewer had passed: on a phone the cart was below every card (left); the fix docked it
+(middle); the second pass found that, with three lines, the docked cart cuts a button in half
+(right). Screenshots taken by `aidt qa walk`.*
+
 [Why](#why-a-qa-and-not-only-a-reviewer) · [A pass](#a-pass) · [The walk](#the-walk) ·
 [What you get](#what-you-get) · [The fixes](#the-fixes-and-their-tests) ·
-[Before building](#before-building-the-plan-check) · [Limits](#limits)
+[Before building](#before-building-the-plan-check) · [Cost](#cost-and-model) · [Limits](#limits)
 
 ## Why a QA, and not only a reviewer
 
@@ -72,7 +79,7 @@ finding: it is how a developer sees it, and where its test starts.
     { "click": "Add to cart", "times": 2 },
     { "look": "the cart after a double tap" },
     { "keep": { "cart": "localStorage.getItem('shop.cartId')" } },
-    { "as": "intruder", "request": { "method": "DELETE", "path": "/carts/{cart}/items/p-2" } }
+    { "as": "intruder", "request": { "method": "DELETE", "path": "/carts/{cart}/items/p-1" } }
   ]
 }
 ```
@@ -90,20 +97,23 @@ finding: it is how a developer sees it, and where its test starts.
 
 ```text
 $ aidt qa walk .aidt/tasks/feat-SHOP-40-storefront/qa/walks/double-tap.json
-Walk «A double tap on Add to cart» · http://localhost:3000 · at 51814c5
+Walk «A double tap on Add to cart» · http://localhost:3000 · at ebbe590
  1 shopper    go /
-      GET / 200 · GET /products 200 · POST /carts 201 · GET /carts/cart-7a416dc9 200
+      GET / 200 · GET /products 200 · POST /carts 201 · GET /carts/cart-b3592575 200
  2 shopper    click "Add to cart" ×2
-      POST /carts/cart-7a416dc9/items 200 · POST /carts/cart-7a416dc9/items 200
+      POST /carts/cart-b3592575/items 200 · POST /carts/cart-b3592575/items 200
  3 shopper    look «the cart after a double tap»
       screenshot: .aidt/qa/double-tap/03-shopper.png
+      │ Shop
+      │ …
       │ Cart
-      │ Refactoring × 2
-      …
+      │ The Pragmatic Programmer × 2
+      │ $79.98
+      │ … 2 more line(s) in .aidt/qa/double-tap/03-shopper.txt
  4 shopper    keep cart
-      cart = "cart-7a416dc9"
- 5 intruder   request DELETE /carts/{cart}/items/p-2
-      200 {"id":"cart-7a416dc9","items":[],…}
+      cart = "cart-b3592575"
+ 5 intruder   request DELETE /carts/{cart}/items/p-1
+      200 {"id":"cart-b3592575","items":[],"subtotalCents":0,"shippingCents":0,…}
 Walked all 5 step(s).
 Calls that failed or answered 4xx/5xx: 0 · console errors: 0 · page errors: 0
 Log: .aidt/qa/double-tap/walk.json
@@ -149,6 +159,31 @@ cheaply from then on.
 before any code: people, states, seams with older journeys, contradictions, official data,
 business, promises, and what is left out on purpose. The planner goes through it only in projects
 that have it. A gap found in the plan costs a line; found by the QA, it costs a fix block.
+
+## Cost and model
+
+On the [storefront example](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa),
+a page built with the full workflow and passed by the reviewer:
+
+| Step | Model | Turns | Agent time | Tokens in (cached) | Tokens out | Cost at API prices |
+|---|---|---|---|---|---|---|
+| Pass 1: scope and cost | `claude-sonnet-5-5` | — | 18 s | 114k (72k) | 2.4k | $0.14 |
+| Pass 1: 9 walks, 15 runs, the report | `claude-sonnet-5-5` | 41 | 3 min 8 s | 1.75M (1.69M) | 17.6k | $0.59 |
+| The fixes (SHOP-41): refiner, planner, builder, reviewer twice | `claude-sonnet-5-5` | — | 6 min 13 s | 4.0M (3.8M) | 53k | $1.47 |
+| Pass 2: 4 walks, 7 runs, the report | `claude-sonnet-5-5` | — | 1 min 40 s | 773k (729k) | 7.7k | $0.26 |
+
+- **The QA: $0.98 for two passes.** First pass: three 🟡 and a note on a page with 34 green tests
+  and a reviewer's PASS. Second pass: the three fixed, and a new 🟡 the fix brought. The walks
+  cost no tokens; each ran in 2 to 10 seconds.
+- **About 200,000 tokens per walk**, as Claude Code counts them: most are the conversation read
+  again from the cache, at a tenth of the price. The agent's estimate counts them that way.
+- **The fixes are a block like any other.** On the same fix, the reviewer failed a CSS section from
+  reading it; replaying the QA's walk showed it worked, and the reviewer withdrew the finding.
+- **In Claude Code**, when the walk goes on in the conversation after the proposal, Claude Code
+  asks before the first `aidt qa walk`: allow it for the session.
+- Measured with Claude Code 2.1.327, headless (`claude -p`), on 2026-11-18. Most input tokens are
+  cache reads, which cost a tenth of fresh input. With a Claude subscription the runs count toward
+  usage limits instead.
 
 ## Limits
 

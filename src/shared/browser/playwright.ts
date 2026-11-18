@@ -19,7 +19,7 @@ export interface Locator {
   innerText(): Promise<string>;
 }
 
-interface Request {
+export interface Request {
   method(): string;
   url(): string;
   resourceType(): string;
@@ -64,7 +64,7 @@ interface ApiResponse {
   text(): Promise<string>;
 }
 
-interface BrowserContext {
+export interface BrowserContext {
   newPage(): Promise<Page>;
   addInitScript(s: string): Promise<void>;
   setOffline(offline: boolean): Promise<void>;

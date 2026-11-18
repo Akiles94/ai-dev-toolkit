@@ -16,7 +16,8 @@ versions follow [Semantic Versioning](https://semver.org/).
   neither fixed nor accepted. It writes only its reports, its walks and `.aidt/app.md` (shared with
   the `demo`, which now has a «QA» part), and has no `node`, `curl` or install pre-approved.
 - **`aidt qa walk <file> [--json]`**: plays a walk the agent wrote as JSON, in a real browser, with
-  no model: one browser context per person (`phone` or `desktop`), the demo's steps plus `click`
+  no model: one browser context per person (`phone` or `desktop`; `as` says who does a step, the
+  first person otherwise), the demo's steps plus `click`
   with `times`, `back`, `reload`, `look` (a screenshot and the page's text), `keep` (a value from
   the page reused as `{name}`), `request` (a call with the person's cookies), `offline` and
   `clear`. For every step it prints the calls the page made with their status, console and page

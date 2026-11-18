@@ -86,7 +86,7 @@ finding: it is how a developer sees it, and where its test starts.
 | `request` | A call to the app with the person's cookies: what a client that skips the page can do |
 | `offline` | `true` makes every call fail, `false` brings them back |
 | `clear` | `cookies` or `storage`: an expired session, a cleared browser |
-| `as` | Beside any step: who does it. Each person has a browser of their own (`phone` or `desktop`) |
+| `as` | Beside any step: who does that step; without it, the first person in `people`. Each person has a browser of their own (`phone` or `desktop`), and their first step on a page is a `go` |
 
 ```text
 $ aidt qa walk .aidt/tasks/feat-SHOP-40-storefront/qa/walks/double-tap.json

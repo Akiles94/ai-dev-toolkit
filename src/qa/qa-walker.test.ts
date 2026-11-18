@@ -77,8 +77,8 @@ describe("playWalk", () => {
           { keep: { cart: "localStorage.getItem('cartId')" } },
           { look: "the count after a double tap" },
           { as: "intruder", request: { method: "DELETE", path: "/items/{cart}" } },
-          { go: "/missing" },
-          { as: "shopper", offline: true },
+          { as: "intruder", go: "/missing" },
+          { offline: true },
           { click: "Add" },
           { offline: false },
           { click: "Next" },
@@ -101,6 +101,8 @@ describe("playWalk", () => {
       expect(readFileSync(join(out, "04-shopper.txt"), "utf8")).toContain("2 in cart");
       expect(existsSync(join(out, "04-shopper.png"))).toBe(true);
       expect(step(5)).toMatchObject({ person: "intruder", answer: "204" });
+      expect(step(6)).toMatchObject({ person: "intruder" });
+      expect(step(7)).toMatchObject({ person: "shopper" });
       expect(step(6)?.calls).toEqual([{ method: "GET", path: "/missing", status: 404 }]);
       expect(step(6)?.consoleErrors[0]).toContain("404");
       expect(step(8)?.calls).toEqual([
@@ -127,6 +129,29 @@ describe("playWalk", () => {
         "It found <button disabled>Pay</button>, but the element is not enabled.",
       );
       expect(existsSync(join(out, "02-shopper.png"))).toBe(true);
+    },
+  );
+
+  it.skipIf(!playwright)(
+    "stops a step that needs a page, for a person who never opened one",
+    async () => {
+      const out = mkdtempSync(join(tmpdir(), "aidt-walk-"));
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([
+          { go: "/" },
+          { as: "intruder", request: { path: "/" } },
+          { as: "intruder", reload: true },
+        ]),
+        out,
+      );
+      expect(log.steps[1]).toMatchObject({
+        person: "intruder",
+        answer: expect.stringMatching(/^200/),
+      });
+      expect(log.steps[2]?.failure).toBe(
+        "intruder has no page open yet: their first step on a page is a go",
+      );
     },
   );
 

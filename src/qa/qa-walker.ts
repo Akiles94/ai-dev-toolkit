@@ -218,11 +218,16 @@ export function reason(message: string): string {
   return `${first} It found ${found.slice("locator resolved to ".length)}${why ? `, but the ${why}` : ""}.`;
 }
 
+/** Steps that need no page: the rest, on a person who never went anywhere, would act on nothing. */
+const WITHOUT_PAGE = new Set(["go", "request", "offline", "wait"]);
+
 /** Runs one step's action, and waits for what it set off. */
 async function perform(env: Env, step: WalkStep): Promise<Outcome> {
   const [kind, value] = Object.entries(step).find(([key]) => key in ACTIONS) ?? [];
   const action = kind ? ACTIONS[kind] : undefined;
   if (!action) throw new Error("a step with no action");
+  if (!WITHOUT_PAGE.has(kind as string) && env.actor.page.url() === "about:blank")
+    throw new Error(`${env.actor.name} has no page open yet: their first step on a page is a go`);
   const outcome = await action(env, value, step);
   if (kind !== "look" && kind !== "keep") await settle(env.actor);
   return outcome;
@@ -255,10 +260,10 @@ export async function playWalk(
   };
   const steps: StepLog[] = [];
   const kept = new Map<string, string>();
-  let person = Object.keys(walk.people)[0] ?? "person";
+  const first = Object.keys(walk.people)[0] ?? "person";
   try {
     for (const [i, step] of walk.steps.entries()) {
-      person = step.as ?? person;
+      const person = step.as ?? first;
       const actor = await actorFor(person);
       bucket = { calls: [], consoleErrors: [], pageErrors: [] };
       const n = i + 1;

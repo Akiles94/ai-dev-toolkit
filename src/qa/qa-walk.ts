@@ -27,7 +27,7 @@ type QaStep =
   | { readonly offline: boolean }
   | { readonly clear: "cookies" | "storage" };
 
-/** Beside its action, a step may switch person (`as`); a click may be repeated (`times`). */
+/** Beside its action, a step may say who does it (`as`); a click may be repeated (`times`). */
 interface Modifiers {
   readonly as?: string;
   readonly times?: number;
@@ -46,7 +46,7 @@ interface Person {
 export interface Walk {
   readonly title: string;
   readonly app: { readonly url: string };
-  /** Each person has a browser context of their own; the first one walks until a step says `as`. */
+  /** Each person has a browser context of their own; the first one does every step without `as`. */
   readonly people: Readonly<Record<string, Person>>;
   readonly steps: readonly WalkStep[];
 }

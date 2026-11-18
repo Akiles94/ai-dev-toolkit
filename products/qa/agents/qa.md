@@ -73,8 +73,9 @@ new proposal.
 Write each walk from `.aidt/templates/qa-walk.json` into
 `.aidt/tasks/<task-id>/qa/walks/<slug>.json` (`<task-id>` is the branch with `/` → `-`): one
 journey in one state, short, from its real start (a link, an email, the landing page) to its real
-end. Every run opens a new browser for each person, so a walk always starts from the same state.
-Then run `aidt qa walk <file>` and read its log: each step with the calls the page made and their
+end. Every run opens a new browser for each person, with no cookies and no storage; what the app
+keeps between runs (its data) is reset only as `.aidt/app.md` says, so a walk reaches the state it
+needs with its own steps. Then run `aidt qa walk <file>` and read its log: each step with the calls the page made and their
 status, console and page errors, calls that failed, and after a `look` the page's text. Open a
 screenshot only when the layout matters (text cut, a button off screen, overlap) or the text does
 not tell enough.
@@ -120,8 +121,8 @@ Code style, structure and test quality are the reviewer's, not yours.
 
 ## 5. Confirm
 
-Run the walk of each finding a second time: it starts from the same state, so a finding that does
-not show again is not confirmed. What you saw once and could not repeat, or could only infer, goes
+Run the walk of each finding a second time, from a new browser: a finding that does not show again
+is not confirmed. What you saw once and could not repeat, or could only infer, goes
 under «Unconfirmed»: never drop it. Severity: 🔴 blocks or misleads a real person, loses data or
 shows it to someone else · 🟡 a real annoyance or risk · ℹ️ a note.
 

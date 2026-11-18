@@ -39,6 +39,26 @@ describe("startApp", () => {
     expect(Date.now() - began).toBeLessThan(10_000);
   });
 
+  it.skipIf(process.platform === "win32")(
+    "waits for an app left in the background, and stopApp still stops it",
+    async () => {
+      const port = await freePort();
+      const url = `http://127.0.0.1:${port}`;
+      const server = `require('http').createServer((q, s) => s.end('ok')).listen(${port})`;
+      const started = await startApp(tmpdir(), `(sleep 1; ${node(server)}) &`, url);
+      expect(started.ok).toBe(true);
+      stopApp(started.ok ? started.value : undefined);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(await answers(url)).toBe(false);
+    },
+  );
+
+  it("hands out the process as soon as it exists, so an interrupted wait can stop it", async () => {
+    let spawned = 0;
+    await startApp(tmpdir(), node("process.exit(1)"), "http://127.0.0.1:9", () => spawned++);
+    expect(spawned).toBe(1);
+  });
+
   it("waits for the app to answer, and stopApp stops it", async () => {
     const port = await freePort();
     const url = `http://127.0.0.1:${port}`;

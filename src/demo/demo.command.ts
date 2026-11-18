@@ -108,7 +108,8 @@ async function recordInSync(
     const short = recorded.value.lengthMs - (await lengthOf(recorded.value.video));
     if (short <= DRIFT_MS) return recorded;
     if (attempt === 2) {
-      return { ok: false as const, error: `the recording lost ${short} ms at its start twice` };
+      const error = `the recording lost ${short} ms at its start twice. Render again; if it keeps happening, the machine is too busy to record smoothly.`;
+      return { ok: false as const, error, atStep: false };
     }
   }
 }
@@ -127,13 +128,18 @@ function onInterrupt(cleanUp: () => void): () => void {
   };
 }
 
-/** The output folder, created with a `.gitignore` so the videos stay out of git. */
+/**
+ * The output folder. When the render creates it, it gets a `.gitignore` so the videos stay out of
+ * git; a folder that already existed is left as it is (it may hold files that are committed).
+ */
 async function prepareOutput(root: string, folder: string): Promise<void> {
   const full = join(root, folder);
-  await mkdir(full, { recursive: true });
-  const ignore = join(full, ".gitignore");
-  if (!existsSync(ignore))
-    await writeFile(ignore, "# Demo videos: rendered from their scripts, not committed.\n*\n");
+  const created = await mkdir(full, { recursive: true });
+  if (created !== undefined)
+    await writeFile(
+      join(full, ".gitignore"),
+      "# Demo videos: rendered from their scripts, not committed.\n*\n",
+    );
 }
 
 /** Mixes the recording with its voice into the final files, and returns what the render left. */
@@ -195,14 +201,20 @@ async function render(context: CliContext, scriptPath: string | undefined): Prom
   });
   try {
     const speeches = await speak(context, voice, narration(script), workDir);
-    const started = await startApp(root, config.demo.start, script.app.url);
+    const started = await startApp(root, config.demo.start, script.app.url, (child) => {
+      app = child;
+    });
     if (!started.ok) throw new UsageError(started.error);
-    app = started.value;
     const recorded = await recordInSync(context, script, speeches, workDir).finally(() =>
       stopApp(app),
     );
     if (!recorded.ok) {
-      print(`Stopped at ${recorded.error}\nFix that step in ${scriptPath} and render again.`);
+      const atStep = !("atStep" in recorded) || recorded.atStep;
+      print(
+        atStep
+          ? `Stopped at ${recorded.error}\nFix that step in ${scriptPath} and render again.`
+          : `Stopped: ${recorded.error}`,
+      );
       return 1;
     }
     return await finish(context, script, scriptPath, began, recorded.value, workDir);

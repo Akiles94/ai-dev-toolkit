@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseScript } from "../../src/demo/demo-script.ts";
@@ -30,10 +30,15 @@ describe("demo agent", () => {
 
 describe("only when asked", () => {
   it("no agent hands off to the demo", () => {
-    const dir = join(import.meta.dirname, "..", "workflow", "agents");
-    const handoffs = readdirSync(dir)
-      .filter((f) => f.endsWith(".md") && f !== "README.md")
-      .map((f) => parseAgent(f, readFileSync(join(dir, f), "utf8")))
+    const products = join(import.meta.dirname, "..");
+    const handoffs = readdirSync(products)
+      .map((product) => join(products, product, "agents"))
+      .filter((dir) => existsSync(dir))
+      .flatMap((dir) =>
+        readdirSync(dir)
+          .filter((f) => f.endsWith(".md") && f !== "README.md")
+          .map((f) => parseAgent(f, readFileSync(join(dir, f), "utf8"))),
+      )
       .map((a) => (a.ok ? a.value.handoff : undefined));
     expect(handoffs).not.toContain("demo");
   });

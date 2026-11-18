@@ -121,7 +121,7 @@ S2 · One module per resource (1)
 | `demo.start` | none | The command that starts your app for a demo; never read from a script |
 | `demo.voice` | `{ "language": "en-US", "gender": "female" }` | The demo's voice: `en-US`, `en-GB`, `es-ES`, `es-419`, `female` or `male`; or `model` for any Piper voice |
 | `demo.subtitles` | `file` | `file` (a `.vtt`), `burned` (drawn into the video) or `none` |
-| `demo.output` | `.aidt/demo` | Where videos go; the render puts a `.gitignore` in it |
+| `demo.output` | `.aidt/demo` | Where videos go; when the render creates it, it adds a `.gitignore` |
 | `demo.voices`, `demo.piper` | `~/.cache/aidt/voices`, `piper` | Where the voice models are; the Piper command |
 
 ### Models

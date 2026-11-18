@@ -65,8 +65,8 @@ Fill `.aidt/templates/demo-script.json` into `.aidt/tasks/<task-id>/demo/<slug>.
 ## 4. Render
 
 1. If this project has not rendered a demo before, run `aidt demo render <script> --sample`
-   (the first scene only) and show the user its path: the format is checked on half a minute,
-   not on the whole video.
+   (the first scene only) and show the user its path: the format is checked on one scene, not on
+   the whole video. Keep the first scene short for that.
 2. `aidt demo render <script>`. If it stops at a step, fix only that step and render again; if a
    step fails twice, stop and tell the user what the screen did instead.
 3. If it names missing tools, show the user those commands and stop: never install anything.

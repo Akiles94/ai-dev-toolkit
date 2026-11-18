@@ -37,7 +37,8 @@ hands off to it.
 **A change asked in review:** fix the code and render again, with no tokens. When a label or a
 step changed, the render stops at the step that broke, naming it, and only that step is fixed.
 
-**The video is not committed:** it goes to `.aidt/demo/`, where the render puts a `.gitignore`.
+**The video is not committed:** it goes to `.aidt/demo/`, which the render creates with a
+`.gitignore`.
 The script is enough to make it again.
 
 ## The script

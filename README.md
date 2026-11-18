@@ -23,6 +23,7 @@ npx @akiles94/ai-dev-toolkit add workflow    # the full workflow: refiner → pl
 npx @akiles94/ai-dev-toolkit add structure   # code organisation rules, stack presets and an architect
 npx @akiles94/ai-dev-toolkit add context     # keep what every new session reads short, and checked
 npx @akiles94/ai-dev-toolkit add demo        # a narrated video of what a task built, for its PR
+npx @akiles94/ai-dev-toolkit add qa          # use the product as each person, before it ships
 ```
 
 Then, in your AI tool:
@@ -33,6 +34,8 @@ Then, in your AI tool:
 | Walk a big PR | Pick `walkthrough`, give the PR number | `/walkthrough 123` |
 | Start a task | Pick `refiner`, paste the ticket; each agent offers a button to the next | `/refiner <ticket>`, then `/planner`, `/builder`, `/reviewer` |
 | Organise the code | Pick `architect` | `/architect` |
+| Show what a task built | Pick `demo` | `/demo` |
+| Use it as each person | Pick `qa`, give the mode and the branch | `/qa block <branch>` |
 
 ## The problem
 
@@ -51,6 +54,7 @@ Then, in your AI tool:
 | `refiner` alone | Turns a ticket into a clear, testable spec you can hand to anyone. | [refiner](docs/refiner.md) |
 | `structure` | Code organisation that scales: a minimal conventional layout, feature modules or DDD/hexagonal, with presets for React, Next.js, React Native, Node.js, Go, C#, Java, Kotlin Android and Swift iOS. Audits existing projects and proposes a refactor, never forces one. | [structure](docs/structure.md) |
 | `demo` | A narrated video of what a task built, screen by screen, for whoever reviews the PR. The agent writes a short script; `aidt demo render` records it with a real browser and an offline voice, so rendering it again after a fix costs no tokens. Voice by language (Spain or Latin American Spanish, English) and gender, subtitles optional. | [demo](docs/demo.md) |
+| `qa` | Uses the product as each person who will use it, plus someone with bad intentions, and reports the dead ends, bugs, contradictions and broken promises a reviewer of the diff cannot see, with PASS/FAIL. The agent writes each walk as JSON; `aidt qa walk` plays it in a real browser with no tokens, and playing it again reproduces the finding. Brings the plan check the planner goes through before building. | [qa](docs/qa.md) |
 | `context` | What every new AI session reads, kept in layers with a token budget a script checks: a short status rewritten when each block closes, the block's story in its own folder, and a reading list for the next session. | [context](docs/context.md) |
 | `aidt` CLI | The mechanical work, done by scripts instead of tokens: diff stats without noise, section limits, guide-comment cleanup, stacked PRs, structure audit. | [cli](docs/cli.md) |
 
@@ -218,7 +222,7 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, `qa`, `reviewer`, `refiner` or `walkthrough` into `.aidt/` and generate the agents; marks the files you have that differ from this version's |
 | `aidt sync [--check]` | Regenerate the Copilot and Claude Code files after editing `.aidt/agents/`; `--check` fails in CI if they are stale |
 | `aidt diff [--json]` | Diff stats with tests, config, lockfiles and formatting counted apart |
 | `aidt clean [--check]` | Remove `@guide` comments; `--check` fails if any are left |
@@ -227,6 +231,7 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 | `aidt structure audit` | Check the structure rules; exceptions live in `.aidt/structure.md` |
 | `aidt context check` | What every session loads against its token budget; the next session's reading list exists |
 | `aidt demo render <script>` | Record a demo script as a narrated video with subtitles and a PR text, no tokens |
+| `aidt qa walk <file>` | Play a QA walk in a real browser, one context per person, and print what the app answered at each step, no tokens |
 | `aidt walkthrough plan` | Split a change into sections of ≤300 lines, in reading order |
 | `aidt walkthrough start <ref> <name>` / `finish <name>` | Check a PR out in an ignored local copy and plan it / remove it with its comments |
 
@@ -243,7 +248,7 @@ any git repository. Without a global install, run them as `npx @akiles94/ai-dev-
 
 - `init`: guided setup of your project's AI files (`AGENTS.md`, rules, structure).
 - `profile`: your personal coding preferences, applied on every project.
-- `qa`: an agent that uses the product as each person who will use it, on demand.
+- `qa`: slow calls, terminal apps and native mobile apps.
 - `docs`, and code knowledge in `context`: living docs for people and cross-module flows for
   agents, powered by [living-docs](https://github.com/Akiles94/living-docs) and
   [easy-repo-context](https://github.com/Akiles94/easy-repo-context).

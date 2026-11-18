@@ -9,7 +9,8 @@ npm install -g @akiles94/ai-dev-toolkit    # then: aidt <command>
 ```
 
 Requires Node 24 and git. No network calls, no telemetry. Exit codes: `0` ok · `1` findings
-(`--check`, a broken rule, a stack not ready) · `2` usage or git error.
+(`--check`, a broken rule, a stack not ready, a context over budget, a demo stopped at a step) ·
+`2` usage or git error, or a tool a demo needs that is not installed.
 
 ## Which changes
 
@@ -117,9 +118,11 @@ S2 · One module per resource (1)
 | `context.always` | `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` | Rules files the tools load by themselves; `CLAUDE.md` `@` imports are followed |
 | `context.start` | `[".aidt/status.md"]` | Files every session reads first |
 | `context.budget` | `{ "always": 3000, "start": 2500 }` | Estimated tokens each layer may take before `aidt context check` fails |
+| `demo.start` | none | The command that starts your app for a demo; never read from a script |
 | `demo.voice` | `{ "language": "en-US", "gender": "female" }` | The demo's voice: `en-US`, `en-GB`, `es-ES`, `es-419`, `female` or `male`; or `model` for any Piper voice |
 | `demo.subtitles` | `file` | `file` (a `.vtt`), `burned` (drawn into the video) or `none` |
-| `demo.output` | `.aidt/demo` | Where videos go; keep it out of git |
+| `demo.output` | `.aidt/demo` | Where videos go; the render puts a `.gitignore` in it |
+| `demo.voices`, `demo.piper` | `~/.cache/aidt/voices`, `piper` | Where the voice models are; the Piper command |
 
 ### Models
 

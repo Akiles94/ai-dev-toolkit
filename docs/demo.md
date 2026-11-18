@@ -8,13 +8,14 @@ ticket or without one.
 
 *A part of the [storefront demo](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/demo),
 silent here. [The whole video](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4)
-is 1 min 16 s with its voice, 1.1 MB.*
+is 1 min 20 s with its voice, 1.1 MB.*
 
 ```bash
 npx @akiles94/ai-dev-toolkit add demo
 ```
 
-Then `/demo` in Claude Code, or the `demo` agent in Copilot. It runs only when you ask: no agent
+Set the command that starts your app in `.aidt/config.json` (`"demo": { "start": "npm start" }`),
+then `/demo` in Claude Code, or the `demo` agent in Copilot. It runs only when you ask: no agent
 hands off to it.
 
 ## Tokens for the script, none for the video
@@ -27,7 +28,8 @@ hands off to it.
    voice says. The script is committed with the task.
 3. **The render.** `aidt demo render <script>` records it with no model: a real browser
    (Playwright), an offline voice (Piper), both mixed with ffmpeg. A circle marks each tap. The
-   first time, the agent renders the first scene alone (`--sample`) to check the format.
+   first time, the agent renders the first scene alone (`--sample`) to check the format. It
+   starts the app with `demo.start` and stops it after, also on Ctrl+C.
 4. **The PR.** The render writes the video, its subtitles and a PR text: what it shows, the commit
    it was rendered at, its length and the narration as a written walkthrough. Paste the text and
    drag the video into the PR description; GitHub has no API to attach one.
@@ -35,15 +37,15 @@ hands off to it.
 **A change asked in review:** fix the code and render again, with no tokens. When a label or a
 step changed, the render stops at the step that broke, naming it, and only that step is fixed.
 
-**The video is not committed:** it goes to `.aidt/demo/`, which `aidt add demo` asks you to add
-to `.gitignore`. The script is enough to make it again.
+**The video is not committed:** it goes to `.aidt/demo/`, where the render puts a `.gitignore`.
+The script is enough to make it again.
 
 ## The script
 
 ```json
 {
   "title": "The storefront page",
-  "app": { "start": "npm start", "url": "http://localhost:3000" },
+  "app": { "url": "http://localhost:3000" },
   "device": "desktop",
   "scenes": [
     {
@@ -71,8 +73,10 @@ to `.gitignore`. The script is enough to make it again.
 | `scroll` | Scrolls to a text further down |
 | `wait` | Milliseconds |
 
-`device` is `desktop` (1280 × 720) or `phone` (390 × 844 at twice the pixels). `app.start` is
-started before the recording and stopped after it; leave it out when the product is already up.
+`device` is `desktop` (1280 × 720) or `phone` (390 × 844 at twice the pixels). The command that
+starts the app is never in the script: it is `demo.start` in `.aidt/config.json`, which the agent
+cannot write, so a script cannot make a render run anything else. Without it, the app must already
+be up at `app.url`.
 
 ## Voice and subtitles
 
@@ -102,8 +106,9 @@ below 150 Hz. Any other [Piper voice](https://huggingface.co/rhasspy/piper-voice
 | `burned` | Drawn into the picture, so they show wherever the video plays, a PR included |
 | `none` | No subtitles |
 
-Other keys: `output` (default `.aidt/demo`), `voices` (where the voice models are, default
-`~/.cache/aidt/voices`), `piper` (the Piper command).
+Other keys: `start` (the command that starts the app), `output` (default `.aidt/demo`),
+`voices` (where the voice models are, default `~/.cache/aidt/voices`), `piper` (the Piper
+command).
 
 ## What it needs
 
@@ -112,13 +117,14 @@ downloads nothing: when something is missing, `aidt demo render` prints the comm
 
 ```text
 Missing to render a demo. Run:
-  pip install piper-tts                       # or set demo.piper to its path
-  mkdir -p ~/.cache/aidt/voices
-  curl -L -o ~/.cache/aidt/voices/en_US-lessac-high.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high/en_US-lessac-high.onnx
-  curl -L -o ~/.cache/aidt/voices/en_US-lessac-high.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high/en_US-lessac-high.onnx.json
+  pipx install piper-tts                      # or pip; or set demo.piper to its path
+  mkdir -p "$HOME/.cache/aidt/voices"
+  curl -L -o "$HOME/.cache/aidt/voices/en_US-lessac-high.onnx" https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high/en_US-lessac-high.onnx
+  curl -L -o "$HOME/.cache/aidt/voices/en_US-lessac-high.onnx.json" https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high/en_US-lessac-high.onnx.json
 ```
 
-A demo with nothing to say needs no voice.
+A demo with nothing to say needs no voice. Playwright is found in the project or among npm's global
+packages (`npm root -g`).
 
 ## Cost and model
 
@@ -129,10 +135,12 @@ a page built with the [full workflow](https://github.com/Akiles94/ai-dev-toolkit
 |---|---|---|---|---|---|---|
 | Scope and cost | `claude-sonnet-5-5` | — | 15 s | 188k (169k) | 2k | $0.08 |
 | Script, a sample and the video | `claude-sonnet-5-5` | 15 | 4 min 25 s | 498k (474k) | 6k | $0.20 |
-| Rendering it again after a fix | none | — | 1 min 48 s | 0 | 0 | $0.00 |
+| Rendering it again later (here, after the CLI's own review) | none | — | 1 min 50 s | 0 | 0 | $0.00 |
 
-- The agent time includes the two renders (the sample and the video). A render takes a little
+- The agent time includes its two renders (the sample and the video). A render takes a little
   longer than the video: the voice is made first, then the browser is recorded at normal speed.
+  If the recorded video comes out shorter than the time recorded (its start lost, which would put
+  the voice out of step), it is recorded once more, then the render fails saying so.
 - Measured with Claude Code 2.1.327, headless (`claude -p`), on 2026-11-18. Most input tokens are
   cache reads, which cost a tenth of fresh input. With a Claude subscription the runs count toward
   usage limits instead.

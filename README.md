@@ -69,7 +69,7 @@ is kept in full, so you can see the results before installing anything. Measured
 | [Architect](docs/structure.md#cost-and-model), audit and proposal | Sonnet | 34 s | $0.15 |
 | [Full workflow](docs/workflow.md#cost-and-model), ticket to 2 stacked PRs | Sonnet | 7 min 36 s | $1.43 |
 | [Full workflow](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/storefront), ticket to a web page in 3 reviewed sections | Sonnet | 6 min 40 s | $1.65 |
-| [Demo](docs/demo.md#cost-and-model), that page as a 1 min 16 s narrated video | Sonnet | 4 min 40 s | $0.28 |
+| [Demo](docs/demo.md#cost-and-model), that page as a 1 min 20 s narrated video | Sonnet | 4 min 40 s | $0.28 |
 | [Context](docs/context.md#measured), closing a block: a status 80 % shorter, 5 summaries | Sonnet | 1 min 5 s | $0.28 |
 
 ### How these numbers were measured
@@ -84,7 +84,7 @@ is kept in full, so you can see the results before installing anything. Measured
 - **One run each**, on a small demo repository. Three reviewer runs on the same branch cost
   between $0.22 and $0.29: expect that kind of spread from run to run.
 - **Rendering a demo costs no tokens:** the $0.28 is the agent writing the script; rendering it
-  again after a fix took 1 min 48 s and nothing else.
+  again later took 1 min 50 s and nothing else.
 - **Not measured:** GitHub Copilot, which bills by premium requests of your plan and uses the model
   selected in the chat or [configured per tier](docs/cli.md#models).
 
@@ -189,7 +189,7 @@ it with an offline voice.
 
 [![The storefront demo](docs/media/demo-storefront.gif)](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4)
 
-*Silent here; [the video](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4) is 1 min 16 s with its voice. Its
+*Silent here; [the video](https://github.com/Akiles94/ai-dev-toolkit-examples/blob/main/examples/demo/storefront.mp4) is 1 min 20 s with its voice. Its
 script, subtitles and PR text: [examples/demo](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/demo).*
 
 ## The full workflow, on a real task

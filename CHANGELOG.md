@@ -15,9 +15,12 @@ versions follow [Semantic Versioning](https://semver.org/).
   (Playwright from the project or installed globally) with an offline voice (Piper) mixed by
   ffmpeg; a circle marks each tap. Steps: `go`, `say`, `click`, `fill`, `select`, `press`,
   `scroll`, `wait`. The first failing step stops the render and is named. Writes the video,
-  WebVTT subtitles, the PR text and the facts (length, size, render time, commit) to
-  `demo.output`. Installs and downloads nothing: what is missing is printed as commands.
-- `demo` in `.aidt/config.json`: the voice by language (`en-US`, `en-GB`, `es-ES`, `es-419`) and
+  WebVTT subtitles, the PR text and the facts (the video's length, size, render time, commit) to
+  `demo.output`, with a `.gitignore`. Starts the app with `demo.start` from the config (never
+  from a script) and stops it after, also on Ctrl+C; a start command that exits fails at once
+  with its error output. Records once more when the video loses its start. Installs and
+  downloads nothing: what is missing is printed as commands.
+- `demo` in `.aidt/config.json`: `start`, the voice by language (`en-US`, `en-GB`, `es-ES`, `es-419`) and
   gender, or any Piper model; subtitles `file`, `burned` or `none`; the output folder.
 
 - **`context` product** (`aidt add context`): what every new AI session reads, in layers with a

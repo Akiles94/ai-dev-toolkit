@@ -3,42 +3,49 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.6.0] - 2026-11-18
+## [Unreleased]
 
 ### Added
 
 - **`qa` agent** (`aidt add qa`): uses the product as each person who will use it, plus someone
   with bad intentions, and reports dead ends, bugs, contradictions, broken promises and blind
   spots in the journeys a change makes and the older ones it touches, with a PASS/FAIL verdict
-  bound to the commit walked. Only when asked; it proposes the journeys, people, states and a
-  token estimate first. Modes `block`, `flow` and `audit`. Each finding is confirmed by running its
-  walk again; what is not goes under «Unconfirmed». FAIL with a confirmed 🔴, or while a 🟡 is
-  neither fixed nor accepted. It writes only its reports, its walks and `.aidt/app.md` (shared with
-  the `demo`, which now has a «QA» part), and has no `node`, `curl` or install pre-approved.
+  bound to the commit walked. Only when asked; it proposes the journeys, people, states, the tier
+  and a token estimate first. Modes `block`, `flow` and `audit`. Each finding is confirmed by
+  running its walk again; what is not goes under «Unconfirmed». FAIL with a confirmed 🔴, or while
+  a 🟡 is neither fixed nor accepted. It writes only its reports, its walks and the «QA» part of
+  `.aidt/app.md` (shared with the `demo`), and has no `node`, `curl` or install pre-approved.
 - **`aidt qa walk <file> [--json]`**: plays a walk the agent wrote as JSON, in a real browser, with
   no model: one browser context per person (`phone` or `desktop`; `as` says who does a step, the
-  first person otherwise), the demo's steps plus `click`
-  with `times`, `back`, `reload`, `look` (a screenshot and the page's text), `keep` (a value from
-  the page reused as `{name}`), `request` (a call with the person's cookies), `offline` and
-  `clear`. For every step it prints the calls the page made with their status, console and page
-  errors and failed calls; a step that cannot be done stops the walk with a screenshot and says
-  why. The app must already be running. Output in `qa.output` (`.aidt/qa`, ignored by git).
+  first person otherwise), the demo's steps plus `click` with `times` (quick clicks, a double
+  tap), `back`, `reload`, `look` (a screenshot and the page's text), `keep` (a value from a page
+  expression, reused as `{name}` in any text of a later step), `request` (a call with the person's
+  cookies), `offline` and `clear`. For every step it prints the calls the pages made with their
+  status (another person's named), console and page errors and failed calls; a step that cannot
+  be done stops the walk with a screenshot and says why. The app must already be running. Output in
+  `qa.output` (`.aidt/qa`, ignored by git); a folder there that is not a walk's output is never
+  emptied.
+- **`qa.origins`**: what a walk may reach, in the config the agent cannot write. By default
+  `local`, this machine on any port: steps, the page's own calls and WebSockets to anywhere else
+  are blocked and logged, so a pre-approved walk cannot carry what it reads out of the machine.
 - **Plan check** (`practices/plan-check.md`, installed with the QA): the list a plan goes through
   before building. The planner reads it only in projects that have it, and plans a test from the
   walk for every QA finding a block fixes.
 
 ### Changed
 
-- `aidt add` marks each file it keeps that differs from this version's, and says how to take the
-  new one: a project installed before kept older agents without knowing (a 0.5.0 builder and
-  reviewer without `aidt context check`, a planner without the plan check).
-- A step with a key a demo script does not know is refused; it was silently ignored.
+- `aidt add` marks each file it keeps that differs from this version's (line endings aside), and
+  says how to take the new one: a project installed before kept older agents without knowing (a
+  0.5.0 builder and reviewer without `aidt context check`, a planner without the plan check).
+- A demo script step with a key the demo does not know names that key in its error, and a step
+  whose kind exists only on an object's prototype (`hasOwnProperty`) is refused.
 
 ### Fixed
 
-- `aidt add` with no agent installed printed «Generated 0 file(s):» and nothing under it.
-- Output cut short by its reader (`aidt add workflow | head`) crashed with `EPIPE`; it now stops
-  quietly.
+- `aidt add` with no agent installed printed «Generated 0 file(s):» and nothing under it; `sync`
+  now says there was nothing to generate, and why.
+- Output cut short by its reader (`aidt add workflow | head`) crashed with `EPIPE`; the rest of the
+  output is dropped and the command still finishes its work.
 
 ## [0.5.0] - 2026-11-18
 

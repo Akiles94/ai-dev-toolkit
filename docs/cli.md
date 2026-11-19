@@ -126,6 +126,7 @@ S2 · One module per resource (1)
 | `demo.output` | `.aidt/demo` | Where videos go; when the render creates it, it adds a `.gitignore` |
 | `demo.voices`, `demo.piper` | `~/.cache/aidt/voices`, `piper` | Where the voice models are; the Piper command |
 | `qa.output` | `.aidt/qa` | Where a walk's screenshots, page texts and log go; when the walk creates it, it adds a `.gitignore` |
+| `qa.origins` | `["local"]` | What a walk may reach: `local` (this machine, any port) and origins such as `https://staging.example.com`; anything else is blocked ([qa](qa.md#the-walk)) |
 
 ### Models
 

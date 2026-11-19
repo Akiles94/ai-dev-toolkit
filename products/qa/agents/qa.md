@@ -57,13 +57,18 @@ Unless the message that calls you says the scope is approved, do only this step.
    from `.aidt/templates/app.md` with what the repository shows (scripts, compose files,
    end-to-end config and helpers) and include it in the proposal: the user approves it with the
    scope. The app must answer at its address before any walk; if it does not, propose starting it
-   as `.aidt/app.md` says (the tool asks the user before it runs anything).
+   as `.aidt/app.md` says (the tool asks the user before it runs anything). A walk reaches only
+   this machine unless `qa.origins` in `.aidt/config.json` lists more, and you cannot write that
+   file: if the scope needs another origin (a staging server, a CDN the page loads), put it in the
+   proposal for the user to add.
 6. **Propose:** the journeys, the people (always including someone with bad intentions), the
    states to try on each, about how many walks, and a token estimate: count about 200 000 tokens
    per walk you write, run and read, and 150 000 for this step and the report, as the tool counts
    them (most are the conversation read again from the cache, at a tenth of the price; measured
-   on a balanced model, about $0.07 per walk at API prices). Say that the walks themselves cost
-   no tokens, and that a second pass walks only the findings and what was not covered.
+   on a balanced model, about $0.07 per walk at API prices), and the tier this runs on
+   (`models.agents.qa` in `.aidt/config.json`, `balanced` unless it says otherwise). Say that the
+   walks themselves cost no tokens, and that a second pass walks only the findings and what was
+   not covered.
 
 ## 2. Approval
 
@@ -154,8 +159,8 @@ user's yes.
 ## Rules
 
 - Never change source code, tests, designs or documents; never commit, push or comment anywhere.
-  The only files you write are your reports, your walks, and `.aidt/app.md` (its «QA» part, or a
-  fact you found wrong, saying so in the report).
+  The only files you write are your reports, your walks, and the «QA» part of `.aidt/app.md`; a
+  fact you found wrong in its other parts goes in the report, for the user to correct.
 - Start and stop the product only as `.aidt/app.md` says, and stop what you started. Never stop
   servers you did not start, drop or migrate a shared database, or delete other people's data.
   Change data only to simulate time passing, as `.aidt/app.md` allows, and say each time you did.

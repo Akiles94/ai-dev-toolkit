@@ -65,9 +65,18 @@ emails, texts, a design, a written process). A block with none keeps only the re
 
 ## The walk
 
-The agent writes the steps; the CLI plays them. No code of the agent's own runs on your machine
-(it has no `node`, `curl` or install pre-approved), and running the same file again reproduces a
+The agent writes the steps; the CLI plays them. No program of the agent's own runs on your machine
+(it has no `node`, `curl` or install pre-approved): the only code it writes is the page
+expressions of `keep`, which run inside the browser page. Running the same file again reproduces a
 finding: it is how a developer sees it, and where its test starts.
+
+**What a walk can reach.** `aidt qa walk` is pre-approved, so where it goes is not the agent's to
+choose: by default this machine only (`localhost`, `127.0.0.1`, `[::1]`, any port). Its steps, the
+page's own calls and WebSockets to anywhere else are blocked and logged as `blocked: outside
+qa.origins`, so a walk cannot carry what it reads in your app anywhere. A walk against a staging
+server, or a page that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`,
+which the agent cannot write: `["local", "https://cdn.example.com"]`, or only
+`["https://staging.example.com"]`.
 
 ```json
 {
@@ -86,12 +95,12 @@ finding: it is how a developer sees it, and where its test starts.
 
 | Step | What it does |
 |---|---|
-| `go`, `click`, `fill`, `select`, `press`, `wait` | As in a [demo script](demo.md#the-script); `click` takes `"times": 2` for a double tap |
+| `go`, `click`, `fill`, `select`, `press`, `wait` | As in a [demo script](demo.md#the-script); `click` takes `"times": 2` for a double tap: quick clicks that do not wait for the button again, so one that disables itself takes only the first |
 | `back`, `reload` | The browser's back button, a reload |
 | `look` | A screenshot and the page's visible text |
-| `keep` | A value from the page (an id, an address), reused as `{name}` in later steps |
-| `request` | A call to the app with the person's cookies: what a client that skips the page can do |
-| `offline` | `true` makes every call fail, `false` brings them back |
+| `keep` | A value from the page (an id, an address), from a page expression, reused as `{name}` in any text of a later step; an empty value stops the walk |
+| `request` | A call to the app with the person's cookies: what a client that skips the page can do. Its status counts with the page's calls |
+| `offline` | `true` makes every call of that person fail, their `request` steps included; `false` brings them back |
 | `clear` | `cookies` or `storage`: an expired session, a cleared browser |
 | `as` | Beside any step: who does that step; without it, the first person in `people`. Each person has a browser of their own (`phone` or `desktop`), and their first step on a page is a `go` |
 
@@ -120,7 +129,9 @@ Log: .aidt/qa/double-tap/walk.json
 ```
 
 For every step: the calls the page made with their status, console and page errors, calls that
-failed. A step that cannot be done stops the walk with a screenshot of what the screen showed
+failed. A call another person's page made meanwhile (a timer, a poll) is shown with their name;
+one a page makes later than half a second after the step (a search that waits for typing to stop)
+shows with the next step. A step that cannot be done stops the walk with a screenshot of what the screen showed
 instead, and says why: nothing matched, or what it found and why it could not use it (disabled,
 hidden, covered). The app must already be running, started as `.aidt/app.md` says: the walk starts
 nothing. Screenshots and logs go to `.aidt/qa/` (`qa.output`), which git ignores; the walks are

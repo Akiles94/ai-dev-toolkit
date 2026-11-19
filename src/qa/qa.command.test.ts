@@ -188,11 +188,13 @@ describe("what a walk prints", () => {
     );
     expect(text).toContain("console error: Failed to load resource");
     expect(text).toContain("page error: x is not defined");
-    expect(text).toContain("│ line 30\n      │ … 2 more line(s) in .aidt/qa/cart/02-shopper.txt");
+    // Paths as the platform writes them: .aidt\qa\… on Windows.
+    const shownPath = (...parts: string[]) => join(".aidt", "qa", "cart", ...parts);
+    expect(text).toContain(`│ line 30\n      │ … 2 more line(s) in ${shownPath("02-shopper.txt")}`);
     expect(text).toContain('Stopped at step 3 (click "Pay")');
     expect(text).toContain(
       "Calls that failed or answered 4xx/5xx: 1 (step 1) · console errors: 1 (step 1) · page errors: 1 (step 2)",
     );
-    expect(text.endsWith("Log: .aidt/qa/cart/walk.json")).toBe(true);
+    expect(text.endsWith(`Log: ${shownPath("walk.json")}`)).toBe(true);
   });
 });

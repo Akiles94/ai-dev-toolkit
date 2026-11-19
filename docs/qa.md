@@ -15,9 +15,9 @@ when you ask: no agent hands off to it.
 [![QA-03 before and after its fix, and QA-05, which the fix brought](media/qa-storefront.png)](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa)
 
 *On the [storefront example](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa),
-a page the reviewer had passed: on a phone the cart was below every card (left); the fix docked it
-(middle); the second pass found that, with three lines, the docked cart cuts a button in half
-(right). Screenshots taken by `aidt qa walk`.*
+a page the reviewer had passed: on a phone the cart was below every card; the fix docked it; the
+second pass found that, with three lines, the docked cart cut a button in half; after that fix the
+third pass gave PASS. Screenshots taken by `aidt qa walk`.*
 
 [Why](#why-a-qa-and-not-only-a-reviewer) · [A pass](#a-pass) · [The walk](#the-walk) ·
 [What you get](#what-you-get) · [The fixes](#the-fixes-and-their-tests) ·
@@ -106,11 +106,11 @@ which the agent cannot write: `["local", "https://cdn.example.com"]`, or only
 
 ```text
 $ aidt qa walk .aidt/tasks/feat-SHOP-40-storefront/qa/walks/double-tap.json
-Walk «A double tap on Add to cart» · http://localhost:3000 · at ebbe590
+Walk «A double tap on Add to cart» · http://localhost:3000 · at 5efa566
  1 shopper    go /
-      GET / 200 · GET /products 200 · POST /carts 201 · GET /carts/cart-b3592575 200
+      GET / 200 · GET /products 200 · POST /carts 201 · GET /carts/cart-a7ae1cea 200
  2 shopper    click "Add to cart" ×2
-      POST /carts/cart-b3592575/items 200 · POST /carts/cart-b3592575/items 200
+      POST /carts/cart-a7ae1cea/items 200 · POST /carts/cart-a7ae1cea/items 200
  3 shopper    look «the cart after a double tap»
       screenshot: .aidt/qa/double-tap/03-shopper.png
       │ Shop
@@ -120,9 +120,10 @@ Walk «A double tap on Add to cart» · http://localhost:3000 · at ebbe590
       │ $79.98
       │ … 2 more line(s) in .aidt/qa/double-tap/03-shopper.txt
  4 shopper    keep cart
-      cart = "cart-b3592575"
+      cart = "cart-a7ae1cea"
  5 intruder   request DELETE /carts/{cart}/items/p-1
-      200 {"id":"cart-b3592575","items":[],"subtotalCents":0,"shippingCents":0,…}
+      DELETE /carts/cart-a7ae1cea/items/p-1 200
+      {"id":"cart-a7ae1cea","items":[],"subtotalCents":0,"shippingCents":0,…}
 Walked all 5 step(s).
 Calls that failed or answered 4xx/5xx: 0 · console errors: 0 · page errors: 0
 Log: .aidt/qa/double-tap/walk.json
@@ -182,10 +183,12 @@ a page built with the full workflow and passed by the reviewer:
 | Pass 1: 9 walks, 15 runs, the report | `claude-sonnet-5-5` | 41 | 3 min 8 s | 1.75M (1.69M) | 17.6k | $0.59 |
 | The fixes (SHOP-41): refiner, planner, builder, reviewer twice | `claude-sonnet-5-5` | — | 6 min 13 s | 4.0M (3.8M) | 53k | $1.47 |
 | Pass 2: 4 walks, 7 runs, the report | `claude-sonnet-5-5` | — | 1 min 40 s | 773k (729k) | 7.7k | $0.26 |
+| The fix of pass 2's finding: refiner, planner, builder, reviewer | `claude-sonnet-5-5` | — | 3 min 59 s | 3.5M (3.3M) | 32k | $1.35 |
+| Pass 3: 3 walks, the report | `claude-sonnet-5-5` | 27 | 1 min 34 s | 948k (878k) | 12k | $0.45 |
 
-- **The QA: $0.98 for two passes.** First pass: three 🟡 and a note on a page with 34 green tests
-  and a reviewer's PASS. Second pass: the three fixed, and a new 🟡 the fix brought. The walks
-  cost no tokens; each ran in 2 to 10 seconds.
+- **The QA: $1.44 for three passes.** First pass: three 🟡 and a note on a page with 34 green
+  tests and a reviewer's PASS. Second pass: the three fixed, and a new 🟡 the phone fix brought.
+  Third pass, after that fix: PASS. The walks cost no tokens; each ran in 2 to 10 seconds.
 - **About 200,000 tokens per walk**, as Claude Code counts them: most are the conversation read
   again from the cache, at a tenth of the price. The agent's estimate counts them that way.
 - **The fixes are a block like any other.** On the same fix, the reviewer failed a CSS section from

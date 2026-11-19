@@ -74,7 +74,7 @@ is kept in full, so you can see the results before installing anything. Measured
 | [Full workflow](docs/workflow.md#cost-and-model), ticket to 2 stacked PRs | Sonnet | 7 min 36 s | $1.43 |
 | [Full workflow](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/storefront), ticket to a web page in 3 reviewed sections | Sonnet | 6 min 40 s | $1.65 |
 | [Demo](docs/demo.md#cost-and-model), that page as a 1 min 20 s narrated video | Sonnet | 4 min 40 s | $0.28 |
-| [QA](docs/qa.md#cost-and-model), that page used as each person: two passes, 3 🟡 fixed and 1 new found | Sonnet | 5 min 6 s | $0.98 |
+| [QA](docs/qa.md#cost-and-model), that page used as each person: three passes, 4 🟡 found and fixed, then PASS | Sonnet | 6 min 40 s | $1.44 |
 | [Context](docs/context.md#measured), closing a block: a status 80 % shorter, 5 summaries | Sonnet | 1 min 5 s | $0.28 |
 
 ### How these numbers were measured
@@ -88,9 +88,9 @@ is kept in full, so you can see the results before installing anything. Measured
   toward usage limits instead.
 - **One run each**, on a small demo repository. Three reviewer runs on the same branch cost
   between $0.22 and $0.29: expect that kind of spread from run to run.
-- **A QA walk costs no tokens:** the $0.98 is the agent choosing what to try, reading what the app
-  answered and writing two reports; the fixes between the passes went through the workflow
-  ($1.47 more).
+- **A QA walk costs no tokens:** the $1.44 is the agent choosing what to try, reading what the app
+  answered and writing three reports; the fixes between the passes went through the workflow
+  ($2.82 more).
 - **Rendering a demo costs no tokens:** the $0.28 is the agent writing the script; rendering it
   again later took 1 min 50 s and nothing else.
 - **Not measured:** GitHub Copilot, which bills by premium requests of your plan and uses the model
@@ -205,7 +205,8 @@ script, subtitles and PR text: [examples/demo](https://github.com/Akiles94/ai-de
 The same storefront, used by the `qa` agent as a shopper, on a phone and as someone with bad
 intentions. The page had 34 green tests and a reviewer's PASS; the first pass found three 🟡 (a
 message left on screen, a 500 on a malformed body, no feedback on a phone), the fixes went through
-the workflow, and the second pass found them fixed and one new 🟡 the phone fix brought.
+the workflow, the second pass found them fixed and one new 🟡 the phone fix brought, and after
+that fix the third pass gave PASS.
 
 [![QA-03 before and after its fix, and QA-05, which the fix brought](docs/media/qa-storefront.png)](https://github.com/Akiles94/ai-dev-toolkit-examples/tree/main/examples/qa)
 

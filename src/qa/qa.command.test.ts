@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadPlaywright } from "../shared/browser/playwright.ts";
 import { loadConfig } from "../shared/config/config.ts";
 import { commitAll, featureRepo, write } from "../shared/testing/temp-repo.ts";
-import { formatWalk, qaCommand } from "./qa.command.ts";
+import { formatWalk, listens, qaCommand } from "./qa.command.ts";
 import type { WalkLog } from "./qa-walk.ts";
 
 // A real walk needs a browser. Where Playwright is missing (CI) those tests are skipped; the format
@@ -123,6 +123,16 @@ describe("aidt qa walk", () => {
     await expect(qaCommand({ root: repo, config, flags: {} }, ["run"])).rejects.toThrow(
       'Unknown qa action "run"',
     );
+  });
+});
+
+describe("listens", () => {
+  it("checks only that something listens: no request, no certificate", async () => {
+    const port = new URL(url).port;
+    // A plain server on an https address: nothing would answer a TLS request, but it listens.
+    expect(await listens(`https://127.0.0.1:${port}/`)).toBe(true);
+    expect(await listens(`http://shop.localhost:${port}/`)).toBe(true);
+    expect(await listens("http://127.0.0.1:9/")).toBe(false);
   });
 });
 

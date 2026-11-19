@@ -26,10 +26,13 @@ const parse = (address: string): URL | undefined => {
 /** A tunnel's target, `host:port`, read once: what is checked is what is dialled. */
 const TARGET = /^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+):(\d{1,5})$/;
 
-/** Where a host is dialled: a `*.localhost` name is this machine (RFC 6761), whatever DNS says. */
+/**
+ * Where a host is dialled: a `*.localhost` name is this machine (RFC 6761), whatever DNS says, as
+ * `localhost`, so both IPv4 and IPv6 are tried.
+ */
 export const dialHost = (hostname: string): string => {
   const bare = hostname.replace(/^\[(.*)\]$/, "$1");
-  return bare.toLowerCase().endsWith(".localhost") ? "127.0.0.1" : bare;
+  return bare.toLowerCase().endsWith(".localhost") ? "localhost" : bare;
 };
 
 /** The headers a proxy must not pass on. */
@@ -81,6 +84,10 @@ export async function startProxy(allowed: (address: string) => boolean): Promise
       (up) => {
         res.writeHead(up.statusCode ?? 502, up.headers);
         up.pipe(res);
+        // An answer the app cut off half-way fails for the browser too, as it would without us.
+        up.on("close", () => {
+          if (!up.complete) res.destroy();
+        });
       },
     );
     track(upstream);
@@ -102,12 +109,17 @@ export async function startProxy(allowed: (address: string) => boolean): Promise
     const target = `${host}:${port}`;
     if (!host || !port || !(allowed(`https://${target}/`) || allowed(`http://${target}/`)))
       return refuseSocket(socket, refused, { method: "CONNECT", url: req.url ?? "" });
+    let established = false;
     const upstream = connect(Number(port), dialHost(host), () => {
+      established = true;
       socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
       upstream.write(head);
       splice(socket, upstream);
     });
-    upstream.on("error", () => socket.destroy());
+    // Nothing listening there: said as a proxy says it, so the caller reads a 502, not a hang-up.
+    upstream.on("error", () =>
+      established ? socket.destroy() : socket.end("HTTP/1.1 502 Bad Gateway\r\n\r\n"),
+    );
     track(socket);
     track(upstream);
   });

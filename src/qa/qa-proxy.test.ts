@@ -22,6 +22,10 @@ const listen = async (server: Server) => {
 
 beforeAll(async () => {
   app = createServer((req, res) => {
+    if (req.url === "/partial") {
+      res.writeHead(200, { "content-length": "100" }).write("only ten b");
+      return setTimeout(() => res.destroy(), 50);
+    }
     if (req.url === "/events") {
       liveCalls++;
       req.on("close", () => liveCalls--);
@@ -165,9 +169,45 @@ describe("the walk's proxy", () => {
     });
     await closed.close();
     expect(answer).toEqual({ status: 502, body: "nothing answers: ECONNREFUSED" });
-    expect(dialHost("shop.LocalHost")).toBe("127.0.0.1");
+    expect(dialHost("shop.LocalHost")).toBe("localhost");
     expect(dialHost("[::1]")).toBe("::1");
     expect(dialHost("example.com")).toBe("example.com");
+  });
+
+  it("fails an answer the app cut off half-way, instead of waiting for the rest", async () => {
+    const { port } = new URL(proxy.url);
+    const began = Date.now();
+    const ended = await new Promise<string>((resolve) => {
+      const req = httpRequest({
+        host: "127.0.0.1",
+        port,
+        path: `http://127.0.0.1:${appPort}/partial`,
+      });
+      req.on("response", (res) => {
+        res.on("data", () => undefined);
+        res.on("aborted", () => resolve("aborted"));
+        res.on("end", () => resolve("ended"));
+        res.on("error", () => resolve("aborted"));
+      });
+      req.on("error", () => resolve("aborted"));
+      req.end();
+    });
+    expect(ended).toBe("aborted");
+    expect(Date.now() - began).toBeLessThan(1000);
+  });
+
+  it("answers 502 to a tunnel where nothing listens", async () => {
+    const open = await startProxy(() => true);
+    const { port } = new URL(open.url);
+    const status = await new Promise<string>((resolve, reject) => {
+      const socket = connect(Number(port), "127.0.0.1", () =>
+        socket.write("CONNECT 127.0.0.1:9 HTTP/1.1\r\nHost: 127.0.0.1:9\r\n\r\n"),
+      );
+      socket.once("data", (data) => resolve(String(data).split("\r\n")[0] ?? ""));
+      socket.on("error", reject);
+    });
+    await open.close();
+    expect(status).toBe("HTTP/1.1 502 Bad Gateway");
   });
 
   it("refuses a socket asked for without a tunnel", async () => {

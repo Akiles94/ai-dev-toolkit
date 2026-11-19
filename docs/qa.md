@@ -78,7 +78,8 @@ a worker, a prefetch, a service worker or a socket included, and WebRTC cannot g
 it refuses is logged as `blocked: outside qa.origins` (a tunnel, for https or a socket, as
 `CONNECT host:port`, without the person). A `request` step goes through the same proxy and does
 not follow redirects: it shows where one points. A call to an allowed address where nothing
-listens answers `502`. When the walk ends, every call still open (a stream, a long poll) is
+listens answers `502`, and an answer the app cuts off half-way fails as it would without the
+proxy. When the walk ends, every call still open (a stream, a long poll) is
 closed, as when a person leaves. So a walk cannot carry what it reads in your app anywhere. A walk against a staging server, or a page
 that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`, which the agent
 cannot write: `["local", "https://cdn.example.com"]`, or only `["https://staging.example.com"]`.
@@ -145,7 +146,8 @@ one a page makes later than half a second after the step (a search that waits fo
 shows with the next step. A step that cannot be done stops the walk with a screenshot of what the screen showed
 instead, and says why: nothing matched, or what it found and why it could not use it (disabled,
 hidden, covered). The app must already be running, started as `.aidt/app.md` says: the walk starts
-nothing. Screenshots and logs go to `.aidt/qa/` (`qa.output`), which git ignores; the walks are
+nothing, and checks only that something listens at `app.url` (no request, no certificate: a local
+https certificate is the browser's to trust). Screenshots and logs go to `.aidt/qa/` (`qa.output`), which git ignores; the walks are
 committed with the report. Playwright comes from the project or npm's global packages; when it is
 missing, the walk prints how to install it.
 

@@ -1,11 +1,13 @@
 import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { connect } from "node:net";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { prepareIgnoredFolder, readJsonFile } from "../shared/browser/files.ts";
 import { INSTALL_PLAYWRIGHT, loadPlaywright } from "../shared/browser/playwright.ts";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import { git } from "../shared/git/git.ts";
 import { originPolicy, originsProblem } from "./qa-origins.ts";
+import { dialHost } from "./qa-proxy.ts";
 import { type Call, parseWalk, type StepLog, type WalkLog } from "./qa-walk.ts";
 import { playWalk } from "./qa-walker.ts";
 
@@ -14,16 +16,24 @@ const TEXT_LINES = 30;
 const LINE_CHARS = 120;
 
 /**
- * Whether anything answers at `url`, whatever its status: the walk needs the app running. A
- * redirect is not followed, and a `*.localhost` name is this machine, as in the walk's proxy.
+ * Whether something listens where the app should be: a connection to its host and port, with no
+ * request and no certificate to check (a local https certificate is the browser's to trust). A
+ * `*.localhost` name is this machine, as in the walk's proxy.
  */
-function answers(url: string): Promise<boolean> {
-  const target = new URL(url);
-  if (target.hostname.toLowerCase().endsWith(".localhost")) target.hostname = "127.0.0.1";
-  return fetch(target, { redirect: "manual", signal: AbortSignal.timeout(ANSWER_TIMEOUT_MS) }).then(
-    () => true,
-    () => false,
-  );
+export function listens(url: string): Promise<boolean> {
+  const { hostname, port, protocol } = new URL(url);
+  const host = dialHost(hostname);
+  return new Promise((resolve) => {
+    const socket = connect({ host, port: Number(port || (protocol === "https:" ? 443 : 80)) });
+    socket.setTimeout(ANSWER_TIMEOUT_MS);
+    const done = (answer: boolean) => {
+      socket.destroy();
+      resolve(answer);
+    };
+    socket.on("connect", () => done(true));
+    socket.on("error", () => done(false));
+    socket.on("timeout", () => done(false));
+  });
 }
 
 /** The commit the walk ran on, marked when the code has changes not committed yet. */
@@ -127,7 +137,7 @@ async function walkCommand(context: CliContext, file: string | undefined): Promi
     print(`Missing to walk. Run:\n  ${INSTALL_PLAYWRIGHT}`);
     return 2;
   }
-  if (!(await answers(walk.app.url))) {
+  if (!(await listens(walk.app.url))) {
     print(
       `Nothing answers at ${walk.app.url}. Start the app as .aidt/app.md says, then walk again.`,
     );

@@ -177,7 +177,10 @@ function formatSync(plan: Plan): string {
   const problems = plan.problems.flatMap((p) => p.messages.map((m) => `  ✗ ${p.file}: ${m}`));
   const written = plan.files.map((f) => `    ${f.path}`);
   if (problems.length > 0) return ["Nothing written. Fix these first:", ...problems].join("\n");
-  const lines = [`Generated ${plan.files.length} file(s):`, ...written];
+  const lines =
+    plan.files.length > 0
+      ? [`Generated ${plan.files.length} file(s):`, ...written]
+      : ["Nothing to generate: no agent in the agents folder, or no tool in sync.harnesses."];
   if (plan.orphans.length > 0) {
     lines.push(
       `Removed ${plan.orphans.length} file(s) whose agent is gone:`,

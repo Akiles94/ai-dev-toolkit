@@ -1,33 +1,17 @@
+import {
+  headerProblems,
+  isObject,
+  isText,
+  needsText,
+  PAGE_STEP_CHECKS,
+  type PageStep,
+  type StepCheck,
+  stepProblem,
+} from "../shared/browser/steps.ts";
 import { fail, ok, type Result } from "../shared/result/result.ts";
 
-/** What a step taps: a visible text, or a CSS selector when no text tells it apart. */
-export type Target =
-  | string
-  | { readonly text?: string; readonly selector?: string; readonly nth?: number };
-
 /** One thing the demo does on screen, or says. */
-export type Step =
-  | { readonly go: string }
-  | { readonly say: string }
-  | { readonly click: Target }
-  | {
-      readonly fill: {
-        readonly label?: string;
-        readonly selector?: string;
-        readonly value: string;
-      };
-    }
-  | {
-      /** A dropdown: the browser's own option list is not recorded, so the choice is set directly. */
-      readonly select: {
-        readonly label?: string;
-        readonly selector?: string;
-        readonly option: string;
-      };
-    }
-  | { readonly press: string }
-  | { readonly scroll: string }
-  | { readonly wait: number };
+export type Step = PageStep | { readonly say: string } | { readonly scroll: string };
 
 /** A part of the demo with a title, shown in the PR text: the main path first, then «other paths». */
 interface Scene {
@@ -53,49 +37,12 @@ export interface DemoScript {
   readonly scenes: readonly Scene[];
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const isText = (value: unknown): value is string => typeof value === "string" && value !== "";
-
-const needsText = (kind: string) => (value: unknown) =>
-  isText(value) ? undefined : `${kind} needs a text`;
-
 /** For each kind of step, what is wrong with its value, or `undefined` when it is valid. */
-const STEP_CHECKS: Record<string, (value: unknown) => string | undefined> = {
-  go: needsText("go"),
+const STEP_CHECKS: Record<string, StepCheck> = {
+  ...PAGE_STEP_CHECKS,
   say: needsText("say"),
-  press: needsText("press"),
   scroll: needsText("scroll"),
-  wait: (value) => (typeof value === "number" && value > 0 ? undefined : "wait needs milliseconds"),
-  click: (value) =>
-    isText(value) || (isObject(value) && (isText(value.text) || isText(value.selector)))
-      ? undefined
-      : "click needs a text, or an object with `text` or `selector`",
-  fill: (value) => {
-    const fill = isObject(value) ? value : {};
-    const where = isText(fill.label) || isText(fill.selector);
-    return where && typeof fill.value === "string"
-      ? undefined
-      : "fill needs `label` or `selector`, and `value`";
-  },
-  select: (value) => {
-    const select = isObject(value) ? value : {};
-    const where = isText(select.label) || isText(select.selector);
-    return where && isText(select.option)
-      ? undefined
-      : "select needs `label` or `selector`, and the `option` to choose";
-  },
 };
-
-/** What is wrong with one step, or `undefined` when it is valid. */
-function stepProblem(step: unknown): string | undefined {
-  if (!isObject(step)) return 'must be an object such as { "say": "…" }';
-  const kinds = Object.keys(step);
-  const check = kinds.length === 1 ? STEP_CHECKS[kinds[0] as string] : undefined;
-  if (!check) return `must have exactly one of ${Object.keys(STEP_CHECKS).join(", ")}`;
-  return check(step[kinds[0] as string]);
-}
 
 function sceneProblems(scene: unknown, index: number): string[] {
   const where = `scene ${index + 1}`;
@@ -103,7 +50,7 @@ function sceneProblems(scene: unknown, index: number): string[] {
     return [`${where}: needs a \`title\` and a list of \`steps\``];
   }
   return scene.steps.flatMap((step, i) => {
-    const problem = stepProblem(step);
+    const problem = stepProblem(step, STEP_CHECKS);
     return problem ? [`${where}, step ${i + 1}: ${problem}`] : [];
   });
 }
@@ -111,14 +58,7 @@ function sceneProblems(scene: unknown, index: number): string[] {
 /** Checks a script read from JSON; every problem is reported at once, with where it is. */
 export function parseScript(raw: unknown): Result<DemoScript, string[]> {
   if (!isObject(raw)) return fail(["the script must be a JSON object"]);
-  const problems: string[] = [];
-  if (!isText(raw.title)) problems.push("needs a `title`");
-  const app = isObject(raw.app) ? raw.app : {};
-  if (!isText(app.url) || !/^https?:\/\//.test(app.url))
-    problems.push("`app.url` must be an http(s) address");
-  if (app.start !== undefined) {
-    problems.push("`app.start` is not read from a script: set `demo.start` in .aidt/config.json");
-  }
+  const problems = headerProblems(raw, "a script: set `demo.start` in .aidt/config.json");
   const device = raw.device ?? "desktop";
   if (device !== "desktop" && device !== "phone") problems.push("`device` is `desktop` or `phone`");
   if (!Array.isArray(raw.scenes) || raw.scenes.length === 0)

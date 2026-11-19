@@ -56,6 +56,8 @@ export interface Call {
   readonly method: string;
   readonly path: string;
   readonly status: number | string;
+  /** Who made it, when not the person doing the step (another person's page kept working). */
+  readonly person?: string;
 }
 
 /** What the app answered to one step: everything a QA reads to judge it. */
@@ -67,7 +69,7 @@ export interface StepLog {
   readonly calls: readonly Call[];
   readonly consoleErrors: readonly string[];
   readonly pageErrors: readonly string[];
-  /** A `request`'s status and body, or what a `keep` kept. */
+  /** A `request`'s body (its status is among the calls), or what a `keep` kept. */
   readonly answer?: string;
   readonly screenshot?: string;
   readonly text?: string;
@@ -129,7 +131,7 @@ function peopleOf(raw: unknown, problems: string[]): Record<string, Person> {
   const people: Record<string, Person> = {};
   for (const [name, person] of Object.entries(raw)) {
     const device = isObject(person) ? (person.device ?? "desktop") : undefined;
-    if (!NAME.test(name) || typeof device !== "string" || !(device in SCREENS))
+    if (!NAME.test(name) || typeof device !== "string" || !Object.hasOwn(SCREENS, device))
       problems.push(
         `person ${name}: a name of letters, digits or _, with a \`device\` of desktop or phone`,
       );
@@ -166,6 +168,33 @@ export function fillIn(text: string, kept: ReadonlyMap<string, string>): Result<
   );
   if (missing) return fail(`nothing was kept as {${missing[1]}} before this step`);
   return ok(text.replace(/\{([A-Za-z_]\w*)\}/g, (_, name: string) => kept.get(name) ?? ""));
+}
+
+/**
+ * The step with every `{name}` in its texts filled in (labels, targets, addresses, bodies), or the
+ * first name nothing was kept as. A `keep` is left as written: its expressions are JavaScript, where
+ * braces mean something else.
+ */
+export function fillStep(
+  step: WalkStep,
+  kept: ReadonlyMap<string, string>,
+): Result<WalkStep, string> {
+  if ("keep" in step) return ok(step);
+  let missing: string | undefined;
+  const fill = (value: unknown): unknown => {
+    if (typeof value === "string") {
+      const result = fillIn(value, kept);
+      if (result.ok) return result.value;
+      missing ??= result.error;
+      return value;
+    }
+    if (Array.isArray(value)) return value.map(fill);
+    if (isObject(value))
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fill(v)]));
+    return value;
+  };
+  const filled = fill(step) as WalkStep;
+  return missing === undefined ? ok(filled) : fail(missing);
 }
 
 /** One step in words, for the walk's log. */

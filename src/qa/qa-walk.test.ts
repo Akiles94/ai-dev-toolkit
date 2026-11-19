@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeStep, fillIn, parseWalk, type WalkStep } from "./qa-walk.ts";
+import { describeStep, fillIn, fillStep, parseWalk, type WalkStep } from "./qa-walk.ts";
 
 const valid = {
   title: "Double tap on Add to cart",
@@ -103,6 +103,43 @@ describe("fillIn", () => {
       ok: false,
       error: "nothing was kept as {order} before this step",
     });
+  });
+});
+
+describe("fillStep", () => {
+  const kept = new Map([["cart", "cart-1a2b"]]);
+
+  it("fills every text of a step, its target and its body included, but never a keep's code", () => {
+    expect(fillStep({ click: { text: "Cart {cart}" } }, kept)).toEqual({
+      ok: true,
+      value: { click: { text: "Cart cart-1a2b" } },
+    });
+    expect(
+      fillStep({ request: { method: "POST", path: "/x", body: { id: "{cart}", n: 1 } } }, kept),
+    ).toEqual({
+      ok: true,
+      value: { request: { method: "POST", path: "/x", body: { id: "cart-1a2b", n: 1 } } },
+    });
+    const keep = { keep: { pair: "JSON.stringify({a})" } };
+    expect(fillStep(keep, kept)).toEqual({ ok: true, value: keep });
+    expect(fillStep({ select: { label: "{size}", option: "M" } }, kept)).toEqual({
+      ok: false,
+      error: "nothing was kept as {size} before this step",
+    });
+  });
+});
+
+describe("own keys only", () => {
+  it("refuses a kind or a device that only an object's prototype has", () => {
+    const parsed = parseWalk({
+      ...valid,
+      people: { shopper: { device: "toString" } },
+      steps: [{ hasOwnProperty: "x" }],
+    });
+    expect(!parsed.ok && parsed.error).toEqual([
+      "person shopper: a name of letters, digits or _, with a `device` of desktop or phone",
+      "step 1: must have exactly one of go, press, wait, click, fill, select, back, reload, look, keep, request, offline, clear",
+    ]);
   });
 });
 

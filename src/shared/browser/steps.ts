@@ -89,7 +89,7 @@ export function stepProblem(
   modifiers: readonly string[] = [],
 ): string | undefined {
   if (!isObject(step)) return 'must be an object such as { "go": "/" }';
-  const kinds = Object.keys(step).filter((key) => key in checks);
+  const kinds = Object.keys(step).filter((key) => Object.hasOwn(checks, key));
   const kind = kinds[0];
   if (kinds.length !== 1 || kind === undefined)
     return `must have exactly one of ${Object.keys(checks).join(", ")}`;

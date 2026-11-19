@@ -12,7 +12,7 @@ export interface Locator {
   filter(o: { hasText: string }): Locator;
   boundingBox(): Promise<{ x: number; y: number; width: number; height: number } | null>;
   scrollIntoViewIfNeeded(): Promise<void>;
-  click(o?: { delay?: number }): Promise<void>;
+  click(o?: { delay?: number; clickCount?: number }): Promise<void>;
   pressSequentially(text: string, o: { delay: number }): Promise<void>;
   fill(text: string): Promise<void>;
   selectOption(option: { label: string }): Promise<unknown>;
@@ -64,8 +64,20 @@ interface ApiResponse {
   text(): Promise<string>;
 }
 
+/** A call held on its way out, to let it go or stop it. */
+interface Route {
+  request(): Request;
+  continue(): Promise<void>;
+  abort(errorCode: string): Promise<void>;
+}
+
 export interface BrowserContext {
   newPage(): Promise<Page>;
+  route(url: string, handler: (route: Route) => unknown): Promise<void>;
+  routeWebSocket(
+    url: (url: URL) => boolean,
+    handler: (socket: { close(o: { code: number; reason: string }): unknown }) => unknown,
+  ): Promise<void>;
   addInitScript(s: string): Promise<void>;
   setOffline(offline: boolean): Promise<void>;
   clearCookies(): Promise<void>;
@@ -79,7 +91,7 @@ export interface BrowserContext {
   close(): Promise<void>;
 }
 
-interface Browser {
+export interface Browser {
   newContext(o: object): Promise<BrowserContext>;
   close(): Promise<void>;
 }

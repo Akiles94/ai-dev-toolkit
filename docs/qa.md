@@ -73,16 +73,17 @@ finding: it is how a developer sees it, and where its test starts.
 
 **What a walk can reach.** `aidt qa walk` is pre-approved, so where it goes is not the agent's to
 choose: by default this machine only (`localhost`, `127.0.0.1`, `[::1]`, any port). The browser goes
-out only through a proxy the walk starts, which refuses every other host at every hop: a redirect,
-a worker, a prefetch, a service worker or a socket included, and WebRTC cannot go around it. What
-it refuses is logged as `blocked: outside qa.origins` (a tunnel, for https or a socket, as
-`CONNECT host:port`, without the person). A `request` step goes through the same proxy and does
-not follow redirects: it shows where one points. A call to an allowed address where nothing
-listens answers `502`, and an answer the app cuts off half-way fails as it would without the
-proxy. When the walk ends, every call still open (a stream, a long poll) is
-closed, as when a person leaves. So a walk cannot carry what it reads in your app anywhere. A walk against a staging server, or a page
-that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`, which the agent
-cannot write: `["local", "https://cdn.example.com"]`, or only `["https://staging.example.com"]`.
+out only through a proxy the walk starts, which refuses every other host at every hop: a redirect, a
+worker, a prefetch, a service worker or a socket included, and WebRTC cannot go around it. What it
+refuses is logged as `blocked: outside qa.origins` (a tunnel, for https or a socket, as `CONNECT
+host:port`, without the person). A `request` step goes through the same proxy and does not follow
+redirects: it shows where one points. A call to an allowed address where nothing listens answers
+`502` (a page calling another origin then shows a CORS error, since that answer carries no CORS
+headers), and an answer the app cuts off half-way fails as it would without the proxy. When the walk
+ends, every call still open (a stream, a long poll) is closed, as when a person leaves. So a walk
+cannot carry what it reads in your app anywhere. A walk against a staging server, or a page that
+needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`, which the agent cannot
+write: `["local", "https://cdn.example.com"]`, or only `["https://staging.example.com"]`.
 
 `local` is every port of this machine, so a local port that forwards out (a development proxy, a
 tunnel) is a way out too: with one running, set `qa.origins` to your app's exact origin instead,

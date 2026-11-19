@@ -79,6 +79,31 @@ describe("aidt qa walk", () => {
     },
   );
 
+  it("reaches only this machine unless the config lists more, and says what the config takes", async () => {
+    const outside = repoWith([{ go: "/" }], "https://example.com");
+    await expect(walk(outside)).rejects.toThrow(
+      "https://example.com is outside qa.origins (local): a walk reaches this machine, or what .aidt/config.json lists.",
+    );
+    const wrong = repoWith([{ go: "/" }]);
+    write(wrong, { ".aidt/config.json": JSON.stringify({ qa: { origins: ["*"] } }) });
+    await expect(walk(wrong)).rejects.toThrow('qa.origins takes "local"');
+  });
+
+  it("never empties a folder that is not a walk's output", async () => {
+    const repo = repoWith([{ go: "/" }]);
+    mkdirSync(join(repo, "cart"));
+    write(repo, {
+      "cart/keep.ts": "export const kept = true;\n",
+      ".aidt/config.json": JSON.stringify({ qa: { output: "." } }),
+    });
+    await expect(walk(repo)).rejects.toThrow(
+      "cart exists and is not a walk's output: set qa.output to a folder of its own, or rename the walk.",
+    );
+    expect(existsSync(join(repo, "cart/keep.ts"))).toBe(true);
+    write(repo, { ".aidt/config.json": JSON.stringify({ qa: { output: "../elsewhere" } }) });
+    await expect(walk(repo)).rejects.toThrow("qa.output must be a folder inside the repository");
+  });
+
   it("explains a walk it cannot read, before opening anything", async () => {
     const repo = featureRepo();
     write(repo, { "bad.json": JSON.stringify({ title: "x", app: { url: "nope" }, steps: [] }) });
@@ -108,6 +133,7 @@ describe("what a walk prints", () => {
         calls: [
           { method: "GET", path: "/", status: 200 },
           { method: "GET", path: "/logo.png", status: 404 },
+          { method: "GET", path: "/tick", status: 200, person: "intruder" },
         ],
         consoleErrors: ["Failed to load resource"],
         pageErrors: [],
@@ -140,7 +166,9 @@ describe("what a walk prints", () => {
   it("shows each step with its answer, where it stopped, and a count of what went wrong", () => {
     const text = formatWalk("/repo", log, "a1b2c3d", "/repo/.aidt/qa/cart/walk.json");
     expect(text).toContain("Walk «Cart» · http://localhost:3000 · at a1b2c3d");
-    expect(text).toContain(" 1 shopper    go /\n      GET / 200 · GET /logo.png 404");
+    expect(text).toContain(
+      " 1 shopper    go /\n      GET / 200 · GET /logo.png 404 · [intruder] GET /tick 200",
+    );
     expect(text).toContain("console error: Failed to load resource");
     expect(text).toContain("page error: x is not defined");
     expect(text).toContain("│ line 30\n      │ … 2 more line(s) in .aidt/qa/cart/02-shopper.txt");

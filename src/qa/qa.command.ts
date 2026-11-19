@@ -1,9 +1,11 @@
+import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { basename, extname, join, relative } from "node:path";
+import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { prepareIgnoredFolder, readJsonFile } from "../shared/browser/files.ts";
 import { INSTALL_PLAYWRIGHT, loadPlaywright } from "../shared/browser/playwright.ts";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
 import { git } from "../shared/git/git.ts";
+import { originPolicy, originsProblem } from "./qa-origins.ts";
 import { type Call, parseWalk, type StepLog, type WalkLog } from "./qa-walk.ts";
 import { playWalk } from "./qa-walker.ts";
 
@@ -28,12 +30,31 @@ async function walkedAt(root: string): Promise<string> {
 
 const failed = (call: Call) => typeof call.status === "string" || call.status >= 400;
 
+const callText = (call: Call) =>
+  `${call.person ? `[${call.person}] ` : ""}${call.method} ${call.path} ${call.status}`;
+
+/**
+ * The folder for this walk's screenshots and log. One that exists without a walk's log is someone
+ * else's (a `qa.output` pointing at the code, a walk named like a folder): it is left alone, and the
+ * walk stops before anything runs.
+ */
+function walkFolder(root: string, output: string, file: string): string {
+  const outDir = resolve(root, output, basename(file, extname(file)));
+  const inside = relative(root, outDir);
+  if (inside === "" || inside.startsWith("..") || isAbsolute(inside))
+    throw new UsageError(`qa.output must be a folder inside the repository, not ${output}`);
+  if (existsSync(outDir) && !existsSync(join(outDir, "walk.json")))
+    throw new UsageError(
+      `${inside} exists and is not a walk's output: set qa.output to a folder of its own, or rename the walk.`,
+    );
+  return outDir;
+}
+
 function stepLines(root: string, step: StepLog): string[] {
   const shown = (path: string) => relative(root, path);
   const indent = (line: string) => `      ${line}`;
   const lines = [`${String(step.n).padStart(2)} ${step.person.padEnd(10)} ${step.step}`];
-  if (step.calls.length > 0)
-    lines.push(indent(step.calls.map((c) => `${c.method} ${c.path} ${c.status}`).join(" · ")));
+  if (step.calls.length > 0) lines.push(indent(step.calls.map(callText).join(" · ")));
   if (step.answer) lines.push(indent(step.answer));
   for (const error of step.consoleErrors) lines.push(indent(`console error: ${error}`));
   for (const error of step.pageErrors) lines.push(indent(`page error: ${error}`));
@@ -86,7 +107,15 @@ async function walkCommand(context: CliContext, file: string | undefined): Promi
   const { root, config, flags } = context;
   if (!file)
     throw new UsageError("Name the walk: aidt qa walk .aidt/tasks/<task>/qa/walks/<name>.json");
+  const wrongOrigins = originsProblem(config.qa.origins);
+  if (wrongOrigins) throw new UsageError(wrongOrigins);
   const walk = await readJsonFile(root, file, "QA walk", parseWalk);
+  const allowed = originPolicy(config.qa.origins);
+  if (!allowed(walk.app.url))
+    throw new UsageError(
+      `${walk.app.url} is outside qa.origins (${config.qa.origins.join(", ")}): a walk reaches this machine, or what .aidt/config.json lists.`,
+    );
+  const outDir = walkFolder(root, config.qa.output, file);
   const playwright = loadPlaywright(root);
   if (!playwright) {
     print(`Missing to walk. Run:\n  ${INSTALL_PLAYWRIGHT}`);
@@ -103,11 +132,10 @@ async function walkCommand(context: CliContext, file: string | undefined): Promi
     config.qa.output,
     "QA walks: screenshots, page texts and logs, made again by running the walk files.",
   );
-  const outDir = join(root, config.qa.output, basename(file, extname(file)));
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   const commit = await walkedAt(root);
-  const log = await playWalk(playwright, walk, outDir);
+  const log = await playWalk(playwright, walk, outDir, allowed);
   const logPath = join(outDir, "walk.json");
   await writeFile(logPath, `${JSON.stringify({ ...log, commit }, null, 2)}\n`);
   print(

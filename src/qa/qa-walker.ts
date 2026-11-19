@@ -1,42 +1,23 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
-import {
-  type BrowserContext,
-  type Page,
-  type Playwright,
-  type Request,
-  SCREENS,
-} from "../shared/browser/playwright.ts";
+import type { Playwright } from "../shared/browser/playwright.ts";
 import { type Field, field, locate, type Target } from "../shared/browser/steps.ts";
+import { type Actor, type Bucket, openActor, settle, shown } from "./qa-actor.ts";
 import {
   type ApiCall,
   type Call,
   describeStep,
-  fillIn,
+  fillStep,
   type StepLog,
   type Walk,
   type WalkLog,
   type WalkStep,
 } from "./qa-walk.ts";
 
-/** One person's browser: a context of their own (cookies, storage, device) and its page. */
-interface Actor {
-  readonly name: string;
-  readonly context: BrowserContext;
-  readonly page: Page;
-  /** Calls the page started that have not finished or failed yet. */
-  readonly inflight: { count: number };
-}
-
-interface Bucket {
-  calls: Call[];
-  consoleErrors: string[];
-  pageErrors: string[];
-}
-
 /** What a step's action may add to its log. */
-type Outcome = Partial<Pick<StepLog, "answer" | "screenshot" | "text">>;
+type Outcome = Partial<Pick<StepLog, "answer" | "screenshot" | "text">> & {
+  readonly calls?: readonly Call[];
+};
 
 interface Env {
   readonly actor: Actor;
@@ -44,71 +25,20 @@ interface Env {
   readonly kept: Map<string, string>;
   /** Where this step's screenshot and page text go, without the extension. */
   readonly shot: string;
+  /** Whether an address is one the walk may reach (`qa.origins`). */
+  readonly allowed: (address: string) => boolean;
 }
 
-const ACTION_TIMEOUT_MS = 8000;
-/** A step is over when its page made no call for `QUIET_MS`, or after `SETTLE_MS` at most. */
-const SETTLE_MS = 3000;
-const QUIET_MS = 300;
 const BODY_CHARS = 300;
 
-/** The text of `value` with its `{names}` filled in, or an error that stops the step. */
-function filled(value: string, kept: ReadonlyMap<string, string>): string {
-  const result = fillIn(value, kept);
-  if (!result.ok) throw new Error(result.error);
-  return result.value;
-}
-
-/** A call's address as the log shows it: the path for the app itself, the whole URL otherwise. */
-const shown = (url: string, base: string): string => {
-  const parsed = new URL(url);
-  const app = new URL(base);
-  return parsed.origin === app.origin ? parsed.pathname + parsed.search : url;
-};
-
-/** Pages, and the calls a script makes; images, styles and fonts only when they fail. */
-const worthLogging = (request: Request, status: number) =>
-  ["document", "xhr", "fetch"].includes(request.resourceType()) || status >= 400;
-
-function listen(actor: Actor, base: string, bucket: () => Bucket): void {
-  const { page, inflight } = actor;
-  page.on("request", () => {
-    inflight.count++;
-  });
-  page.on("requestfinished", () => {
-    inflight.count--;
-  });
-  page.on("response", (response) => {
-    const request = response.request();
-    if (!worthLogging(request, response.status())) return;
-    const path = shown(response.url(), base);
-    bucket().calls.push({ method: request.method(), path, status: response.status() });
-  });
-  page.on("requestfailed", (request) => {
-    inflight.count--;
-    const status = request.failure()?.errorText ?? "failed";
-    bucket().calls.push({ method: request.method(), path: shown(request.url(), base), status });
-  });
-  page.on("console", (message) => {
-    if (message.type() === "error") bucket().consoleErrors.push(message.text());
-  });
-  page.on("pageerror", (error) => bucket().pageErrors.push(error.message));
-}
-
-/**
- * Waits for what a step set off: the page loaded, then no call in flight for a moment, so every
- * answer is logged with the step that caused it. Playwright's own «networkidle» is reached once per
- * page load and would not wait for the calls a tap makes later.
- */
-async function settle(actor: Actor): Promise<void> {
-  await actor.page.waitForLoadState("load", { timeout: ACTION_TIMEOUT_MS }).catch(() => undefined);
-  const until = Date.now() + SETTLE_MS;
-  let quietSince = Date.now();
-  while (Date.now() < until) {
-    await sleep(50);
-    if (actor.inflight.count > 0) quietSince = Date.now();
-    else if (Date.now() - quietSince >= QUIET_MS) return;
-  }
+/** An address of the walk, resolved against the app's, refused when the walk may not reach it. */
+function reachable(env: Env, path: string): string {
+  const url = new URL(path, env.base).toString();
+  if (!env.allowed(url))
+    throw new Error(
+      `${url} is outside qa.origins: a walk reaches this machine, or what the config lists`,
+    );
+  return url;
 }
 
 /** A screenshot and the page's text, both kept next to the log so the QA can read them again. */
@@ -126,7 +56,8 @@ async function keep(env: Env, expressions: Record<string, string>): Promise<Outc
   const values: string[] = [];
   for (const [name, expression] of Object.entries(expressions)) {
     const value = await env.actor.page.evaluate(expression);
-    if (value === null || value === undefined) throw new Error(`\`${expression}\` gave nothing`);
+    if (value === null || value === undefined || value === "")
+      throw new Error(`\`${expression}\` gave nothing`);
     const text = typeof value === "string" ? value : JSON.stringify(value);
     env.kept.set(name, text);
     values.push(`${name} = ${JSON.stringify(text)}`);
@@ -134,27 +65,26 @@ async function keep(env: Env, expressions: Record<string, string>): Promise<Outc
   return { answer: values.join(" · ") };
 }
 
+/** A call with the person's cookies; offline, it fails as the page's calls do, without being sent. */
 async function request(env: Env, call: ApiCall): Promise<Outcome> {
-  const url = new URL(filled(call.path, env.kept), env.base).toString();
-  const body =
-    call.body === undefined
-      ? undefined
-      : typeof call.body === "string"
-        ? filled(call.body, env.kept)
-        : JSON.parse(filled(JSON.stringify(call.body), env.kept));
+  const url = reachable(env, call.path);
+  const method = call.method ?? "GET";
+  const path = shown(url, env.base);
+  if (env.actor.offline)
+    return { calls: [{ method, path, status: "net::ERR_INTERNET_DISCONNECTED" }] };
   const response = await env.actor.context.request.fetch(url, {
-    method: call.method ?? "GET",
-    data: body,
+    method,
+    data: call.body,
     failOnStatusCode: false,
   });
   const text = (await response.text()).replace(/\s+/g, " ").trim();
-  const cut = text.length > BODY_CHARS ? `${text.slice(0, BODY_CHARS)}…` : text;
-  return { answer: `${response.status()}${cut ? ` ${cut}` : ""}` };
+  const answer = text.length > BODY_CHARS ? `${text.slice(0, BODY_CHARS)}…` : text;
+  return { calls: [{ method, path, status: response.status() }], ...(answer ? { answer } : {}) };
 }
 
+/** `times` clicks in quick succession, as a person's double tap: none waits for the button again. */
 async function click(env: Env, target: Target, times: number): Promise<Outcome> {
-  const element = locate(env.actor.page, target);
-  for (let i = 0; i < times; i++) await element.click();
+  await locate(env.actor.page, target).click({ clickCount: times });
   return {};
 }
 
@@ -170,13 +100,11 @@ const just =
 
 /** What each kind of step does; each returns what it adds to the log. */
 const ACTIONS: Record<string, Action> = {
-  go: just(({ actor, base, kept }, path) =>
-    actor.page.goto(new URL(filled(path as string, kept), base).toString()),
-  ),
+  go: just((env, path) => env.actor.page.goto(reachable(env, path as string))),
   click: (env, target, step) => click(env, target as Target, step.times ?? 1),
-  fill: just(({ actor, kept }, value) => {
+  fill: just(({ actor }, value) => {
     const fill = value as Field & { value: string };
-    return field(actor.page, fill).fill(filled(fill.value, kept));
+    return field(actor.page, fill).fill(fill.value);
   }),
   select: just(({ actor }, value) => {
     const select = value as Field & { option: string };
@@ -189,7 +117,10 @@ const ACTIONS: Record<string, Action> = {
   look: (env) => look(env),
   keep: (env, expressions) => keep(env, expressions as Record<string, string>),
   request: (env, call) => request(env, call as ApiCall),
-  offline: just(({ actor }, offline) => actor.context.setOffline(offline as boolean)),
+  offline: just(({ actor }, offline) => {
+    actor.offline = offline as boolean;
+    return actor.context.setOffline(actor.offline);
+  }),
   clear: just(({ actor }, what) =>
     what === "cookies"
       ? actor.context.clearCookies()
@@ -222,8 +153,11 @@ export function reason(message: string): string {
 const WITHOUT_PAGE = new Set(["go", "request", "offline", "wait"]);
 
 /** Runs one step's action, and waits for what it set off. */
-async function perform(env: Env, step: WalkStep): Promise<Outcome> {
-  const [kind, value] = Object.entries(step).find(([key]) => key in ACTIONS) ?? [];
+async function perform(env: Env, written: WalkStep): Promise<Outcome> {
+  const filled = fillStep(written, env.kept);
+  if (!filled.ok) throw new Error(filled.error);
+  const step = filled.value;
+  const [kind, value] = Object.entries(step).find(([key]) => Object.hasOwn(ACTIONS, key)) ?? [];
   const action = kind ? ACTIONS[kind] : undefined;
   if (!action) throw new Error("a step with no action");
   if (!WITHOUT_PAGE.has(kind as string) && env.actor.page.url() === "about:blank")
@@ -235,43 +169,49 @@ async function perform(env: Env, step: WalkStep): Promise<Outcome> {
 
 /**
  * Plays a walk in a real browser, one context per person, and logs what the app answered to each
- * step. Stops at the first step that cannot be done, with a screenshot of what the screen showed
- * instead. The browser is closed whatever happens.
+ * step. Every person's browser reaches only what `allowed` accepts. Stops at the first step that
+ * cannot be done, with a screenshot of what the screen showed instead. The browser is closed
+ * whatever happens.
  */
 export async function playWalk(
   playwright: Playwright,
   walk: Walk,
   outDir: string,
+  allowed: (address: string) => boolean,
 ): Promise<WalkLog> {
   const browser = await playwright.chromium.launch();
   const actors = new Map<string, Actor>();
   let bucket: Bucket = { calls: [], consoleErrors: [], pageErrors: [] };
+  const first = Object.keys(walk.people)[0] ?? "person";
+  let person = first;
+  const reporting = { base: walk.app.url, bucket: () => bucket, acting: () => person };
   const actorFor = async (name: string): Promise<Actor> => {
-    const known = actors.get(name);
-    if (known) return known;
-    const device = walk.people[name]?.device ?? "desktop";
-    const context = await browser.newContext({ ...SCREENS[device] });
-    const page = await context.newPage();
-    page.setDefaultTimeout(ACTION_TIMEOUT_MS);
-    const actor = { name, context, page, inflight: { count: 0 } };
-    listen(actor, walk.app.url, () => bucket);
+    const actor =
+      actors.get(name) ??
+      (await openActor(browser, name, walk.people[name]?.device ?? "desktop", allowed, reporting));
     actors.set(name, actor);
     return actor;
   };
   const steps: StepLog[] = [];
   const kept = new Map<string, string>();
-  const first = Object.keys(walk.people)[0] ?? "person";
   try {
     for (const [i, step] of walk.steps.entries()) {
-      const person = step.as ?? first;
+      person = step.as ?? first;
       const actor = await actorFor(person);
       bucket = { calls: [], consoleErrors: [], pageErrors: [] };
       const n = i + 1;
       const shot = join(outDir, `${String(n).padStart(2, "0")}-${person}`);
       const base = { n, person, step: describeStep(step) };
+      const env = { actor, base: walk.app.url, kept, shot, allowed };
       try {
-        const outcome = await perform({ actor, base: walk.app.url, kept, shot }, step);
-        steps.push({ ...base, url: actor.page.url(), ...bucket, ...outcome });
+        const { calls = [], ...outcome } = await perform(env, step);
+        steps.push({
+          ...base,
+          url: actor.page.url(),
+          ...bucket,
+          calls: [...bucket.calls, ...calls],
+          ...outcome,
+        });
       } catch (error) {
         const failure = reason((error as Error).message);
         const screenshot = `${shot}.png`;

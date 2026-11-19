@@ -49,6 +49,8 @@ interface Reporting {
   readonly acting: () => string;
   /** What the walk may reach: a call elsewhere was stopped by the proxy, which logs it once. */
   readonly allowed: (address: string) => boolean;
+  /** The walk's proxy, which the person's `request` steps go through as their page does. */
+  readonly proxy: string;
 }
 
 function listen(actor: Actor, { base, bucket, acting, allowed }: Reporting): void {
@@ -89,7 +91,8 @@ export async function openActor(
   device: Device,
   reporting: Reporting,
 ): Promise<Actor> {
-  const context = await browser.newContext({ ...SCREENS[device] });
+  const proxy = { server: reporting.proxy, bypass: "<-loopback>" };
+  const context = await browser.newContext({ ...SCREENS[device], proxy });
   const page = await context.newPage();
   page.setDefaultTimeout(ACTION_TIMEOUT_MS);
   const actor: Actor = { name, context, page, inflight: { count: 0 }, offline: false };

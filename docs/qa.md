@@ -76,15 +76,17 @@ choose: by default this machine only (`localhost`, `127.0.0.1`, `[::1]`, any por
 out only through a proxy the walk starts, which refuses every other host at every hop: a redirect,
 a worker, a prefetch, a service worker or a socket included, and WebRTC cannot go around it. What
 it refuses is logged as `blocked: outside qa.origins` (a tunnel, for https or a socket, as
-`CONNECT host:port`). A `request` step does not follow redirects: it shows where one points. So a
-walk cannot carry what it reads in your app anywhere. A walk against a staging server, or a page
+`CONNECT host:port`, without the person). A `request` step goes through the same proxy and does
+not follow redirects: it shows where one points. A call to an allowed address where nothing
+listens answers `502`. When the walk ends, every call still open (a stream, a long poll) is
+closed, as when a person leaves. So a walk cannot carry what it reads in your app anywhere. A walk against a staging server, or a page
 that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`, which the agent
 cannot write: `["local", "https://cdn.example.com"]`, or only `["https://staging.example.com"]`.
 
 `local` is every port of this machine, so a local port that forwards out (a development proxy, a
 tunnel) is a way out too: with one running, set `qa.origins` to your app's exact origin instead,
-such as `["http://localhost:3000"]`. Names such as `app.localhost` are not part of `local`; list
-them in `qa.origins`.
+such as `["http://localhost:3000"]`. Names such as `app.localhost` are not part of `local`: list
+them in `qa.origins`, and the walk takes them to this machine, whatever the system's DNS says.
 
 ```json
 {

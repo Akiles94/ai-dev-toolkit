@@ -13,12 +13,18 @@ const ANSWER_TIMEOUT_MS = 3000;
 const TEXT_LINES = 30;
 const LINE_CHARS = 120;
 
-/** Whether anything answers at `url`, whatever its status: the walk needs the app running. */
-const answers = (url: string): Promise<boolean> =>
-  fetch(url, { signal: AbortSignal.timeout(ANSWER_TIMEOUT_MS) }).then(
+/**
+ * Whether anything answers at `url`, whatever its status: the walk needs the app running. A
+ * redirect is not followed, and a `*.localhost` name is this machine, as in the walk's proxy.
+ */
+function answers(url: string): Promise<boolean> {
+  const target = new URL(url);
+  if (target.hostname.toLowerCase().endsWith(".localhost")) target.hostname = "127.0.0.1";
+  return fetch(target, { redirect: "manual", signal: AbortSignal.timeout(ANSWER_TIMEOUT_MS) }).then(
     () => true,
     () => false,
   );
+}
 
 /** The commit the walk ran on, marked when the code has changes not committed yet. */
 async function walkedAt(root: string): Promise<string> {

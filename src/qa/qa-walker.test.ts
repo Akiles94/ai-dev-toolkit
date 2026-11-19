@@ -26,6 +26,8 @@ async function add() {
 
 /** Where the shop's redirect sends a walk. */
 let awayTo = "";
+/** Event streams a page holds open on the shop. */
+let liveEvents = 0;
 
 /** Starts the shop on a free port; every start has an empty cart. */
 async function startShop(): Promise<{ url: string; close: () => void; hits: () => number }> {
@@ -40,6 +42,8 @@ async function startShop(): Promise<{ url: string; close: () => void; hits: () =
     "GET /poll": () => [200, html, poll],
     "GET /tick": () => [200, {}, "tick"],
     "POST /orders": () => [201, {}, ""],
+    "GET /live": () => [200, html, "<p>Live</p><script>new EventSource('/events')</script>"],
+    "POST /created": () => [201, { location: "/orders/42" }, '{"id":42}'],
     // An open redirect, to wherever the test points it: a walk must not follow it out.
     "GET /away": () => [302, { location: awayTo }, ""],
     "POST /away": () => [307, { location: awayTo }, ""],
@@ -51,6 +55,12 @@ async function startShop(): Promise<{ url: string; close: () => void; hits: () =
   };
   const server = createServer((req, res) => {
     hits++;
+    // A stream the page keeps open: a walk that ends must close it, as a person leaving would.
+    if (req.url === "/events") {
+      liveEvents++;
+      req.on("close", () => liveEvents--);
+      return res.writeHead(200, { "content-type": "text/event-stream" }).write("data: hi\n\n");
+    }
     const route = routes[`${req.method} ${req.url}`];
     const [status, headers, body] = route ? route() : [404, {}, "not found"];
     res.writeHead(status, headers).end(body);
@@ -267,6 +277,58 @@ describe("playWalk, as a person would do it", () => {
         status: 200,
         person: "shopper",
       });
+    },
+  );
+});
+
+describe("playWalk ends cleanly", () => {
+  it.skipIf(!playwright)(
+    "closes what a page kept open, so the app sees it end and nothing waits",
+    async () => {
+      await playWalk(
+        playwright as Playwright,
+        walkOf([{ go: "/live" }, { wait: 300 }]),
+        folder(),
+        local,
+      );
+      const until = Date.now() + 2000;
+      while (liveEvents > 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
+      expect(liveEvents).toBe(0);
+    },
+  );
+
+  it.skipIf(!playwright)("shows a request's body when its location is not a redirect", async () => {
+    const log = await playWalk(
+      playwright as Playwright,
+      walkOf([{ request: { method: "POST", path: "/created" } }]),
+      folder(),
+      local,
+    );
+    expect(log.steps[0]).toMatchObject({
+      calls: [{ method: "POST", path: "/created", status: 201 }],
+      answer: '{"id":42}',
+    });
+  });
+
+  it.skipIf(!playwright)(
+    "walks a *.localhost name listed in qa.origins, as this machine",
+    async () => {
+      const named = shop.url.replace("127.0.0.1", "shop.localhost");
+      const parsed = parseWalk({
+        title: "Named",
+        app: { url: named },
+        steps: [{ go: "/" }, { request: { method: "POST", path: "/orders" } }],
+      });
+      if (!parsed.ok) throw new Error(parsed.error.join("; "));
+      const log = await playWalk(
+        playwright as Playwright,
+        parsed.value,
+        folder(),
+        originPolicy([named]),
+      );
+      expect(log.stopped).toBe(false);
+      expect(log.steps[0]?.calls).toEqual([{ method: "GET", path: "/", status: 200 }]);
+      expect(log.steps[1]?.calls).toEqual([{ method: "POST", path: "/orders", status: 201 }]);
     },
   );
 });

@@ -81,11 +81,12 @@ async function request(env: Env, call: ApiCall): Promise<Outcome> {
     failOnStatusCode: false,
     maxRedirects: 0,
   });
-  const location = response.headers().location;
+  const status = response.status();
+  const location = status >= 300 && status < 400 ? response.headers().location : undefined;
   const text = (await response.text()).replace(/\s+/g, " ").trim();
   const cut = text.length > BODY_CHARS ? `${text.slice(0, BODY_CHARS)}…` : text;
   const answer = location ? `redirect to ${location}, not followed` : cut;
-  return { calls: [{ method, path, status: response.status() }], ...(answer ? { answer } : {}) };
+  return { calls: [{ method, path, status }], ...(answer ? { answer } : {}) };
 }
 
 /** `times` clicks in quick succession, as a person's double tap: none waits for the button again. */
@@ -204,7 +205,7 @@ export async function playWalk(
   const first = Object.keys(walk.people)[0] ?? "person";
   let person = first;
   const base = walk.app.url;
-  const reporting = { base, bucket: () => bucket, acting: () => person, allowed };
+  const reporting = { base, bucket: () => bucket, acting: () => person, allowed, proxy: proxy.url };
   const actorFor = async (name: string): Promise<Actor> => {
     const actor =
       actors.get(name) ??

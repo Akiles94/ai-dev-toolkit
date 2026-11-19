@@ -26,8 +26,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   `qa.output` (`.aidt/qa`, ignored by git); a folder there that is not a walk's output is never
   emptied.
 - **`qa.origins`**: what a walk may reach, in the config the agent cannot write. By default
-  `local`, this machine on any port: steps, the page's own calls and WebSockets to anywhere else
-  are blocked and logged, so a pre-approved walk cannot carry what it reads out of the machine.
+  `local`, this machine on any port. The browser goes out only through a proxy the walk starts,
+  which refuses every other host at every hop (redirects, workers, prefetches, service workers,
+  sockets; WebRTC cannot go around it) and logs what it refuses; a `request` step shows a redirect
+  instead of following it. So a pre-approved walk cannot carry what it reads out of the machine.
 - **Plan check** (`practices/plan-check.md`, installed with the QA): the list a plan goes through
   before building. The planner reads it only in projects that have it, and plans a test from the
   walk for every QA finding a block fixes.

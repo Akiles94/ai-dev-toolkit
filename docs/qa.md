@@ -44,7 +44,8 @@ emails, texts, a design, a written process). A block with none keeps only the re
    `.aidt/app.md`, the notes on how to run and use the product it shares with the
    [demo](demo.md) (it drafts them the first time). It proposes the journeys the change makes, the
    older journeys it touches (with the assumption each relied on), the promises about them, the
-   people and states to try, about how many walks, and a token estimate. Nothing is walked until
+   people and states to try, about how many walks, the tier it runs on and a token estimate.
+   Nothing is walked until
    you say «scope approved».
 2. **Walk.** One JSON file per journey and state, played by `aidt qa walk` in a real browser,
    with no model. It reads what the app answered at each step.
@@ -71,12 +72,19 @@ expressions of `keep`, which run inside the browser page. Running the same file 
 finding: it is how a developer sees it, and where its test starts.
 
 **What a walk can reach.** `aidt qa walk` is pre-approved, so where it goes is not the agent's to
-choose: by default this machine only (`localhost`, `127.0.0.1`, `[::1]`, any port). Its steps, the
-page's own calls and WebSockets to anywhere else are blocked and logged as `blocked: outside
-qa.origins`, so a walk cannot carry what it reads in your app anywhere. A walk against a staging
-server, or a page that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`,
-which the agent cannot write: `["local", "https://cdn.example.com"]`, or only
-`["https://staging.example.com"]`.
+choose: by default this machine only (`localhost`, `127.0.0.1`, `[::1]`, any port). The browser goes
+out only through a proxy the walk starts, which refuses every other host at every hop: a redirect,
+a worker, a prefetch, a service worker or a socket included, and WebRTC cannot go around it. What
+it refuses is logged as `blocked: outside qa.origins` (a tunnel, for https or a socket, as
+`CONNECT host:port`). A `request` step does not follow redirects: it shows where one points. So a
+walk cannot carry what it reads in your app anywhere. A walk against a staging server, or a page
+that needs a CDN, lists those origins in `qa.origins` in `.aidt/config.json`, which the agent
+cannot write: `["local", "https://cdn.example.com"]`, or only `["https://staging.example.com"]`.
+
+`local` is every port of this machine, so a local port that forwards out (a development proxy, a
+tunnel) is a way out too: with one running, set `qa.origins` to your app's exact origin instead,
+such as `["http://localhost:3000"]`. Names such as `app.localhost` are not part of `local`; list
+them in `qa.origins`.
 
 ```json
 {
@@ -195,7 +203,7 @@ a page built with the full workflow and passed by the reviewer:
   reading it; replaying the QA's walk showed it worked, and the reviewer withdrew the finding.
 - **In Claude Code**, when the walk goes on in the conversation after the proposal, Claude Code
   asks before the first `aidt qa walk`: allow it for the session.
-- Measured with Claude Code 2.1.327, headless (`claude -p`), on 2026-11-18. Most input tokens are
+- Measured with Claude Code 2.1.327, headless (`claude -p`), on 2026-11-18 and 19. Most input tokens are
   cache reads, which cost a tenth of fresh input. With a Claude subscription the runs count toward
   usage limits instead.
 

@@ -8,7 +8,6 @@ describe("originPolicy", () => {
       "http://localhost:3000/",
       "https://127.0.0.1:8443/x",
       "http://[::1]:5173/",
-      "http://app.localhost/",
       "ws://localhost:3000/socket",
     ])
       expect(allowed(url)).toBe(true);
@@ -16,6 +15,8 @@ describe("originPolicy", () => {
       "https://example.com/",
       "http://10.0.0.5:3000/",
       "http://localhost.example.com/",
+      "http://app.localhost/",
+      "http://127.0.0.2:3000/",
       "file:///etc/passwd",
       "data:text/plain,x",
       "not a url",

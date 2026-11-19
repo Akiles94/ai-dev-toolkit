@@ -1,5 +1,3 @@
-import type { BrowserContext } from "../shared/browser/playwright.ts";
-
 // Where a walk may reach. `aidt qa walk` is pre-approved for an agent that writes the walks, so the
 // limit comes from the config, which the agent cannot write: by default this machine only, so a
 // walk cannot carry what it reads in the app anywhere else.
@@ -40,32 +38,10 @@ export function originPolicy(origins: readonly string[]): (address: string) => b
     }
     if (!WEB.has(url.protocol)) return false;
     const host = url.hostname;
-    if (local && (LOCAL_HOSTS.has(host) || host.endsWith(".localhost"))) return true;
+    if (local && LOCAL_HOSTS.has(host)) return true;
     return exact.has(`${url.protocol.replace(/^ws/, "http")}//${url.host}`);
   };
 }
 
 /** How the log names a call the walk did not let out. */
 export const BLOCKED = "blocked: outside qa.origins";
-
-/**
- * Lets a person's browser reach only what `allowed` accepts: the page's own calls, a script's,
- * service workers' (turned off, so every call goes through here) and WebSockets. A call that is
- * not let out fails, and is logged as {@link BLOCKED}.
- */
-export async function confine(
-  context: BrowserContext,
-  allowed: (address: string) => boolean,
-  blocked: Set<string>,
-): Promise<void> {
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (allowed(url)) return route.continue();
-    blocked.add(url);
-    return route.abort("blockedbyclient");
-  });
-  await context.routeWebSocket(
-    (url) => !allowed(url.href),
-    (socket) => socket.close({ code: 1008, reason: BLOCKED }),
-  );
-}

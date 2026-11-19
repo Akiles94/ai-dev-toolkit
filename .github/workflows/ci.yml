@@ -14,6 +14,10 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: npm ci --no-audit --no-fund
+      # The QA walker is tested in a real browser. The toolkit does not depend on Playwright (each
+      # project brings its own), so it is installed globally, for the tests only.
+      - name: Playwright and Chromium for the browser tests
+        run: npm install -g playwright@1.63.0 && playwright install --with-deps chromium
       - run: npm run typecheck
       # Every check runs even if a previous one fails, and reports its findings as PR annotations.
       - name: Lint and cognitive complexity (Biome)

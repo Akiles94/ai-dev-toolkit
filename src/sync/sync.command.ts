@@ -180,7 +180,7 @@ function formatSync(plan: Plan): string {
   const lines =
     plan.files.length > 0
       ? [`Generated ${plan.files.length} file(s):`, ...written]
-      : ["No agents installed: nothing to generate."];
+      : ["Nothing to generate: no agent in the agents folder, or no tool in sync.harnesses."];
   if (plan.orphans.length > 0) {
     lines.push(
       `Removed ${plan.orphans.length} file(s) whose agent is gone:`,

@@ -113,10 +113,10 @@ async function main(argv: string[]): Promise<number> {
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
 
-// Output cut short by its reader (`aidt sync | head`) is not an error: stop quietly.
+// Output cut short by its reader (`aidt add workflow | head`) is not an error: the rest of the
+// output is dropped, and the command still finishes its work and exits with its own code.
 process.stdout.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code !== "EPIPE") throw error;
-  process.exit(process.exitCode ?? 0);
 });
 
 main(process.argv.slice(2)).then(

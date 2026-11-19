@@ -111,8 +111,11 @@ interface AddPlan {
   readonly createConfig: boolean;
 }
 
-const sameContent = async (a: string, b: string): Promise<boolean> =>
-  (await readFile(a)).equals(await readFile(b));
+/** The same text, whatever the line endings: Git for Windows checks files out with CRLF. */
+const sameContent = async (a: string, b: string): Promise<boolean> => {
+  const text = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
+  return (await text(a)) === (await text(b));
+};
 
 const exists = (path: string): Promise<boolean> =>
   stat(path).then(

@@ -32,6 +32,16 @@ describe("output cut short", () => {
     expect(result.stdout).toBe("Added 14 file(s) to .aidt/\n");
     expect(result.stderr).toBe("");
   });
+
+  it.skipIf(process.platform === "win32")(
+    "still finishes its work when the reader is gone before the first line",
+    () => {
+      const command = `"${process.execPath}" "${CLI}" add workflow | true`;
+      const result = spawnSync("sh", ["-c", command], { cwd: repo, encoding: "utf8" });
+      expect(result.stderr).toBe("");
+      expect(existsSync(join(repo, ".claude/skills/reviewer/SKILL.md"))).toBe(true);
+    },
+  );
 });
 
 describe("aidt diff", () => {
@@ -152,6 +162,14 @@ describe("aidt add", () => {
     expect(readFileSync(practices, "utf8")).toBe("# Our own rules\n");
   });
 
+  it("does not take a copy with Windows line endings for a different file", () => {
+    run(repo, "add", "workflow");
+    const planner = join(repo, ".aidt", "agents", "planner.md");
+    writeFileSync(planner, readFileSync(planner, "utf8").replace(/\n/g, "\r\n"));
+    const { out } = run(repo, "add", "workflow");
+    expect(out).not.toContain("(differs from this version's)");
+  });
+
   it("copies a product's nested folders, alone or next to the workflow", () => {
     const { code, out } = run(repo, "add", "structure");
     expect(code).toBe(0);
@@ -165,7 +183,9 @@ describe("aidt add", () => {
     const { code, out } = run(repo, "add", "context");
     expect(code).toBe(0);
     expect(out).toContain("Next: create .aidt/status.md");
-    expect(out).toContain("No agents installed: nothing to generate.");
+    expect(out).toContain(
+      "Nothing to generate: no agent in the agents folder, or no tool in sync.harnesses.",
+    );
     expect(out).not.toContain("Generated 0 file(s)");
     for (const path of ["practices/session-context.md", "templates/status.md"]) {
       expect(existsSync(join(repo, ".aidt", path))).toBe(true);

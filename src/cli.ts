@@ -7,6 +7,7 @@ import { cleanCommand } from "./clean/clean.command.ts";
 import { contextCommand } from "./context/context.command.ts";
 import { demoCommand } from "./demo/demo.command.ts";
 import { diffCommand } from "./diff/diff.command.ts";
+import { qaCommand } from "./qa/qa.command.ts";
 import { type CliContext, print, UsageError } from "./shared/cli/cli-context.ts";
 import { loadConfig } from "./shared/config/config.ts";
 import { GitError, repoRoot } from "./shared/git/git.ts";
@@ -23,7 +24,7 @@ const HELP = `aidt: AI Dev Toolkit
 Usage
   aidt add   <product|agent>               Copy into .aidt/ and sync: a product (workflow, structure,
                                            context) or one agent alone (refiner, reviewer, walkthrough,
-                                           demo)
+                                           demo, qa)
   aidt diff  [source] [--files] [--json]   Diff stats with noise filtered
   aidt sync  [--from <dir>] [--check]      Render the canonical agents for each AI tool
                                            (--check: exit 1 if generated files are out of date)
@@ -36,6 +37,8 @@ Usage
                                            (exit 1 if over, or a «Read first» path is missing)
   aidt demo render <script> [--sample]     Record a demo script as a narrated video, no model
                                            (--sample: the first scene only, to check the format)
+  aidt qa walk <file> [--json]             Play a QA walk in a real browser, one context per person,
+                                           and print what the app answered at each step, no model
   aidt walkthrough plan [source] [--json]  Split a large change into sections to review in order
   aidt walkthrough start <ref> [name]      Check <ref> out in an ignored worktree and plan it
                        [--base <ref>]      (under .aidt/walkthrough/; nothing is committed)
@@ -52,8 +55,8 @@ Other
   -v, --version   Show the version
 
 Exit codes: 0 ok · 1 findings (--check, invalid agents, stack not ready, context over budget,
-            a demo stopped at a step or by its recording)
-            2 usage or git error, a tool to install, an app that did not start`;
+            a demo or a walk stopped at a step, a demo stopped by its recording)
+            2 usage or git error, a tool to install, an app that did not start or does not answer`;
 
 function version(): string {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -105,9 +108,16 @@ async function main(argv: string[]): Promise<number> {
   if (command === "structure") return structureCommand(context, rest[0]);
   if (command === "context") return contextCommand(context, rest[0]);
   if (command === "demo") return demoCommand(context, rest);
+  if (command === "qa") return qaCommand(context, rest);
   if (command === "walkthrough") return walkthroughCommand(context, rest);
   throw new UsageError(`Unknown command "${command}". Run aidt --help.`);
 }
+
+// Output cut short by its reader (`aidt add workflow | head`) is not an error: the rest of the
+// output is dropped, and the command still finishes its work and exits with its own code.
+process.stdout.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code !== "EPIPE") throw error;
+});
 
 main(process.argv.slice(2)).then(
   (code) => {

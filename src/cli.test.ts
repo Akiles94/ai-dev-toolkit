@@ -24,6 +24,26 @@ beforeEach(() => {
   commitAll(repo, "feature");
 });
 
+describe("output cut short", () => {
+  it.skipIf(process.platform === "win32")("stops quietly when its reader closes the pipe", () => {
+    // add prints, copies and renders the agents, then prints again: by then head has gone.
+    const command = `"${process.execPath}" "${CLI}" add workflow | head -1`;
+    const result = spawnSync("sh", ["-c", command], { cwd: repo, encoding: "utf8" });
+    expect(result.stdout).toBe("Added 14 file(s) to .aidt/\n");
+    expect(result.stderr).toBe("");
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "still finishes its work when the reader is gone before the first line",
+    () => {
+      const command = `"${process.execPath}" "${CLI}" add workflow | true`;
+      const result = spawnSync("sh", ["-c", command], { cwd: repo, encoding: "utf8" });
+      expect(result.stderr).toBe("");
+      expect(existsSync(join(repo, ".claude/skills/reviewer/SKILL.md"))).toBe(true);
+    },
+  );
+});
+
 describe("aidt diff", () => {
   it("compares the branch with the default branch and filters noise", () => {
     const { code, out } = run(repo, "diff", "--json");
@@ -136,8 +156,18 @@ describe("aidt add", () => {
     const { code, out } = run(repo, "add", "workflow");
     expect(code).toBe(0);
     expect(out).toContain("Added 0 file(s)");
-    expect(out).toContain(".aidt/practices/sustainable-code.md");
+    expect(out).toContain(".aidt/practices/sustainable-code.md  (differs from this version's)");
+    expect(out).toContain("1 of them differ from this version's: an older copy, or your changes.");
+    expect(out).not.toContain(".aidt/practices/static-analysis.md  (differs");
     expect(readFileSync(practices, "utf8")).toBe("# Our own rules\n");
+  });
+
+  it("does not take a copy with Windows line endings for a different file", () => {
+    run(repo, "add", "workflow");
+    const planner = join(repo, ".aidt", "agents", "planner.md");
+    writeFileSync(planner, readFileSync(planner, "utf8").replace(/\n/g, "\r\n"));
+    const { out } = run(repo, "add", "workflow");
+    expect(out).not.toContain("(differs from this version's)");
   });
 
   it("copies a product's nested folders, alone or next to the workflow", () => {
@@ -153,6 +183,10 @@ describe("aidt add", () => {
     const { code, out } = run(repo, "add", "context");
     expect(code).toBe(0);
     expect(out).toContain("Next: create .aidt/status.md");
+    expect(out).toContain(
+      "Nothing to generate: no agent in the agents folder, or no tool in sync.harnesses.",
+    );
+    expect(out).not.toContain("Generated 0 file(s)");
     for (const path of ["practices/session-context.md", "templates/status.md"]) {
       expect(existsSync(join(repo, ".aidt", path))).toBe(true);
     }
@@ -173,6 +207,28 @@ describe("aidt add", () => {
     for (const path of [".aidt/templates/demo-script.json", ".claude/skills/demo/SKILL.md"]) {
       expect(existsSync(join(repo, path))).toBe(true);
     }
+  });
+
+  it("installs the qa agent with its templates, the plan check and the app notes it shares", () => {
+    const { code, out } = run(repo, "add", "qa");
+    expect(code).toBe(0);
+    expect(out).toContain("ask for a QA pass with /qa");
+    for (const path of [
+      ".aidt/templates/qa-walk.json",
+      ".aidt/templates/qa-report.md",
+      ".aidt/templates/app.md",
+      ".aidt/practices/plan-check.md",
+      ".claude/skills/qa/SKILL.md",
+      ".github/agents/qa.agent.md",
+    ]) {
+      expect(existsSync(join(repo, path))).toBe(true);
+    }
+  });
+
+  it("keeps the app notes the demo already brought, when the qa comes after it", () => {
+    expect(run(repo, "add", "demo").code).toBe(0);
+    const { out } = run(repo, "add", "qa");
+    expect(out).toContain("Kept 1 existing file(s) unchanged:\n    .aidt/templates/app.md\n");
   });
 
   it("installs one workflow agent alone, with only the files it reads", () => {
@@ -209,7 +265,7 @@ describe("aidt add", () => {
     const { code, err } = run(repo, "add", "nope");
     expect(code).toBe(2);
     expect(err).toContain(
-      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough, demo.',
+      'Unknown product or agent "nope". Available: workflow, structure, context, refiner, reviewer, walkthrough, demo, qa.',
     );
   });
 });

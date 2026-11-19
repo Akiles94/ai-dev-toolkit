@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type CliContext, print, UsageError } from "../shared/cli/cli-context.ts";
@@ -11,6 +11,8 @@ const PRODUCTS_DIR = fileURLToPath(new URL("../../products/", import.meta.url));
 interface Installable {
   readonly product: string;
   readonly paths: readonly string[];
+  /** Files it shares with another product, taken from there so they exist once. */
+  readonly shared?: readonly { readonly product: string; readonly path: string }[];
   /** What the user does next, when copying the files is not enough. */
   readonly next?: string;
 }
@@ -61,6 +63,18 @@ const INSTALLABLES: Record<string, Installable> = {
       "ffmpeg and an offline voice (Piper). Videos stay out of git; their scripts are committed.",
     ].join("\n"),
   },
+  qa: {
+    product: "qa",
+    paths: ["agents", "templates", "practices"],
+    shared: [{ product: "demo", path: "templates/app.md" }],
+    next: [
+      "Next: ask for a QA pass with /qa (Claude Code) or the qa agent (Copilot), naming the mode",
+      "(block, flow or audit) and the branch. It proposes the scope and its cost first, and drafts",
+      ".aidt/app.md if the project has none. Walks need Playwright (the first one says how to",
+      "install it) and the app running; screenshots stay out of git, walks are committed. The",
+      "planner goes through .aidt/practices/plan-check.md from now on.",
+    ].join("\n"),
+  },
 };
 
 const CONFIG_FILE = ".aidt/config.json";
@@ -92,8 +106,16 @@ interface AddPlan {
   readonly next?: string | undefined;
   /** Files the project already has: they belong to the project now and are never overwritten. */
   readonly kept: readonly string[];
+  /** Of those, the ones that differ from this version's: older copies, or the project's changes. */
+  readonly differ: readonly string[];
   readonly createConfig: boolean;
 }
+
+/** The same text, whatever the line endings: Git for Windows checks files out with CRLF. */
+const sameContent = async (a: string, b: string): Promise<boolean> => {
+  const text = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
+  return (await text(a)) === (await text(b));
+};
 
 const exists = (path: string): Promise<boolean> =>
   stat(path).then(
@@ -119,18 +141,27 @@ async function planAdd(root: string, name: string): Promise<Result<AddPlan, stri
     const available = Object.keys(INSTALLABLES).join(", ");
     return fail(`Unknown product or agent "${name}". Available: ${available}.`);
   }
-  const productDir = join(PRODUCTS_DIR, installable.product);
+  const sources = [
+    ...installable.paths.map((path) => ({ product: installable.product, path })),
+    ...(installable.shared ?? []),
+  ];
   const copies: Copy[] = [];
   const kept: string[] = [];
-  for (const path of installable.paths) {
+  const differ: string[] = [];
+  for (const { product, path } of sources) {
+    const productDir = join(PRODUCTS_DIR, product);
     for (const file of await filesAt(productDir, path)) {
       const target = `.aidt/${file}`;
-      if (await exists(join(root, target))) kept.push(target);
-      else copies.push({ source: join(productDir, file), target });
+      const source = join(productDir, file);
+      if (!(await exists(join(root, target)))) copies.push({ source, target });
+      else {
+        kept.push(target);
+        if (!(await sameContent(source, join(root, target)))) differ.push(target);
+      }
     }
   }
   const createConfig = !(await exists(join(root, CONFIG_FILE)));
-  return ok({ copies, kept, createConfig, next: installable.next });
+  return ok({ copies, kept, differ, createConfig, next: installable.next });
 }
 
 /** Copies the missing files and creates the config when the project has none. */
@@ -146,9 +177,16 @@ function formatAdd(plan: AddPlan): string {
   const lines = [`Added ${plan.copies.length} file(s) to .aidt/`];
   if (plan.createConfig) lines.push(`Created ${CONFIG_FILE}`);
   if (plan.kept.length > 0) {
+    const differs = new Set(plan.differ);
     lines.push(
       `Kept ${plan.kept.length} existing file(s) unchanged:`,
-      ...plan.kept.map((p) => `    ${p}`),
+      ...plan.kept.map((p) => `    ${p}${differs.has(p) ? "  (differs from this version's)" : ""}`),
+    );
+  }
+  if (plan.differ.length > 0) {
+    lines.push(
+      `${plan.differ.length} of them differ from this version's: an older copy, or your changes.`,
+      "To take this version's, compare them with it, or delete the file and run aidt add again.",
     );
   }
   if (plan.next) lines.push(plan.next);

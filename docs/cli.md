@@ -9,9 +9,9 @@ npm install -g @akiles94/ai-dev-toolkit    # then: aidt <command>
 ```
 
 Requires Node 24 and git. No network calls, no telemetry. Exit codes: `0` ok · `1` findings
-(`--check`, a broken rule, a stack not ready, a context over budget, a demo stopped at a step or
-by its recording) · `2` usage or git error, a tool a demo needs that is not installed, or an app
-that did not start.
+(`--check`, a broken rule, a stack not ready, a context over budget, a demo or a QA walk stopped
+at a step, a demo stopped by its recording) · `2` usage or git error, a tool a demo or a walk needs
+that is not installed, or an app that did not start or does not answer.
 
 ## Which changes
 
@@ -28,7 +28,7 @@ Every command that reads a diff takes the same source options. The default is
 
 | Command | What it does |
 |---|---|
-| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you changed |
+| `aidt add <product\|agent>` | Copy `workflow`, `structure`, `context`, `demo`, `qa`, or one agent alone (`reviewer`, `refiner`, `walkthrough`) into `.aidt/`, then `sync`. Never overwrites a file you have: it marks the ones that differ from this version's (an older copy, or your changes) |
 | `aidt sync [--check]` | Render `.aidt/agents/*.md` for Copilot (`.github/agents/`) and Claude Code (`.claude/skills/`). `--check` fails when they are stale |
 | `aidt diff [--files] [--json]` | Diff stats with tests, config, noise (lockfiles, generated, snapshots) and formatting-only changes counted apart |
 | `aidt clean [paths…] [--check]` | Remove `@guide` comments from changed files; `--check` lists them and fails |
@@ -36,6 +36,7 @@ Every command that reads a diff takes the same source options. The default is
 | `aidt stack prepare` / `submit [--dry-run]` | One branch per reviewed section, each based on the previous one / push them and open one draft PR each (`gh` or `glab`) |
 | `aidt structure audit [--json]` | Check the structure rules S1–S5; exceptions in `.aidt/structure.md` |
 | `aidt demo render <script> [--sample]` | Record a demo script as a narrated video, its subtitles and a PR text, with no model; `--sample` renders the first scene only ([demo](demo.md)) |
+| `aidt qa walk <file> [--json]` | Play a QA walk in a real browser, one context per person, and print what the app answered at each step, with no model; the app must already be running ([qa](qa.md#the-walk)) |
 | `aidt context check [--json]` | What every session loads (rules files, the status) against its token budget, and the status's «Read first» paths exist ([context](context.md)) |
 | `aidt walkthrough plan [--json]` | Split a change into sections of at most 300 lines, in reading order |
 | `aidt walkthrough start <ref> [name]` / `finish <name>` | Check a change out in an ignored local copy under `.aidt/walkthrough/` and plan it / remove it |
@@ -124,6 +125,8 @@ S2 · One module per resource (1)
 | `demo.subtitles` | `file` | `file` (a `.vtt`), `burned` (drawn into the video) or `none` |
 | `demo.output` | `.aidt/demo` | Where videos go; when the render creates it, it adds a `.gitignore` |
 | `demo.voices`, `demo.piper` | `~/.cache/aidt/voices`, `piper` | Where the voice models are; the Piper command |
+| `qa.output` | `.aidt/qa` | Where a walk's screenshots, page texts and log go; when the walk creates it, it adds a `.gitignore` |
+| `qa.origins` | `["local"]` | What a walk may reach: `local` (this machine, any port) and origins such as `https://staging.example.com`; anything else is blocked ([qa](qa.md#the-walk)) |
 
 ### Models
 

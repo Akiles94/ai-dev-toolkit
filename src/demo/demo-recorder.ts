@@ -1,9 +1,9 @@
-import { execFileSync, spawn } from "node:child_process";
-import { createRequire } from "node:module";
-import { join } from "node:path";
+import { spawn } from "node:child_process";
+import { type Locator, type Page, type Playwright, SCREENS } from "../shared/browser/playwright.ts";
+import { field, locate } from "../shared/browser/steps.ts";
 import { fail, ok, type Result } from "../shared/result/result.ts";
 import type { Cue } from "./demo-media.ts";
-import type { DemoScript, Step, Target } from "./demo-script.ts";
+import type { DemoScript, Step } from "./demo-script.ts";
 
 /** A line already turned into speech, waiting for its moment in the recording. */
 export interface Speech {
@@ -21,95 +21,16 @@ export interface Recording {
   readonly pageErrors: readonly string[];
 }
 
-// The few Playwright calls used here, so the toolkit needs no dependency on it.
-interface Locator {
-  nth(i: number): Locator;
-  first(): Locator;
-  count(): Promise<number>;
-  filter(o: { hasText: string }): Locator;
-  boundingBox(): Promise<{ x: number; y: number; width: number; height: number } | null>;
-  scrollIntoViewIfNeeded(): Promise<void>;
-  click(): Promise<void>;
-  pressSequentially(text: string, o: { delay: number }): Promise<void>;
-  fill(text: string): Promise<void>;
-  selectOption(option: { label: string }): Promise<unknown>;
-}
-interface Page {
-  goto(url: string): Promise<unknown>;
-  waitForTimeout(ms: number): Promise<void>;
-  waitForLoadState(state: "load"): Promise<void>;
-  locator(selector: string): Locator;
-  getByText(text: string): Locator;
-  getByLabel(text: string): Locator;
-  keyboard: { press(key: string): Promise<void> };
-  /** Runs `expression` inside the page: written as text, since the toolkit is not built for the DOM. */
-  evaluate(expression: string): Promise<unknown>;
-  on(event: "pageerror", fn: (e: Error) => void): void;
-  video(): { path(): Promise<string> } | null;
-  setDefaultTimeout(ms: number): void;
-}
-interface Browser {
-  newContext(o: object): Promise<{
-    newPage(): Promise<Page>;
-    addInitScript(s: string): Promise<void>;
-    close(): Promise<void>;
-  }>;
-  close(): Promise<void>;
-}
-interface Playwright {
-  chromium: { launch(o?: object): Promise<Browser> };
-}
-
-/** Playwright from the project, or installed globally; the toolkit does not ship it. */
-export function loadPlaywright(root: string): Playwright | undefined {
-  const from = (folder: string): Playwright | undefined => {
-    try {
-      return createRequire(join(folder, "package.json"))("playwright") as Playwright;
-    } catch {
-      return undefined;
-    }
-  };
-  return from(root) ?? from(globalModules());
-}
-
-/** npm's global folder (`npm root -g`), where a global `playwright` is; empty when npm is not there. */
-function globalModules(): string {
-  try {
-    const shell = process.platform === "win32";
-    return execFileSync("npm", ["root", "-g"], { encoding: "utf8", shell }).trim();
-  } catch {
-    return "";
-  }
-}
-
 /** A circle where the demo taps, so whoever watches sees what was pressed. */
 const TAP_STYLE = `addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');
 s.textContent='.aidt-tap{position:fixed;z-index:2147483647;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(220,38,38,.3);border:3px solid #dc2626;pointer-events:none;animation:aidt-tap .8s ease-out forwards}@keyframes aidt-tap{from{transform:scale(.4);opacity:1}to{transform:scale(1.5);opacity:0}}';
 document.head.appendChild(s);});`;
 
+/** The screens of `SCREENS`, each recorded at its full size in pixels. */
 const DEVICES = {
-  desktop: {
-    viewport: { width: 1280, height: 720 },
-    recordVideo: { size: { width: 1280, height: 720 } },
-  },
-  phone: {
-    viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 2,
-    isMobile: true,
-    hasTouch: true,
-    recordVideo: { size: { width: 780, height: 1688 } },
-  },
+  desktop: { ...SCREENS.desktop, recordVideo: { size: { width: 1280, height: 720 } } },
+  phone: { ...SCREENS.phone, recordVideo: { size: { width: 780, height: 1688 } } },
 };
-
-function locate(page: Page, target: Target): Locator {
-  if (typeof target === "string") {
-    return page
-      .locator("a, button, [role=button], label, summary, input[type=submit]")
-      .filter({ hasText: target });
-  }
-  if (target.selector) return page.locator(target.selector).nth(target.nth ?? 0);
-  return page.getByText(target.text ?? "").nth(target.nth ?? 0);
-}
 
 async function tap(page: Page, locator: Locator): Promise<void> {
   await locator.scrollIntoViewIfNeeded();
@@ -122,15 +43,10 @@ async function tap(page: Page, locator: Locator): Promise<void> {
   await page.waitForTimeout(350);
 }
 
-/** A form field by its label, or by a selector when no label tells it apart. */
-const field = (page: Page, where: { label?: string; selector?: string }): Locator =>
-  where.label ? page.getByLabel(where.label).first() : page.locator(where.selector ?? "").first();
-
 /** The steps that change a page: tapping, typing and choosing, each shown with a circle. */
 async function act(page: Page, step: Step): Promise<void> {
   if ("click" in step) {
-    const target =
-      typeof step.click === "string" ? locate(page, step.click).first() : locate(page, step.click);
+    const target = locate(page, step.click);
     await tap(page, target);
     await target.click();
     await page.waitForLoadState("load");

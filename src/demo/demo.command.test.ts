@@ -4,10 +4,10 @@ import { createServer, type Server } from "node:http";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { loadPlaywright } from "../shared/browser/playwright.ts";
 import { loadConfig } from "../shared/config/config.ts";
 import { commitAll, featureRepo, write } from "../shared/testing/temp-repo.ts";
 import { demoCommand } from "./demo.command.ts";
-import { loadPlaywright } from "./demo-recorder.ts";
 
 // A real render needs a browser, ffmpeg and a voice. Where they are missing (CI) it is skipped;
 // the rules it relies on are covered by demo-script.test.ts and demo-media.test.ts.

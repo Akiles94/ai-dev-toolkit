@@ -7,7 +7,6 @@ import {
   type Request,
   SCREENS,
 } from "../shared/browser/playwright.ts";
-import { BLOCKED, confine } from "./qa-origins.ts";
 import type { Call } from "./qa-walk.ts";
 
 /** One person's browser: a context of their own (cookies, storage, device) and its page. */
@@ -48,9 +47,11 @@ interface Reporting {
   readonly base: string;
   readonly bucket: () => Bucket;
   readonly acting: () => string;
+  /** What the walk may reach: a call elsewhere was stopped by the proxy, which logs it once. */
+  readonly allowed: (address: string) => boolean;
 }
 
-function listen(actor: Actor, { base, bucket, acting }: Reporting, blocked: Set<string>): void {
+function listen(actor: Actor, { base, bucket, acting, allowed }: Reporting): void {
   const { page, inflight } = actor;
   // Another person's page may still be working (a timer, a poll): its calls name who made them.
   const call = (request: Request, status: number | string) =>
@@ -67,13 +68,13 @@ function listen(actor: Actor, { base, bucket, acting }: Reporting, blocked: Set<
     inflight.count--;
   });
   page.on("response", (response) => {
-    if (worthLogging(response.request(), response.status()))
-      call(response.request(), response.status());
+    const request = response.request();
+    if (allowed(request.url()) && worthLogging(request, response.status()))
+      call(request, response.status());
   });
   page.on("requestfailed", (request) => {
     inflight.count--;
-    const failed = request.failure()?.errorText ?? "failed";
-    call(request, blocked.has(request.url()) ? BLOCKED : failed);
+    if (allowed(request.url())) call(request, request.failure()?.errorText ?? "failed");
   });
   page.on("console", (message) => {
     if (message.type() === "error") bucket().consoleErrors.push(message.text());
@@ -81,21 +82,18 @@ function listen(actor: Actor, { base, bucket, acting }: Reporting, blocked: Set<
   page.on("pageerror", (error) => bucket().pageErrors.push(error.message));
 }
 
-/** A new browser context for a person, confined to what the walk may reach, with its page. */
+/** A new browser context for a person, with its page; the browser goes through the walk's proxy. */
 export async function openActor(
   browser: Browser,
   name: string,
   device: Device,
-  allowed: (address: string) => boolean,
   reporting: Reporting,
 ): Promise<Actor> {
-  const context = await browser.newContext({ ...SCREENS[device], serviceWorkers: "block" });
-  const blocked = new Set<string>();
-  await confine(context, allowed, blocked);
+  const context = await browser.newContext({ ...SCREENS[device] });
   const page = await context.newPage();
   page.setDefaultTimeout(ACTION_TIMEOUT_MS);
   const actor: Actor = { name, context, page, inflight: { count: 0 }, offline: false };
-  listen(actor, reporting, blocked);
+  listen(actor, reporting);
   return actor;
 }
 

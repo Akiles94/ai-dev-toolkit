@@ -100,6 +100,13 @@ describe("aidt qa walk", () => {
       "cart exists and is not a walk's output: set qa.output to a folder of its own, or rename the walk.",
     );
     expect(existsSync(join(repo, "cart/keep.ts"))).toBe(true);
+    // A walk that was interrupted left its log's first line: that folder is a walk's.
+    mkdirSync(join(repo, ".aidt/qa/cart"), { recursive: true });
+    write(repo, {
+      ".aidt/config.json": "{}",
+      ".aidt/qa/cart/walk.json": '{"title":"Cart","running":true}\n',
+    });
+    await expect(walk(repo)).resolves.toBeDefined();
     write(repo, { ".aidt/config.json": JSON.stringify({ qa: { output: "../elsewhere" } }) });
     await expect(walk(repo)).rejects.toThrow("qa.output must be a folder inside the repository");
   });

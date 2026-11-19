@@ -3,6 +3,8 @@ import { join } from "node:path";
 import type { Playwright } from "../shared/browser/playwright.ts";
 import { type Field, field, locate, type Target } from "../shared/browser/steps.ts";
 import { type Actor, type Bucket, openActor, settle, shown } from "./qa-actor.ts";
+import { BLOCKED } from "./qa-origins.ts";
+import { proxiedLaunch, startProxy, type WalkProxy } from "./qa-proxy.ts";
 import {
   type ApiCall,
   type Call,
@@ -72,13 +74,17 @@ async function request(env: Env, call: ApiCall): Promise<Outcome> {
   const path = shown(url, env.base);
   if (env.actor.offline)
     return { calls: [{ method, path, status: "net::ERR_INTERNET_DISCONNECTED" }] };
+  // A redirect is not followed: it is shown, and its target is the walk's to reach or not.
   const response = await env.actor.context.request.fetch(url, {
     method,
     data: call.body,
     failOnStatusCode: false,
+    maxRedirects: 0,
   });
+  const location = response.headers().location;
   const text = (await response.text()).replace(/\s+/g, " ").trim();
-  const answer = text.length > BODY_CHARS ? `${text.slice(0, BODY_CHARS)}…` : text;
+  const cut = text.length > BODY_CHARS ? `${text.slice(0, BODY_CHARS)}…` : text;
+  const answer = location ? `redirect to ${location}, not followed` : cut;
   return { calls: [{ method, path, status: response.status() }], ...(answer ? { answer } : {}) };
 }
 
@@ -167,6 +173,15 @@ async function perform(env: Env, written: WalkStep): Promise<Outcome> {
   return outcome;
 }
 
+/** The calls the proxy refused since the last step, as the log shows them. */
+function blockedCalls(proxy: WalkProxy, base: string): Call[] {
+  return proxy.refused.splice(0).map(({ method, url }) => ({
+    method,
+    path: method === "CONNECT" ? url : shown(url, base),
+    status: BLOCKED,
+  }));
+}
+
 /**
  * Plays a walk in a real browser, one context per person, and logs what the app answered to each
  * step. Every person's browser reaches only what `allowed` accepts. Stops at the first step that
@@ -179,19 +194,26 @@ export async function playWalk(
   outDir: string,
   allowed: (address: string) => boolean,
 ): Promise<WalkLog> {
-  const browser = await playwright.chromium.launch();
+  const proxy = await startProxy(allowed);
+  const browser = await playwright.chromium.launch(proxiedLaunch(proxy)).catch(async (error) => {
+    await proxy.close();
+    throw error;
+  });
   const actors = new Map<string, Actor>();
   let bucket: Bucket = { calls: [], consoleErrors: [], pageErrors: [] };
   const first = Object.keys(walk.people)[0] ?? "person";
   let person = first;
-  const reporting = { base: walk.app.url, bucket: () => bucket, acting: () => person };
+  const base = walk.app.url;
+  const reporting = { base, bucket: () => bucket, acting: () => person, allowed };
   const actorFor = async (name: string): Promise<Actor> => {
     const actor =
       actors.get(name) ??
-      (await openActor(browser, name, walk.people[name]?.device ?? "desktop", allowed, reporting));
+      (await openActor(browser, name, walk.people[name]?.device ?? "desktop", reporting));
     actors.set(name, actor);
     return actor;
   };
+  // What the proxy stopped during a step, from any page, worker or socket of the walk.
+  const logged = () => ({ ...bucket, calls: [...bucket.calls, ...blockedCalls(proxy, base)] });
   const steps: StepLog[] = [];
   const kept = new Map<string, string>();
   try {
@@ -201,27 +223,29 @@ export async function playWalk(
       bucket = { calls: [], consoleErrors: [], pageErrors: [] };
       const n = i + 1;
       const shot = join(outDir, `${String(n).padStart(2, "0")}-${person}`);
-      const base = { n, person, step: describeStep(step) };
-      const env = { actor, base: walk.app.url, kept, shot, allowed };
+      const said = { n, person, step: describeStep(step) };
+      const env = { actor, base, kept, shot, allowed };
       try {
         const { calls = [], ...outcome } = await perform(env, step);
+        const log = logged();
         steps.push({
-          ...base,
+          ...said,
           url: actor.page.url(),
-          ...bucket,
-          calls: [...bucket.calls, ...calls],
+          ...log,
+          calls: [...log.calls, ...calls],
           ...outcome,
         });
       } catch (error) {
         const failure = reason((error as Error).message);
         const screenshot = `${shot}.png`;
         await actor.page.screenshot({ path: screenshot }).catch(() => undefined);
-        steps.push({ ...base, url: actor.page.url(), ...bucket, screenshot, failure });
-        return { title: walk.title, url: walk.app.url, steps, stopped: true };
+        steps.push({ ...said, url: actor.page.url(), ...logged(), screenshot, failure });
+        return { title: walk.title, url: base, steps, stopped: true };
       }
     }
-    return { title: walk.title, url: walk.app.url, steps, stopped: false };
+    return { title: walk.title, url: base, steps, stopped: false };
   } finally {
     await browser.close();
+    await proxy.close();
   }
 }

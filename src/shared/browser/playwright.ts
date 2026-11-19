@@ -61,23 +61,12 @@ export interface Page {
 
 interface ApiResponse {
   status(): number;
+  headers(): Record<string, string>;
   text(): Promise<string>;
-}
-
-/** A call held on its way out, to let it go or stop it. */
-interface Route {
-  request(): Request;
-  continue(): Promise<void>;
-  abort(errorCode: string): Promise<void>;
 }
 
 export interface BrowserContext {
   newPage(): Promise<Page>;
-  route(url: string, handler: (route: Route) => unknown): Promise<void>;
-  routeWebSocket(
-    url: (url: URL) => boolean,
-    handler: (socket: { close(o: { code: number; reason: string }): unknown }) => unknown,
-  ): Promise<void>;
   addInitScript(s: string): Promise<void>;
   setOffline(offline: boolean): Promise<void>;
   clearCookies(): Promise<void>;
@@ -85,7 +74,7 @@ export interface BrowserContext {
   request: {
     fetch(
       url: string,
-      o: { method: string; data?: unknown; failOnStatusCode: false },
+      o: { method: string; data?: unknown; failOnStatusCode: false; maxRedirects?: number },
     ): Promise<ApiResponse>;
   };
   close(): Promise<void>;

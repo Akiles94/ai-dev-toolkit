@@ -135,8 +135,11 @@ async function walkCommand(context: CliContext, file: string | undefined): Promi
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   const commit = await walkedAt(root);
-  const log = await playWalk(playwright, walk, outDir, allowed);
+  // Written first, so a walk that fails to launch or is interrupted still leaves a folder the
+  // next run knows as a walk's.
   const logPath = join(outDir, "walk.json");
+  await writeFile(logPath, `${JSON.stringify({ title: walk.title, commit, running: true })}\n`);
+  const log = await playWalk(playwright, walk, outDir, allowed);
   await writeFile(logPath, `${JSON.stringify({ ...log, commit }, null, 2)}\n`);
   print(
     flags.json

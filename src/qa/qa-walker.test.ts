@@ -24,6 +24,9 @@ async function add() {
 }
 </script>`;
 
+/** Where the shop's redirect sends a walk. */
+let awayTo = "";
+
 /** Starts the shop on a free port; every start has an empty cart. */
 async function startShop(): Promise<{ url: string; close: () => void; hits: () => number }> {
   let items = 0;
@@ -37,6 +40,9 @@ async function startShop(): Promise<{ url: string; close: () => void; hits: () =
     "GET /poll": () => [200, html, poll],
     "GET /tick": () => [200, {}, "tick"],
     "POST /orders": () => [201, {}, ""],
+    // An open redirect, to wherever the test points it: a walk must not follow it out.
+    "GET /away": () => [302, { location: awayTo }, ""],
+    "POST /away": () => [307, { location: awayTo }, ""],
     "POST /items": () => [200, { "content-type": "application/json" }, `{"count":${++items}}`],
     "DELETE /items/cart-42": () => {
       items = 0;
@@ -284,6 +290,31 @@ describe("playWalk reaches only what qa.origins allows", () => {
   });
 
   it.skipIf(!playwright)(
+    "follows no redirect out: the browser's is blocked, a request's is shown",
+    async () => {
+      awayTo = `${outside.url}/leak?card=4242`;
+      const before = outside.hits();
+      const log = await playWalk(
+        playwright as Playwright,
+        walkOf([
+          { go: "/away" },
+          { request: { method: "POST", path: "/away", body: { card: 4242 } } },
+        ]),
+        folder(),
+        onlyTheShop(),
+      );
+      expect(log.steps[0]?.calls).toContainEqual({
+        method: "GET",
+        path: `${outside.url}/leak?card=4242`,
+        status: "blocked: outside qa.origins",
+      });
+      expect(log.steps[1]?.calls).toEqual([{ method: "POST", path: "/away", status: 307 }]);
+      expect(log.steps[1]?.answer).toBe(`redirect to ${outside.url}/leak?card=4242, not followed`);
+      expect(outside.hits()).toBe(before);
+    },
+  );
+
+  it.skipIf(!playwright)(
     "blocks the page's own calls and sockets to anywhere else, and logs them",
     async () => {
       const before = outside.hits();
@@ -304,6 +335,11 @@ describe("playWalk reaches only what qa.origins allows", () => {
         onlyTheShop(),
       );
       expect(log.steps[1]?.answer).toBe('sent = "blocked" · socket = "closed"');
+      expect(log.steps.flatMap((s) => s.calls)).toContainEqual({
+        method: "CONNECT",
+        path: outside.url.replace("http://", ""),
+        status: "blocked: outside qa.origins",
+      });
       expect(log.steps.flatMap((s) => s.calls)).toContainEqual({
         method: "POST",
         path: `${outside.url}/leak`,

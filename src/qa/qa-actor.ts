@@ -69,14 +69,21 @@ function listen(actor: Actor, { base, bucket, acting, allowed }: Reporting): voi
   page.on("requestfinished", () => {
     inflight.count--;
   });
+  const answered = new WeakSet<Request>();
   page.on("response", (response) => {
     const request = response.request();
+    answered.add(request);
     if (allowed(request.url()) && worthLogging(request, response.status()))
       call(request, response.status());
   });
   page.on("requestfailed", (request) => {
     inflight.count--;
-    if (allowed(request.url())) call(request, request.failure()?.errorText ?? "failed");
+    const failure = request.failure()?.errorText ?? "failed";
+    // A call that had its answer is not logged again when the browser drops its body (a fetch
+    // whose answer nobody reads): one call, answered. An answer cut off half-way still shows.
+    if (!allowed(request.url()) || (answered.has(request) && failure === "net::ERR_ABORTED"))
+      return;
+    call(request, failure);
   });
   page.on("console", (message) => {
     if (message.type() === "error") bucket().consoleErrors.push(message.text());

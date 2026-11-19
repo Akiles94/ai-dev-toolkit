@@ -28,6 +28,8 @@ async function add() {
 let awayTo = "";
 /** Event streams a page holds open on the shop. */
 let liveEvents = 0;
+/** Orders the shop received. */
+let orders = 0;
 
 /** Starts the shop on a free port; every start has an empty cart. */
 async function startShop(): Promise<{ url: string; close: () => void; hits: () => number }> {
@@ -41,7 +43,10 @@ async function startShop(): Promise<{ url: string; close: () => void; hits: () =
     "GET /next": () => [200, html, PAGE],
     "GET /poll": () => [200, html, poll],
     "GET /tick": () => [200, {}, "tick"],
-    "POST /orders": () => [201, {}, ""],
+    "POST /orders": () => {
+      orders++;
+      return [201, {}, ""];
+    },
     "GET /live": () => [200, html, "<p>Live</p><script>new EventSource('/events')</script>"],
     "POST /created": () => [201, { location: "/orders/42" }, '{"id":42}'],
     // An open redirect, to wherever the test points it: a walk must not follow it out.
@@ -216,12 +221,14 @@ describe("playWalk, as a person would do it", () => {
   it.skipIf(!playwright)(
     "a double tap is two quick clicks: a button that disables itself takes one",
     async () => {
+      const before = orders;
       const log = await playWalk(
         playwright as Playwright,
         walkOf([{ go: "/" }, { click: "Order", times: 2 }]),
         folder(),
         local,
       );
+      expect(orders - before).toBe(1);
       expect(log.steps[1]?.calls).toEqual([{ method: "POST", path: "/orders", status: 201 }]);
     },
   );
